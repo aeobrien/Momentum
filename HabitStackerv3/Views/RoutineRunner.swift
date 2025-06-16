@@ -103,6 +103,12 @@ class RoutineRunner: ObservableObject {
     /// Tracks the total deviation from the scheduled completion times (in seconds).
     /// Negative means ahead of schedule, Positive means behind schedule.
     private var scheduleOffset: TimeInterval = 0
+    
+    /// The original finishing time selected when the routine was started.
+    @Published private(set) var originalFinishingTime: Date = Date()
+    
+    /// The estimated finishing time based on the original time plus/minus the schedule offset.
+    @Published var estimatedFinishingTimeString: String = ""
 
     // MARK: - Logging
 
@@ -126,7 +132,8 @@ class RoutineRunner: ObservableObject {
     /// - Parameter context: The NSManagedObjectContext for Core Data operations.
     /// - Parameter routine: The CDRoutine this schedule belongs to (for context like name).
     /// - Parameter schedule: The ordered list of ScheduledTask objects to run.
-    init(context: NSManagedObjectContext, routine: CDRoutine, schedule: [ScheduledTask]) {
+    /// - Parameter originalFinishingTime: The original finishing time selected when the routine was started.
+    init(context: NSManagedObjectContext, routine: CDRoutine, schedule: [ScheduledTask], originalFinishingTime: Date = Date()) {
         // Find the routine associated with the first task for context (e.g., name)
         // This assumes schedule is not empty and tasks belong to the same routine.
         // guard let firstTask = schedule.first?.task, let routine = firstTask.routine else {
@@ -137,6 +144,7 @@ class RoutineRunner: ObservableObject {
         self.context = context
         self.scheduledTasks = schedule
         self.routine = routine // Use the passed-in routine
+        self.originalFinishingTime = originalFinishingTime
 
         // Calculate total duration
         self.totalRoutineDuration = schedule.reduce(0) { $0 + $1.allocatedDuration }
@@ -146,6 +154,7 @@ class RoutineRunner: ObservableObject {
         // fetchAndSortTasks() // No longer needed - schedule is provided
         prepareFirstTask() // Set up the first task from the schedule
         updateScheduleOffsetString() // Initialize offset string
+        updateEstimatedFinishingTimeString() // Initialize estimated finishing time
         // Initialize completed duration (starts at 0)
         updateCompletedDuration()
     }
@@ -203,6 +212,7 @@ class RoutineRunner: ObservableObject {
 
         updateRemainingTimeDisplay(currentTaskDuration) // Show full (allocated) duration initially
         updateScheduleOffsetString() // Update offset string display
+        updateEstimatedFinishingTimeString() // Update estimated finishing time
 
         // Update the next task name
         let nextIndex = index + 1
@@ -331,6 +341,7 @@ class RoutineRunner: ObservableObject {
         logger.info("Task '\(completedTaskName, privacy: .public)' completed. Duration: \(actualDuration, format: .fixed(precision: 1))s (Expected: \(expectedDuration, format: .fixed(precision: 1))s). Deviation: \(deviation, format: .fixed(precision: 1))s. New total offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
 
         self.updateScheduleOffsetString()
+        self.updateEstimatedFinishingTimeString()
         self.remainingTimeOnPause = nil
         self.isOverrun = false
         self.lastOffsetUpdateTime = nil
@@ -365,7 +376,7 @@ class RoutineRunner: ObservableObject {
         self.advanceToNextTask()
     }
 
-    /// Skips the current task without marking it complete or affecting schedule offset.
+    /// Skips the current task, updating schedule offset based on time saved.
     func skipCurrentTask() {
         guard self.currentTaskIndex != -1 && self.currentTaskIndex < self.scheduledTasks.count && !self.isRoutineComplete else {
             logger.warning("Skip called but no task is active or routine is finished.")
@@ -375,7 +386,31 @@ class RoutineRunner: ObservableObject {
         let skippedTaskName = skippedTask.taskName ?? "Unnamed Task"
         logger.info("User skipped task '\(skippedTaskName, privacy: .public)'.")
 
-        // Stop timer and reset state, but don't calculate deviation or update completion
+        // Calculate time saved by skipping
+        let expectedDuration = self.currentTaskDuration // This is the allocated duration
+        var timeElapsed: TimeInterval = 0
+        
+        if let pauseTime = self.remainingTimeOnPause {
+            // Task was paused, calculate elapsed time from remaining
+            timeElapsed = expectedDuration - pauseTime
+        } else if let start = startTime {
+            // Task was running, calculate elapsed time
+            timeElapsed = Date().timeIntervalSince(start)
+        } else {
+            // Task was never started, elapsed time is 0
+            timeElapsed = 0
+        }
+        
+        let timeSaved = expectedDuration - timeElapsed
+        
+        // Update schedule offset - negative means ahead of schedule
+        self.scheduleOffset -= timeSaved
+        logger.info("Task '\(skippedTaskName, privacy: .public)' skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s. New total offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
+        
+        self.updateScheduleOffsetString()
+        self.updateEstimatedFinishingTimeString()
+
+        // Stop timer and reset state
         timer?.cancel()
         timer = nil
         isRunning = false
@@ -508,6 +543,7 @@ class RoutineRunner: ObservableObject {
         self.configureTask(at: self.currentTaskIndex)
 
         self.updateScheduleOffsetString()
+        self.updateEstimatedFinishingTimeString()
         logger.debug("Timer reset complete for '\(taskName, privacy: .public)'. Current schedule offset remains \(self.scheduleOffset, format: .fixed(precision: 1))s.")
 
         // Should it auto-start after reset? For now, no. User must press start again.
@@ -587,6 +623,7 @@ class RoutineRunner: ObservableObject {
                     // Note: timeSinceLastUpdate might be slightly more or less than 1.0s
                     self.scheduleOffset += timeSinceLastUpdate // Add the *actual* elapsed time during overrun
                     self.updateScheduleOffsetString()
+                    self.updateEstimatedFinishingTimeString()
                     self.lastOffsetUpdateTime = fireDate // Update for the next calculation
                     self.logger.trace("Overrun: Added \(timeSinceLastUpdate, format: .fixed(precision: 1))s to offset. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
                 } else {
@@ -695,6 +732,43 @@ class RoutineRunner: ObservableObject {
              self.scheduleOffsetString = newString
          }
     }
+    
+    /// Updates the `estimatedFinishingTimeString` published property based on the original finishing time and schedule offset.
+    private func updateEstimatedFinishingTimeString() {
+        let estimatedFinishingTime = originalFinishingTime.addingTimeInterval(scheduleOffset)
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        let timeString = formatter.string(from: estimatedFinishingTime)
+        
+        DispatchQueue.main.async {
+            self.estimatedFinishingTimeString = "Est. finish: \(timeString)"
+        }
+    }
+
+    // MARK: - Public Control Methods
+    
+    /// Stops the routine and cleans up all timers and state.
+    func stopRoutine() {
+        logger.info("Stopping routine '\(self.routine.name ?? "Unnamed")' by user request.")
+        
+        // Stop and clean up timer
+        timer?.cancel()
+        timer = nil
+        isRunning = false
+        startTime = nil
+        remainingTimeOnPause = nil
+        backgroundEnterTime = nil
+        isOverrun = false
+        lastOffsetUpdateTime = nil
+        
+        // Update UI state on main thread
+        DispatchQueue.main.async {
+            self.isRunning = false
+            self.objectWillChange.send()
+        }
+        
+        logger.info("Routine stopped and all timers cleaned up.")
+    }
 
      // MARK: - Deinitialization
      deinit {
@@ -719,7 +793,7 @@ class RoutineRunner: ObservableObject {
         case .active:
             // App came to foreground
             logger.info("App became active.")
-            // Check if we have a background entry time recorded
+            // Check if we have a background entry time recorded (only set when actually going to background)
             if let backgroundEnterTime = backgroundEnterTime {
                 // Calculate time spent in background
                 let timeInBackground = Date().timeIntervalSince(backgroundEnterTime)
@@ -751,6 +825,7 @@ class RoutineRunner: ObservableObject {
                         scheduleOffset += overrunDuration
                         logger.debug("Schedule offset increased by overrun duration. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s")
                         updateScheduleOffsetString()
+                        updateEstimatedFinishingTimeString()
 
                         // Update display to 00:00 immediately
                         updateRemainingTimeDisplay(0)
@@ -777,19 +852,22 @@ class RoutineRunner: ObservableObject {
                     }
                 }
             } else {
-                 // App became active, but wasn't backgrounded (e.g., first launch)
+                 // App became active, but wasn't backgrounded (e.g., first launch, or returning from inactive without background)
                  logger.info("App became active, no background time detected.")
-                 // If the timer should be running but wasn't (e.g., after a system interruption),
-                 // potentially restart it here, but the current logic handles this via onAppear.
+                 // If we were inactive (e.g., Control Centre) but never backgrounded, ensure timer is still running if it should be
+                 if !isRoutineComplete && currentTaskIndex != -1 && !isRunning && remainingTimeOnPause == nil {
+                     // Timer should be running but isn't - restart it
+                     logger.info("Restarting timer after inactive period without backgrounding.")
+                     startTimer()
+                 }
             }
 
         case .inactive:
-            // App is transitioning away from active state (e.g., multitasking switcher, alert)
-            logger.info("App became inactive. Pausing timer if running.")
-            // Treat inactive like background for pausing, but don't record background time yet
-            if isRunning {
-                 pauseTimer(isBackgrounding: false) // Pause but don't set backgroundEnterTime yet
-            }
+            // App is transitioning away from active state (e.g., multitasking switcher, alert, Control Centre)
+            logger.info("App became inactive. Not pausing timer - waiting to see if it goes to background.")
+            // Don't pause immediately on inactive - this happens for Control Centre, notifications, etc.
+            // Only pause if we actually go to background. This prevents interruption from
+            // Control Centre access or notification panel pulls.
 
         case .background:
             // App entered background

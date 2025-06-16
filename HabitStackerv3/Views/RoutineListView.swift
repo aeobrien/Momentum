@@ -44,8 +44,7 @@ struct RoutineListView: View {
     }
     
     var body: some View {
-        NavigationView { // Added NavigationView to host toolbar items properly
-            List {
+        List {
                 ForEach(cdRoutines, id: \.uuid) { cdRoutine in
                     NavigationLink(
                         destination: RoutineDetailView(cdRoutine: cdRoutine, viewModel: viewModel)
@@ -144,7 +143,6 @@ struct RoutineListView: View {
                     logger.error("Error received from ViewModel: \(error)")
                 }
             }
-        } // End NavigationView
     }
     
     // --- Paste from Clipboard Function --- 

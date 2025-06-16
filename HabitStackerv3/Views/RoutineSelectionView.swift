@@ -188,6 +188,7 @@ struct RoutineSelectionView: View {
                 SchedulePreviewView(
                     initialSchedule: schedule,
                     routine: routine,
+                    originalFinishingTime: selectedTime,
                     runnerInstance: $runnerInstance,
                     navigateToRunner: $navigateToRunner
                 )
@@ -389,7 +390,7 @@ struct RoutineSelectionView: View {
                 }
 
                 DispatchQueue.main.async {
-                    let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule)
+                    let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule, originalFinishingTime: self.selectedTime)
                     self.runnerInstance = newRunner
                     self.isLoading = false
                     self.navigateToRunner = true

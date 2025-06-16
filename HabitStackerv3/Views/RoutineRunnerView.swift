@@ -128,8 +128,13 @@ struct RoutineRunnerView: View {
                                             .font(.headline)
                                             .foregroundColor(scheduleColor())
                                     }
+                                    
+                                    // Estimated finishing time
+                                    Text(runner.estimatedFinishingTimeString)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
                                 }
-                                .frame(height: 70)
+                                .frame(height: 90)
                                 .frame(maxWidth: .infinity)
                                 // Updated transition offset based on new layout
                                 .transition(.opacity.combined(with: .offset(y: -20)))
@@ -264,10 +269,9 @@ struct RoutineRunnerView: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         if !runner.isRoutineComplete { // Only show if routine is running
                             Button {
-                                // Add confirmation alert?
-                                logger.warning("User tapped custom back button - potentially cancelling routine.")
-                                // Maybe call a specific cancel method on runner?
-                                // For now, just dismiss.
+                                logger.warning("User tapped custom back button - cancelling routine.")
+                                // Stop the routine properly before dismissing
+                                runner.stopRoutine()
                                 presentationMode.wrappedValue.dismiss()
                             } label: {
                                 Image(systemName: "xmark") // Use 'xmark' for cancel/close
@@ -462,9 +466,9 @@ struct RoutineRunnerView_Previews: PreviewProvider {
         ]
 
         // 5. Create Runner instances using the new initializer
-        let runner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule)
-        let simpleRunner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule)
-        let completedRunner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule)
+        let runner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule, originalFinishingTime: Date().addingTimeInterval(3600))
+        let simpleRunner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule, originalFinishingTime: Date().addingTimeInterval(3600))
+        let completedRunner = RoutineRunner(context: context, routine: sampleRoutine, schedule: sampleSchedule, originalFinishingTime: Date().addingTimeInterval(3600))
         // Simulate completion if needed (Requires changes in RoutineRunner to expose state or method)
         // completedRunner.isRoutineComplete = true // Example - If property is mutable
 
