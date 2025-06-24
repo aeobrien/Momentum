@@ -6,9 +6,10 @@ struct ContentView: View {
     
     // State variable to track the selected tab tag
     @State private var selectedTabTag: Int = 0 // Default to Tasks tab (tag 0)
+    @State private var showTempRoutineEntry = false
     
-    // Constant for the crash action tag
-    private let crashActionTabTag = 99
+    // Constant for the temp action tag
+    private let tempActionTabTag = 99
     
     #if DEBUG
     @State private var showTestView = false
@@ -57,37 +58,29 @@ struct ContentView: View {
             }
             .tag(3) // Assign tag 3
             
-            #if DEBUG
-            // Crash Report Tab (Action Trigger)
-            Text("Crash Report Action Trigger") // Placeholder view
+            // Temp Routine Tab (Action Trigger)
+            Text("Temp Routine Action Trigger") // Placeholder view
                 .tabItem {
-                    Label("Crash", systemImage: "exclamationmark.triangle.fill")
+                    Label("Temp", systemImage: "timer")
                 }
-                .tag(crashActionTabTag) // Assign the special tag
-            #endif
+                .tag(tempActionTabTag) // Assign the special tag
         }
         .onChange(of: selectedTabTag) { newTag in
-            #if DEBUG
-            // Check if the Crash Action tab was selected
-            if newTag == crashActionTabTag {
-                print("[ContentView.onChange] Crash Action Tab (\(newTag)) selected!")
-                // Trigger the crash report generation
-                InternalLogManager.shared.generateAndAppendCrashReport()
-                print("[ContentView.onChange] Called generateAndAppendCrashReport.")
+            // Check if the Temp Action tab was selected
+            if newTag == tempActionTabTag {
+                // Show the temp routine entry sheet
+                showTempRoutineEntry = true
                 
-                // Switch back to the default tab *after a short delay*
+                // Switch back to the previous tab
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    // Check if we are still on the crash tab tag before switching back
-                    // Avoids accidentally switching if the user quickly tapped another tab.
-                    if selectedTabTag == crashActionTabTag {
+                    if selectedTabTag == tempActionTabTag {
                         selectedTabTag = 0 // Switch back to Tasks tab
-                        print("[ContentView.onChange] Switched selectedTabTag back to 0 after delay.")
-                    } else {
-                        print("[ContentView.onChange] User navigated away before delayed switch. No change made.")
                     }
                 }
             }
-            #endif
+        }
+        .sheet(isPresented: $showTempRoutineEntry) {
+            TempRoutineEntryView()
         }
     }
 }

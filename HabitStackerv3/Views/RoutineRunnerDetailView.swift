@@ -12,6 +12,7 @@ import CoreData // Import CoreData for preview context
 /// RoutineRunnerDetailView provides detailed information about the running routine.
 struct RoutineRunnerDetailView: View {
     @ObservedObject var runner: RoutineRunner
+    @State private var editMode: EditMode = .active // Enable edit mode for reordering
 
     // Access managed object context for fetching routine details if needed
     @Environment(\.managedObjectContext) private var viewContext
@@ -56,8 +57,14 @@ struct RoutineRunnerDetailView: View {
             Divider()
 
             // Task List with Status
-            Text("Tasks (\(runner.currentTaskIndex + 1)/\(runner.scheduledTasks.count))")
-            .font(.headline)
+            HStack {
+                Text("Tasks (\(runner.currentTaskIndex + 1)/\(runner.scheduledTasks.count))")
+                    .font(.headline)
+                Spacer()
+                Text("Drag to reorder")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             .padding(.bottom, 5)
 
             List {
@@ -68,6 +75,7 @@ struct RoutineRunnerDetailView: View {
                             .frame(width: 25, alignment: .center) // Align icons
 
                         Text(scheduledTask.task.taskName ?? "Unnamed Task")
+                            .foregroundColor(index <= runner.currentTaskIndex ? .secondary : .primary) // Dim completed/current tasks
 
                         Spacer()
 
@@ -76,9 +84,13 @@ struct RoutineRunnerDetailView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    .deleteDisabled(index <= runner.currentTaskIndex) // Disable delete for completed/current tasks
+                    .moveDisabled(index <= runner.currentTaskIndex) // Disable move for completed/current tasks
                 }
+                .onMove(perform: moveTask)
             }
             .listStyle(PlainListStyle())
+            .environment(\.editMode, $editMode) // Apply edit mode
 
             Spacer()
         }
@@ -121,6 +133,11 @@ struct RoutineRunnerDetailView: View {
              return .primary // Default color if something unexpected happens
          }
      }
+     
+    // Function to handle reordering tasks
+    private func moveTask(from source: IndexSet, to destination: Int) {
+        runner.reorderTasks(from: source, to: destination)
+    }
 
 }
 

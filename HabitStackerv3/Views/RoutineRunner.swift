@@ -762,6 +762,50 @@ class RoutineRunner: ObservableObject {
 
     // MARK: - Public Control Methods
     
+    /// Reorders tasks in the current schedule (affects only this run, not the saved routine)
+    /// - Parameters:
+    ///   - source: The indices of the tasks to move
+    ///   - destination: The new position for the tasks
+    public func reorderTasks(from source: IndexSet, to destination: Int) {
+        logger.info("Reordering tasks in running routine from \(source) to \(destination)")
+        
+        // Ensure we can only reorder future tasks (not completed or current)
+        guard currentTaskIndex >= 0 else {
+            logger.warning("Cannot reorder tasks: routine not started")
+            return
+        }
+        
+        // Adjust indices to account for completed/current tasks
+        let adjustedSource = IndexSet(source.map { $0 })
+        let adjustedDestination = destination
+        
+        // Prevent reordering completed or currently running task
+        if let minIndex = adjustedSource.min(), minIndex <= currentTaskIndex {
+            logger.warning("Cannot reorder completed or currently running tasks")
+            return
+        }
+        
+        if adjustedDestination <= currentTaskIndex {
+            logger.warning("Cannot move tasks before the current task")
+            return
+        }
+        
+        // Perform the reorder
+        scheduledTasks.move(fromOffsets: adjustedSource, toOffset: adjustedDestination)
+        
+        // Update next task name if it changed
+        let nextIndex = currentTaskIndex + 1
+        if nextIndex < scheduledTasks.count {
+            self.nextTaskName = scheduledTasks[nextIndex].task.taskName
+            logger.debug("Updated next task name after reorder: \(self.nextTaskName ?? "None")")
+        }
+        
+        // Notify SwiftUI of the change
+        objectWillChange.send()
+        
+        logger.info("Task reorder completed. New order affects only this run.")
+    }
+    
     /// Stops the routine and cleans up all timers and state.
     func stopRoutine() {
         logger.info("Stopping routine '\(self.routine.name ?? "Unnamed")' by user request.")

@@ -52,7 +52,7 @@ struct SchedulePreviewView: View {
         NavigationView {
             VStack {
                 // Instructions for the user
-                Text("Review the tasks scheduled for this run. You can remove tasks just for this instance.")
+                Text("Review the tasks scheduled for this run. You can remove or reorder tasks just for this instance.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -65,8 +65,10 @@ struct SchedulePreviewView: View {
                         taskRow(for: task)
                     }
                     .onDelete(perform: removeTask) // Allow swipe-to-delete
+                    .onMove(perform: moveTask) // Allow drag-to-reorder
                 }
                 .listStyle(PlainListStyle()) // Use plain style for better integration
+                .environment(\.editMode, .constant(.active)) // Enable edit mode for reordering
 
                 // Summary or total time (optional)
                 if !currentSchedule.isEmpty {
@@ -192,6 +194,12 @@ struct SchedulePreviewView: View {
         currentSchedule.remove(atOffsets: offsets)
         // Use taskName assuming it exists
         logger.info("Removed task '\(taskToRemove.task.taskName ?? "Unnamed")' from preview.")
+    }
+    
+    // Function for drag-to-reorder
+    private func moveTask(from source: IndexSet, to destination: Int) {
+        currentSchedule.move(fromOffsets: source, toOffset: destination)
+        logger.info("Reordered tasks in preview. New order affects only this run.")
     }
 
     // Function to run the routine with the modified schedule

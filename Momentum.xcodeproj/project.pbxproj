@@ -31,6 +31,13 @@
 		DD9480042CDC178B0014A929 /* CDRoutine+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */; };
 		DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */; };
 		DD9480082CDC18CE0014A929 /* RoutineStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */; };
+		DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */; };
+		DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */; };
+		DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B962E0B080400C573DB /* TempTaskList.swift */; };
+		DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */; };
+		DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */; };
+		DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */; };
+		DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */; };
 		DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */; };
 		DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */; };
 		DDF227F22CC957B50014505A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F12CC957B50014505A /* Assets.xcassets */; };
@@ -131,6 +138,13 @@
 		DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+Extensions.swift"; sourceTree = "<group>"; };
 		DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorageCoreData.swift; sourceTree = "<group>"; };
 		DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStorageCoreData.swift; sourceTree = "<group>"; };
+		DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineEntryView.swift; sourceTree = "<group>"; };
+		DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineTimeAllocationView.swift; sourceTree = "<group>"; };
+		DDAE4B962E0B080400C573DB /* TempTaskList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTaskList.swift; sourceTree = "<group>"; };
+		DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineRunner.swift; sourceTree = "<group>"; };
+		DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineRunnerView.swift; sourceTree = "<group>"; };
+		DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineDetailView.swift; sourceTree = "<group>"; };
+		DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRunnerWrapper.swift; sourceTree = "<group>"; };
 		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
 		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
 		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -379,6 +393,13 @@
 				DDF228212CC958D50014505A /* TaskStorageError.swift */,
 				DDF228232CC958EA0014505A /* TaskStorageInterface.swift */,
 				DDF228AF2CC97A670014505A /* TaskViewModel.swift */,
+				DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */,
+				DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */,
+				DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */,
+				DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */,
+				DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */,
+				DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */,
+				DDAE4B962E0B080400C573DB /* TempTaskList.swift */,
 				DD5902B92CDE5D48005F040A /* TestingStructs.swift */,
 				DD5902AF2CDD1CFA005F040A /* ToDoView.swift */,
 				DDF2281A2CC958990014505A /* Version.swift */,
@@ -553,9 +574,12 @@
 				DDF228D62CCEBFDA0014505A /* LogRecord.swift in Sources */,
 				DDF228BA2CC99C520014505A /* RoutineSetup.swift in Sources */,
 				DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */,
+				DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */,
 				DDF228A22CC96B830014505A /* RoutineStorage.swift in Sources */,
+				DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */,
 				DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */,
 				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
+				DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */,
 				DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */,
 				DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */,
 				DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */,
@@ -566,6 +590,7 @@
 				DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */,
 				DDF228902CC95DF60014505A /* TaskStorage.swift in Sources */,
 				DDF228A82CC96C0D0014505A /* RoutineViewModel.swift in Sources */,
+				DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */,
 				DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */,
 				DDF228912CC95DF60014505A /* Version.swift in Sources */,
 				DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */,
@@ -580,6 +605,7 @@
 				DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */,
 				DDF228AA2CC96C190014505A /* RoutineListView.swift in Sources */,
 				DDF228CF2CCD95E60014505A /* TaskCardView.swift in Sources */,
+				DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */,
 				DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */,
 				DDF228A42CC96BCA0014505A /* PriorityCalculator.swift in Sources */,
 				DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */,
@@ -596,6 +622,8 @@
 				DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */,
 				DD9480022CDC17730014A929 /* CDTask+Extensions.swift in Sources */,
 				DDF228932CC95DF60014505A /* PerformanceMonitor.swift in Sources */,
+				DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */,
+				DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */,
 				DDF228942CC95DF60014505A /* TaskListView.swift in Sources */,
 				DDF228BC2CC99C630014505A /* SetupLogger.swift in Sources */,
 				DDF2289E2CC96B640014505A /* RoutineError.swift in Sources */,
