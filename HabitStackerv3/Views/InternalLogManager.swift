@@ -79,7 +79,8 @@ final class InternalLogManager: ObservableObject {
     func log(_ level: LogLevel, _ message: String, context: String, error: Error? = nil) {
         // Log to console that we received a log request (optional, good for debugging)
         // Use the internal logger instance for console output only.
-        self.logger.debug("Received log request: [\(level.rawValue)] \(message)")
+        // Note: Avoid calling self.logger.debug here as it could cause recursion/deadlock
+        print("[InternalLogManager] Received log request: [\(level.rawValue)] \(message)")
         
         queue.async { // Perform internal logging logic asynchronously
             let now = Date()
@@ -90,12 +91,12 @@ final class InternalLogManager: ObservableObject {
             // Accessing currentSession here within the queue should be safe
             if TimeBlock.from(date: now) != self.currentSession.timeBlock {
                 // Log session change to console
-                self.logger.info("Time block changed. Ending old session, starting new.")
-                self.endCurrentSession(endTime: now)
+                print("[InternalLogManager] Time block changed. Ending old session, starting new.")
+                self.endCurrentSessionUnsafe(endTime: now) // Call unsafe version since we're already in the queue
                 // Update currentSession safely within the queue
                 self.currentSession = LogSession(startTime: now)
                 sessionChanged = true
-                self.logger.info("New Time Block Session Started. ID: \(self.currentSession.id)")
+                print("[InternalLogManager] New Time Block Session Started. ID: \(self.currentSession.id)")
             }
             
             let record = LogRecord(
@@ -113,19 +114,19 @@ final class InternalLogManager: ObservableObject {
                 if self.currentSession.id == targetSessionID {
                     self.currentSession.records.append(record)
                     // Log appending completion
-                    self.logger.debug("[log] Appended record ID \(record.id) to session \(targetSessionID) on main thread. New count: \(self.currentSession.records.count)")
+                    print("[InternalLogManager] Appended record ID \(record.id) to session \(targetSessionID) on main thread. New count: \(self.currentSession.records.count)")
                 } else {
-                    self.logger.warning("[log] Session changed between queue processing and main thread dispatch for record ID \(record.id). Appending to new session \(self.currentSession.id).")
+                    print("[InternalLogManager] Session changed between queue processing and main thread dispatch for record ID \(record.id). Appending to new session \(self.currentSession.id).")
                     // Append to the *new* current session instead
                     self.currentSession.records.append(record)
-                    self.logger.debug("[log] Appended record ID \(record.id) to NEW session \(self.currentSession.id) on main thread. New count: \(self.currentSession.records.count)")
+                    print("[InternalLogManager] Appended record ID \(record.id) to NEW session \(self.currentSession.id) on main thread. New count: \(self.currentSession.records.count)")
                 }
             }
             
             // Trigger save if critical, batch interval reached, or if the session just changed
             if sessionChanged || level == .error || level == .fatal ||
                now.timeIntervalSince(self.lastSaveTime) >= self.saveBatchInterval {
-                self.logger.debug("Triggering saveIfNeeded (Reason: sessionChanged=\(sessionChanged), level=\(level.rawValue), interval=\(now.timeIntervalSince(self.lastSaveTime))s)")
+                print("[InternalLogManager] Triggering saveIfNeeded (Reason: sessionChanged=\(sessionChanged), level=\(level.rawValue), interval=\(now.timeIntervalSince(self.lastSaveTime))s)")
                 self.saveIfNeeded()
             }
         }
@@ -262,34 +263,42 @@ final class InternalLogManager: ObservableObject {
         // 1. Capture the session to be ended safely using the queue.
         var sessionToEnd: LogSession?
         queue.sync { // Use sync to ensure session is captured and reset atomically
-            // Only end if the current session has records
-            if !self.currentSession.records.isEmpty {
-                sessionToEnd = self.currentSession
-                sessionToEnd?.endTime = endTime // Set the end time
-                
-                // Add the ended session to the historical list *before* resetting currentSession
-                if let ended = sessionToEnd {
-                    DispatchQueue.main.async {
-                        self.sessions.append(ended)
-                        // Optionally notify UI about session list update here
-                    }
-                }
-            } else {
-                 self.logger.info("Attempted to end an empty session. Skipping.")
-            }
-            
-            // Reset the 'live' currentSession immediately *after* handling the old one.
-            // Start the new session immediately after the old one ends.
-            self.currentSession = LogSession(startTime: endTime)
-            self.logger.info("Ended session \(sessionToEnd?.id.uuidString ?? "N/A"). Started new session \(self.currentSession.id)")
+            sessionToEnd = endCurrentSessionUnsafe(endTime: endTime)
         }
 
         // 2. If a session was actually ended, trigger a save.
         if let endedSession = sessionToEnd {
             logger.debug("Session \(endedSession.id) ended. Triggering save.")
-            // Use the protected queue, run asynchronously.
-            saveIfNeeded() // saveIfNeeded now includes the current logic
+            saveIfNeeded()
         }
+    }
+    
+    // Unsafe version that should only be called when already on the queue
+    private func endCurrentSessionUnsafe(endTime: Date) -> LogSession? {
+        var sessionToEnd: LogSession?
+        
+        // Only end if the current session has records
+        if !self.currentSession.records.isEmpty {
+            sessionToEnd = self.currentSession
+            sessionToEnd?.endTime = endTime // Set the end time
+            
+            // Add the ended session to the historical list *before* resetting currentSession
+            if let ended = sessionToEnd {
+                DispatchQueue.main.async {
+                    self.sessions.append(ended)
+                    // Optionally notify UI about session list update here
+                }
+            }
+        } else {
+            print("[InternalLogManager] Attempted to end an empty session. Skipping.")
+        }
+        
+        // Reset the 'live' currentSession immediately *after* handling the old one.
+        // Start the new session immediately after the old one ends.
+        self.currentSession = LogSession(startTime: endTime)
+        print("[InternalLogManager] Ended session \(sessionToEnd?.id.uuidString ?? "N/A"). Started new session \(self.currentSession.id)")
+        
+        return sessionToEnd
     }
     
     private func startNewSessionIfNeeded() {

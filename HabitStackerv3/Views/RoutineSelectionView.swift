@@ -295,7 +295,7 @@ struct RoutineSelectionView: View {
     private var bottomButtonsSection: some View {
         VStack {
             Spacer()
-            HStack(spacing: 15) {
+            HStack(spacing: 10) {
                 let isDisabled = selectedRoutine == nil || isLoading || !canScheduleEssentialTasks
 
                 Button {
@@ -306,7 +306,7 @@ struct RoutineSelectionView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .frame(height: 22)
                     } else {
-                        Text("View Tasks")
+                        Text("Preview")
                             .fontWeight(.semibold)
                     }
                 }
@@ -325,13 +325,32 @@ struct RoutineSelectionView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .frame(height: 22)
                     } else {
-                        Text("Run Now")
+                        Text("Run")
                             .fontWeight(.semibold)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(isDisabled ? Color.gray.opacity(0.5) : Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .disabled(isDisabled)
+
+                Button {
+                    runRoutineRandomly()
+                } label: {
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(height: 22)
+                    } else {
+                        Text("Random")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(isDisabled ? Color.gray.opacity(0.5) : Color.green)
                 .foregroundColor(.white)
                 .cornerRadius(12)
                 .disabled(isDisabled)
@@ -375,7 +394,7 @@ struct RoutineSelectionView: View {
     }
     
     private func runRoutineDirectly() {
-        logger.info("'Run Now' button tapped.")
+        logger.info("'Run' button tapped.")
         isLoading = true
         errorMessage = ""
         showError = false
@@ -414,8 +433,52 @@ struct RoutineSelectionView: View {
         }
     }
     
+    private func runRoutineRandomly() {
+        logger.info("'Random' button tapped.")
+        isLoading = true
+        errorMessage = ""
+        showError = false
+        runnerInstance = nil
+
+        Task {
+            do {
+                let schedule = try await generateSchedule()
+                guard let routine = selectedRoutine else {
+                    logger.error("Defensive check failed: Routine became unselected after schedule generation.")
+                    throw SchedulingError.routineLoadError
+                }
+
+                // Randomize the schedule order
+                let randomizedSchedule = schedule.shuffled()
+                logger.info("Randomized schedule for routine '\(routine.name ?? "Unnamed")' - original order: \(schedule.count) tasks, randomized order applied.")
+
+                DispatchQueue.main.async {
+                    let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: randomizedSchedule, originalFinishingTime: self.selectedTime)
+                    self.runnerInstance = newRunner
+                    self.isLoading = false
+                    self.navigateToRunner = true
+                    logger.info("Navigating to RoutineRunner with randomized schedule.")
+                }
+            } catch let error as SchedulingError {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                    self.isLoading = false
+                    self.logger.error("SchedulingError during random run: \(error.localizedDescription)")
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                    self.isLoading = false
+                    self.logger.error("Unexpected error during random run: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
     private func viewScheduledRoutine() {
-        logger.info("'View Tasks' button tapped.")
+        logger.info("'Preview' button tapped.")
         isLoading = true
         errorMessage = ""
         showError = false
