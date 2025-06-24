@@ -321,7 +321,7 @@ class RoutineRunner: ObservableObject {
         timer?.cancel() // Stop the timer
         timer = nil
         isRunning = false
-        startTime = nil
+        // DON'T clear startTime yet - we need it for duration calculation!
 
         // Calculate deviation based on allocated duration
         let expectedDuration = self.currentTaskDuration // This is now the allocated duration
@@ -332,8 +332,15 @@ class RoutineRunner: ObservableObject {
             let intendedEndTime = (startTime ?? Date()).addingTimeInterval(self.timeToCountDownAtStart)
             let timeSinceIntendedEnd = Date().timeIntervalSince(intendedEndTime)
             actualDuration = expectedDuration + timeSinceIntendedEnd
+        } else if let start = startTime {
+            actualDuration = Date().timeIntervalSince(start)
+            // Ensure we record at least 1 second if the task was started
+            if actualDuration < 1.0 {
+                actualDuration = 1.0
+            }
         } else {
-            actualDuration = Date().timeIntervalSince(startTime ?? Date())
+            // If no start time recorded, use a default minimum duration
+            actualDuration = 1.0
         }
 
         let deviation = actualDuration - expectedDuration
@@ -342,6 +349,9 @@ class RoutineRunner: ObservableObject {
 
         self.updateScheduleOffsetString()
         self.updateEstimatedFinishingTimeString()
+        
+        // NOW we can clear the timing state
+        self.startTime = nil
         self.remainingTimeOnPause = nil
         self.isOverrun = false
         self.lastOffsetUpdateTime = nil
@@ -352,6 +362,11 @@ class RoutineRunner: ObservableObject {
         }
 
         self.updateTaskCompletionStatus() // Updates lastCompleted & nextDueDate for the CDTask in memory
+        
+        // Record completion time if tracking is enabled
+        if completedTask.shouldTrackAverageTime {
+            recordCompletionTime(for: completedTask, duration: actualDuration)
+        }
 
         // SAVE context ONCE after task status update
         self.saveContext()
@@ -1075,6 +1090,60 @@ class RoutineRunner: ObservableObject {
 
     // MARK: - Core Data Saving
 
+    /// Records the completion time for a task using a circular buffer approach (max 100 entries)
+    private func recordCompletionTime(for task: CDTask, duration: TimeInterval) {
+        logger.info("Recording completion time of \(duration, format: .fixed(precision: 1))s for task '\(task.taskName ?? "Unnamed")'")
+        
+        // Get existing completion times
+        let existingTimes = (task.completionTimes as? Set<CDTaskCompletionTime>) ?? []
+        logger.debug("Existing completion times count: \(existingTimes.count)")
+        
+        if existingTimes.count < 100 {
+            // Haven't reached the limit yet, just add a new entry
+            let newCompletionTime = CDTaskCompletionTime(context: context)
+            newCompletionTime.completionTime = duration
+            newCompletionTime.date = Date()
+            newCompletionTime.index = Int16(existingTimes.count)
+            newCompletionTime.task = task
+            
+            task.addToCompletionTimes(newCompletionTime)
+            logger.debug("Added completion time at index \(existingTimes.count)")
+            
+            // Log the average after adding
+            if let avgTime = task.averageCompletionTime {
+                logger.debug("New average completion time: \(avgTime, format: .fixed(precision: 1))s")
+            } else {
+                logger.warning("Average completion time is nil after adding new entry")
+            }
+        } else {
+            // We have 100 entries, need to find the oldest one to replace
+            // Find the next index to overwrite (circular buffer)
+            let sortedTimes = existingTimes.sorted { $0.index < $1.index }
+            
+            // Calculate next index in circular buffer
+            let maxIndex = sortedTimes.last?.index ?? 99
+            let nextIndex = (maxIndex + 1) % 100
+            
+            // Find the entry with the target index
+            if let timeToUpdate = sortedTimes.first(where: { $0.index == nextIndex }) {
+                // Update existing entry
+                timeToUpdate.completionTime = duration
+                timeToUpdate.date = Date()
+                logger.debug("Updated completion time at index \(nextIndex) (circular buffer)")
+            } else {
+                // This shouldn't happen, but handle it gracefully
+                logger.warning("Could not find completion time entry at index \(nextIndex), creating new one")
+                let newCompletionTime = CDTaskCompletionTime(context: context)
+                newCompletionTime.completionTime = duration
+                newCompletionTime.date = Date()
+                newCompletionTime.index = Int16(nextIndex)
+                newCompletionTime.task = task
+                
+                task.addToCompletionTimes(newCompletionTime)
+            }
+        }
+    }
+    
     /// Saves the managed object context if there are changes, performing the save on the context's queue.
     private func saveContext() {
         // Use perform to ensure saving happens on the context's queue (likely main queue for viewContext)
@@ -1087,6 +1156,17 @@ class RoutineRunner: ObservableObject {
             do {
                 try self.context.save()
                 self.logger.info("Managed object context saved successfully.")
+                
+                // Verify completion times were saved
+                for task in self.scheduledTasks.map({ $0.task }) {
+                    if task.shouldTrackAverageTime {
+                        let count = (task.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
+                        self.logger.debug("Task '\(task.taskName ?? "Unnamed")' has \(count) completion times saved")
+                        if let avgTime = task.averageCompletionTime {
+                            self.logger.debug("Average completion time: \(avgTime, format: .fixed(precision: 1))s")
+                        }
+                    }
+                }
             } catch {
                 // Log the detailed error
                 let nserror = error as NSError

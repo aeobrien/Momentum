@@ -37,6 +37,13 @@ struct CustomTask: Identifiable, Codable, Equatable {
     /// Defaults to false.
     var isSessionTask: Bool
     
+    /// Flag indicating whether averaged time completions should be recorded for this task
+    /// Defaults to true.
+    var shouldTrackAverageTime: Bool
+    
+    /// Average completion time in seconds, calculated from stored completion times
+    var averageCompletionTime: TimeInterval?
+    
     /// Initializes a new CustomTask
     ///
     /// - Parameters:
@@ -49,6 +56,8 @@ struct CustomTask: Identifiable, Codable, Equatable {
     ///   - repetitionInterval: Repetition interval
     ///   - order: Order for sorting
     ///   - isSessionTask: Indicates if the task is session-specific (defaults to false)
+    ///   - shouldTrackAverageTime: Whether to track average completion times (defaults to true)
+    ///   - averageCompletionTime: Average completion time in seconds
     init(uuid: String = UUID().uuidString,
          taskName: String,
          essentiality: Int? = nil,
@@ -57,7 +66,9 @@ struct CustomTask: Identifiable, Codable, Equatable {
          lastCompleted: String? = nil,
          repetitionInterval: Int? = nil,
          order: Int? = nil,
-         isSessionTask: Bool = false) {
+         isSessionTask: Bool = false,
+         shouldTrackAverageTime: Bool = true,
+         averageCompletionTime: TimeInterval? = nil) {
         self.uuid = uuid
         self.taskName = taskName
         self.essentiality = essentiality
@@ -67,5 +78,7 @@ struct CustomTask: Identifiable, Codable, Equatable {
         self.repetitionInterval = repetitionInterval
         self.order = order
         self.isSessionTask = isSessionTask
+        self.shouldTrackAverageTime = shouldTrackAverageTime
+        self.averageCompletionTime = averageCompletionTime
     }
 }

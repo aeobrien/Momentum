@@ -1,8 +1,8 @@
 //
 //  CDTask+CoreDataProperties.swift
-//  HabitStackerv3
+//  Momentum
 //
-//  Created by Aidan O'Brien on 06/11/2024.
+//  Created by Aidan O'Brien on 24/06/2025.
 //
 //
 
@@ -16,30 +16,19 @@ extension CDTask {
         return NSFetchRequest<CDTask>(entityName: "CDTask")
     }
 
-    // MARK: - Core Properties
-    @NSManaged public var uuid: UUID?
-    @NSManaged public var taskName: String?
     @NSManaged public var essentiality: Int16
-    @NSManaged public var minDuration: Int32 // Duration in minutes
-    @NSManaged public var maxDuration: Int32 // Duration in minutes
-    @NSManaged public var lastCompleted: Date?
-    
-    /// Repetition interval in seconds.
-    /// 0 means repeat daily at midnight.
-    /// > 0 means repeat after that many seconds pass since last completion.
-    /// nil or < 0 means does not repeat automatically.
-    @NSManaged public var repetitionInterval: Int32
-    
-    /// Flag indicating if this task is specific to a routine session and should not appear in the general to-do list.
-    /// Defaults to false when creating new tasks.
     @NSManaged public var isSessionTask: Bool
-    
-    // MARK: - Relationships
+    @NSManaged public var lastCompleted: Date?
+    @NSManaged public var maxDuration: Int32
+    @NSManaged public var minDuration: Int32
+    @NSManaged public var nextDueDate: Date?
+    @NSManaged public var repetitionInterval: Int32
+    @NSManaged public var taskName: String?
+    @NSManaged public var uuid: UUID?
+    @NSManaged public var shouldTrackAverageTime: Bool
     @NSManaged public var routineRelations: NSSet?
+    @NSManaged public var completionTimes: NSSet?
 
-    // MARK: - Dependency Properties (Added manually)
-    @NSManaged public var dependsOn: Set<CDTask>?
-    @NSManaged public var dependedOnBy: Set<CDTask>?
 }
 
 // MARK: Generated accessors for routineRelations
@@ -59,21 +48,34 @@ extension CDTask {
 
 }
 
-// MARK: - Identifiable Conformance
-extension CDTask : Identifiable {
-    // ID is implicitly handled by CoreData's objectID, but uuid is used for custom identification
-}
-
-// MARK: - Computed Properties (Added manually)
+// MARK: Generated accessors for completionTimes
 extension CDTask {
-    var allPrerequisiteTasks: Set<CDTask> {
-        guard let dependencies = dependsOn else { return [] }
-        return dependencies.union(dependencies.flatMap { $0.allPrerequisiteTasks })
-    }
     
-    var isEligibleToSchedule: Bool {
-        guard let dependencies = dependsOn else { return true }
-        return dependencies.allSatisfy { $0.lastCompleted != nil }
-    }
+    @objc(addCompletionTimesObject:)
+    @NSManaged public func addToCompletionTimes(_ value: CDTaskCompletionTime)
+    
+    @objc(removeCompletionTimesObject:)
+    @NSManaged public func removeFromCompletionTimes(_ value: CDTaskCompletionTime)
+    
+    @objc(addCompletionTimes:)
+    @NSManaged public func addToCompletionTimes(_ values: NSSet)
+    
+    @objc(removeCompletionTimes:)
+    @NSManaged public func removeFromCompletionTimes(_ values: NSSet)
 }
 
+extension CDTask : Identifiable {
+
+}
+
+// MARK: - Computed Properties
+extension CDTask {
+    /// Calculates the average completion time from the stored completion times
+    var averageCompletionTime: TimeInterval? {
+        guard let completionTimes = completionTimes as? Set<CDTaskCompletionTime>,
+              !completionTimes.isEmpty else { return nil }
+        
+        let totalTime = completionTimes.reduce(0.0) { $0 + $1.completionTime }
+        return totalTime / Double(completionTimes.count)
+    }
+}

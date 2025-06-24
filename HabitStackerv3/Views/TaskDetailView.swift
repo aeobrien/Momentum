@@ -44,6 +44,21 @@ struct TaskDetailView: View {
         }
     }
     
+    private func formatTimeInterval(_ interval: TimeInterval) -> String {
+        let minutes = Int(interval) / 60
+        let seconds = Int(interval) % 60
+        
+        if minutes >= 60 {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return String(format: "%dh %dm", hours, remainingMinutes)
+        } else if minutes > 0 {
+            return String(format: "%dm %ds", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
+    }
+    
     var body: some View {
         List {
             Section(header: Text("DETAILS")) {
@@ -95,6 +110,26 @@ struct TaskDetailView: View {
                     // Revert to direct property access, assuming migration works
                     Text(cdTask.isSessionTask ? "Yes" : "No") 
                         .foregroundColor(.secondary)
+                }
+                
+                // Average Time Tracking display
+                HStack {
+                    Text("Track Average Time")
+                    Spacer()
+                    Text(cdTask.shouldTrackAverageTime ? "Yes" : "No")
+                        .foregroundColor(.secondary)
+                }
+                
+                // Show average completion time if available
+                if cdTask.shouldTrackAverageTime {
+                    if let avgTime = cdTask.averageCompletionTime {
+                        HStack {
+                            Text("Average Completion Time")
+                            Spacer()
+                            Text(formatTimeInterval(avgTime))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             

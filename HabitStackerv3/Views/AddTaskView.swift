@@ -99,6 +99,9 @@ struct AddTaskView: View {
     // Session Task Property
     @State private var isSessionTask: Bool // New state for session task toggle
     
+    // Average Time Tracking Property
+    @State private var shouldTrackAverageTime: Bool // New state for average time tracking toggle
+    
     // UI State
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
@@ -113,6 +116,7 @@ struct AddTaskView: View {
         let maxDuration: Int
         let repetitionInterval: Int? // Stored as Int (seconds) in CustomTask
         let isSessionTask: Bool? // Added for JSON import
+        let shouldTrackAverageTime: Bool? // Added for JSON import
         let uuid: String?
         let lastCompleted: String?
         let order: Int?
@@ -127,6 +131,7 @@ struct AddTaskView: View {
         _uuid = State(initialValue: task?.uuid ?? UUID().uuidString)
         _taskName = State(initialValue: task?.taskName ?? "")
         _isSessionTask = State(initialValue: task?.isSessionTask ?? false)
+        _shouldTrackAverageTime = State(initialValue: task?.shouldTrackAverageTime ?? true)
         
         // Set essentiality
         let essentiality: Essentiality
@@ -226,6 +231,15 @@ struct AddTaskView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Toggle("Session Task", isOn: $isSessionTask)
                             Text("Session tasks only appear in routines, not the main to-do list.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // Average Time Tracking Toggle
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Track Average Completion Time", isOn: $shouldTrackAverageTime)
+                            Text("Record completion times to calculate average duration for this task.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -491,6 +505,7 @@ struct AddTaskView: View {
                             maxDuration: Int(getValue("maxDuration")) ?? 0,
                             repetitionInterval: Int(getValue("repetitionInterval")) ?? nil,
                             isSessionTask: getValue("isSessionTask") == "true" ? true : nil,
+                            shouldTrackAverageTime: getValue("shouldTrackAverageTime") == "true" ? true : (getValue("shouldTrackAverageTime") == "false" ? false : nil),
                             uuid: getValue("uuid"),
                             lastCompleted: getValue("lastCompleted"),
                             order: Int(getValue("order")) ?? nil
@@ -539,7 +554,8 @@ struct AddTaskView: View {
             lastCompleted: input.lastCompleted,
             repetitionInterval: input.repetitionInterval,
             order: input.order,
-            isSessionTask: input.isSessionTask ?? false
+            isSessionTask: input.isSessionTask ?? false,
+            shouldTrackAverageTime: input.shouldTrackAverageTime ?? true
         )
         
         // Validate required fields
@@ -650,7 +666,8 @@ struct AddTaskView: View {
             lastCompleted: existingTask?.lastCompleted, // Preserve existing completion date on edit
             repetitionInterval: finalRepetitionInterval,
             order: existingTask?.order, // Preserve existing order on edit
-            isSessionTask: isSessionTask
+            isSessionTask: isSessionTask,
+            shouldTrackAverageTime: shouldTrackAverageTime
         )
         
         // --- Call the onSave closure ---

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23A344" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="CDRoutine" representedClassName="CDRoutine" syncable="YES">
         <attribute name="averageCompletionTime" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="createdOn" attributeType="Date" usesScalarValueType="NO"/>
@@ -16,14 +16,15 @@
     </entity>
     <entity name="CDTask" representedClassName="CDTask" syncable="YES">
         <attribute name="essentiality" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="isSessionTask" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isSessionTask" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="lastCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="maxDuration" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="minDuration" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="nextDueDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="repetitionInterval" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="shouldTrackAverageTime" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="taskName" attributeType="String"/>
         <attribute name="uuid" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="shouldTrackAverageTime" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <relationship name="completionTimes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTaskCompletionTime" inverseName="task" inverseEntity="CDTaskCompletionTime"/>
         <relationship name="routineRelations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDRoutineTask" inverseName="task" inverseEntity="CDRoutineTask"/>
     </entity>

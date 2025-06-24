@@ -13,7 +13,9 @@ extension CDTask {
             maxDuration: Int(self.maxDuration),
             lastCompleted: lastCompleted.map { ISO8601DateFormatter.shared.string(from: $0) },
             repetitionInterval: Int(self.repetitionInterval),
-            isSessionTask: self.isSessionTask
+            isSessionTask: self.isSessionTask,
+            shouldTrackAverageTime: self.shouldTrackAverageTime,
+            averageCompletionTime: self.averageCompletionTime
         )
     }
     
@@ -42,6 +44,7 @@ extension CDTask {
         self.repetitionInterval = Int32(task.repetitionInterval ?? 0)
         
         self.isSessionTask = task.isSessionTask
+        self.shouldTrackAverageTime = task.shouldTrackAverageTime
         
         // Verify the stored UUID
         logger.debug("Stored UUID: \(self.uuid?.uuidString ?? "nil", privacy: .public)")

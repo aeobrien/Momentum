@@ -6,7 +6,7 @@ class CoreDataStack {
     private init() {}
     
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "Momentum")
+        let container = NSPersistentContainer(name: "Momentum 3")
         
         // Get the default store description
         guard let description = container.persistentStoreDescriptions.first else {

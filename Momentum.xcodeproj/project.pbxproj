@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */; };
 		DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */; };
 		DD3CB6AB2DB6D05A009B2C5C /* SchedulePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */; };
 		DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C42CDCCF6F008B839C /* TaskCard.swift */; };
@@ -17,7 +18,10 @@
 		DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B32CDD2347005F040A /* RoutineTestView.swift */; };
 		DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B92CDE5D48005F040A /* TestingStructs.swift */; };
 		DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */; };
-		DD6FD24D2DEB34B7008EA7CD /* Momentum.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = DD6FD24B2DEB34B7008EA7CD /* Momentum.xcdatamodeld */; };
+		DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */; };
+		DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */; };
+		DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */; };
+		DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */; };
 		DD947FEE2CDC155E0014A929 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FED2CDC155E0014A929 /* CoreDataStack.swift */; };
 		DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */; };
 		DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */; };
@@ -103,6 +107,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Momentum.xcdatamodel; sourceTree = "<group>"; };
 		DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableDurationTaskScheduling.swift; sourceTree = "<group>"; };
 		DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SchedulePreviewView.swift; path = Views/SchedulePreviewView.swift; sourceTree = "<group>"; };
 		DD4222C42CDCCF6F008B839C /* TaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCard.swift; sourceTree = "<group>"; };
@@ -113,12 +118,13 @@
 		DD5902B32CDD2347005F040A /* RoutineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestView.swift; sourceTree = "<group>"; };
 		DD5902B92CDE5D48005F040A /* TestingStructs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestingStructs.swift; sourceTree = "<group>"; };
 		DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimisationSystem.swift; sourceTree = "<group>"; };
-		DD6FD24C2DEB34B7008EA7CD /* Momentum.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Momentum.xcdatamodel; sourceTree = "<group>"; };
+		DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD947FED2CDC155E0014A929 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
 		DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		DD947FF72CDC17490014A929 /* CDTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataClass.swift"; sourceTree = "<group>"; };
-		DD947FF82CDC17490014A929 /* CDTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutineTask+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutineTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD9480012CDC17730014A929 /* CDTask+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+Extensions.swift"; sourceTree = "<group>"; };
@@ -242,9 +248,11 @@
 				DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */,
 				DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */,
 				DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */,
-				DD947FF72CDC17490014A929 /* CDTask+CoreDataClass.swift */,
-				DD947FF82CDC17490014A929 /* CDTask+CoreDataProperties.swift */,
 				DD9480012CDC17730014A929 /* CDTask+Extensions.swift */,
+				DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */,
+				DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */,
+				DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */,
+				DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */,
 				DDF228C52CCAD3DC0014505A /* Info.plist */,
 				DDF2289C2CC96B500014505A /* Errors */,
 				DDF227F12CC957B50014505A /* Assets.xcassets */,
@@ -315,7 +323,7 @@
 		DDF2282D2CC959530014505A /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				DD6FD24B2DEB34B7008EA7CD /* Momentum.xcdatamodeld */,
+				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
 				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
 				DDF228342CC959AA0014505A /* AddTaskView.swift */,
 				DDF2282E2CC959690014505A /* ContentView.swift */,
@@ -540,6 +548,8 @@
 				DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */,
 				DD3CB6AB2DB6D05A009B2C5C /* SchedulePreviewView.swift in Sources */,
 				DDF2288C2CC95DF60014505A /* TaskDetailView.swift in Sources */,
+				DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */,
+				DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */,
 				DDF228D62CCEBFDA0014505A /* LogRecord.swift in Sources */,
 				DDF228BA2CC99C520014505A /* RoutineSetup.swift in Sources */,
 				DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */,
@@ -552,10 +562,13 @@
 				DDF2288E2CC95DF60014505A /* TaskInstance.swift in Sources */,
 				DDF2288F2CC95DF60014505A /* ContentView.swift in Sources */,
 				DDF228CD2CCD8E440014505A /* RoutineTaskCard.swift in Sources */,
+				DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */,
+				DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */,
 				DDF228902CC95DF60014505A /* TaskStorage.swift in Sources */,
 				DDF228A82CC96C0D0014505A /* RoutineViewModel.swift in Sources */,
 				DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */,
 				DDF228912CC95DF60014505A /* Version.swift in Sources */,
+				DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */,
 				DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */,
 				DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */,
 				DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */,
@@ -578,7 +591,6 @@
 				DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */,
 				DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */,
 				DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */,
-				DD6FD24D2DEB34B7008EA7CD /* Momentum.xcdatamodeld in Sources */,
 				DDF228A62CC96BDF0014505A /* TaskSelectionProcess.swift in Sources */,
 				DDF228C42CCAD2920014505A /* RoutineRunner.swift in Sources */,
 				DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */,
@@ -960,15 +972,14 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
-		DD6FD24B2DEB34B7008EA7CD /* Momentum.xcdatamodeld */ = {
+		DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				DD6FD24C2DEB34B7008EA7CD /* Momentum.xcdatamodel */,
+				DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */,
 			);
-			currentVersion = DD6FD24C2DEB34B7008EA7CD /* Momentum.xcdatamodel */;
-			name = Momentum.xcdatamodeld;
-			path = /Users/aidan/Documents/XCode/HabitStackerv3/HabitStackerv3/Views/Momentum.xcdatamodeld;
-			sourceTree = "<absolute>";
+			currentVersion = DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */;
+			path = "Momentum 3.xcdatamodeld";
+			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};
 /* End XCVersionGroup section */
