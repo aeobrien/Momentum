@@ -3,7 +3,7 @@ import CoreData
 
 struct RoutineDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    let cdRoutine: CDRoutine
+    @ObservedObject var cdRoutine: CDRoutine
     @ObservedObject var viewModel: RoutineViewModel
     @State private var showingEditRoutine = false
     
@@ -116,7 +116,10 @@ struct RoutineDetailView: View {
             )
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingEditRoutine) {
-                EditRoutineView(cdRoutine: cdRoutine)
+                NavigationView {
+                    EditRoutineView(cdRoutine: cdRoutine)
+                        .environment(\.managedObjectContext, viewContext)
+                }
             }
         }
     }

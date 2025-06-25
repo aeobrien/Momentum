@@ -14,6 +14,8 @@ class TempRoutineRunner: ObservableObject {
     @Published var remainingTimeString: String = "00:00"
     @Published var isRunning: Bool = false
     @Published var scheduleOffsetString: String = "On schedule"
+    @Published var estimatedFinishingTimeString: String = ""
+    @Published private(set) var originalFinishingTime: Date = Date()
     @Published var isRoutineComplete: Bool = false
     @Published var isOverrun: Bool = false
     @Published var nextTaskName: String? = nil
@@ -25,6 +27,9 @@ class TempRoutineRunner: ObservableObject {
     private var timer: Timer?
     private var remainingTime: TimeInterval = 0
     private var currentTaskDuration: TimeInterval = 0
+    private var scheduleOffset: TimeInterval = 0
+    private var startTime: Date? = nil
+    private var lastOffsetUpdateTime: Date? = nil
     
     var progressFraction: Double {
         guard totalRoutineDuration > 0 else { return 0.0 }
@@ -44,6 +49,8 @@ class TempRoutineRunner: ObservableObject {
         return "Task \(currentTaskIndex + 1) / \(tasks.count)"
     }
     
+    @Published var taskProgressFraction: Double = 0.0
+    
     var canDelayCurrentTask: Bool {
         return currentTaskIndex >= 0 && currentTaskIndex < tasks.count - 1
     }
@@ -51,7 +58,10 @@ class TempRoutineRunner: ObservableObject {
     init(tasks: [TempTask]) {
         self.tasks = tasks
         self.totalRoutineDuration = tasks.reduce(0) { $0 + TimeInterval($1.duration * 60) }
+        self.originalFinishingTime = Date().addingTimeInterval(totalRoutineDuration)
         startRoutine()
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
     }
     
     private func startRoutine() {
@@ -68,6 +78,7 @@ class TempRoutineRunner: ObservableObject {
         currentTaskDuration = TimeInterval(task.duration * 60)
         remainingTime = currentTaskDuration
         isOverrun = false
+        taskProgressFraction = 0.0 // Reset task progress
         
         updateRemainingTimeDisplay()
         
@@ -81,7 +92,11 @@ class TempRoutineRunner: ObservableObject {
     
     private func updateRemainingTimeDisplay() {
         if isOverrun {
-            remainingTimeString = "00:00"
+            // Show negative time during overrun
+            let overrunTime = abs(remainingTime)
+            let minutes = Int(overrunTime) / 60
+            let seconds = Int(overrunTime) % 60
+            remainingTimeString = String(format: "-%02d:%02d", minutes, seconds)
         } else {
             let minutes = Int(remainingTime) / 60
             let seconds = Int(remainingTime) % 60
@@ -99,6 +114,7 @@ class TempRoutineRunner: ObservableObject {
     
     private func startTimer() {
         isRunning = true
+        startTime = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             self.timerTick()
         }
@@ -108,6 +124,8 @@ class TempRoutineRunner: ObservableObject {
         isRunning = false
         timer?.invalidate()
         timer = nil
+        startTime = nil
+        lastOffsetUpdateTime = nil
     }
     
     private func timerTick() {
@@ -117,11 +135,39 @@ class TempRoutineRunner: ObservableObject {
             isOverrun = true
         }
         
+        // Update task progress fraction
+        if currentTaskDuration > 0 {
+            let elapsed = currentTaskDuration - remainingTime
+            taskProgressFraction = min(max(elapsed / currentTaskDuration, 0.0), 1.0)
+        }
+        
+        // Update schedule offset during overrun
+        if isOverrun {
+            let now = Date()
+            if let lastUpdate = lastOffsetUpdateTime {
+                let additionalOverrun = now.timeIntervalSince(lastUpdate)
+                scheduleOffset += additionalOverrun
+            }
+            lastOffsetUpdateTime = now
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+        }
+        
         updateRemainingTimeDisplay()
     }
     
     func markTaskComplete() {
+        let wasRunning = isRunning
         pauseTimer()
+        
+        // Calculate actual completion time for schedule offset
+        if isOverrun {
+            let overrunAmount = abs(remainingTime)
+            scheduleOffset += overrunAmount
+        } else {
+            // Completed early
+            scheduleOffset -= remainingTime
+        }
         
         // Update completed duration
         completedDuration += currentTaskDuration
@@ -136,18 +182,47 @@ class TempRoutineRunner: ObservableObject {
             remainingTimeString = "00:00"
         } else {
             configureCurrentTask()
+            // Resume timer if it was running
+            if wasRunning {
+                startTimer()
+            }
         }
+        
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
     }
     
     func skipToNextTask() {
         markTaskComplete()
     }
     
-    func delayCurrentTask(by minutes: Int) {
-        remainingTime += TimeInterval(minutes * 60)
-        currentTaskDuration += TimeInterval(minutes * 60)
-        totalRoutineDuration += TimeInterval(minutes * 60)
-        updateRemainingTimeDisplay()
+    func delayCurrentTask(by delayCount: Int = 3) {
+        // Ensure index is valid and there are tasks remaining after the current one
+        guard canDelayCurrentTask else { return }
+        
+        // Ensure delayCount is positive
+        guard delayCount > 0 else { return }
+        
+        // Store running state
+        let wasRunning = isRunning
+        
+        // Stop the current timer
+        pauseTimer()
+        
+        // Reorder the tasks array
+        let taskToDelay = tasks.remove(at: currentTaskIndex)
+        
+        // Calculate the new index, ensuring it doesn't exceed bounds
+        let insertionIndex = min(currentTaskIndex + delayCount, tasks.count)
+        tasks.insert(taskToDelay, at: insertionIndex)
+        
+        // Configure the new task at currentTaskIndex
+        configureCurrentTask()
+        
+        // Restart the timer if it was running
+        if wasRunning {
+            startTimer()
+        }
     }
     
     func endRoutine() {
@@ -168,6 +243,37 @@ class TempRoutineRunner: ObservableObject {
         if currentTaskIndex < tasks.count - 1 {
             nextTaskName = tasks[currentTaskIndex + 1].name
         }
+    }
+    
+    private func updateScheduleOffsetString() {
+        if abs(scheduleOffset) < 1 {
+            scheduleOffsetString = "On schedule"
+        } else {
+            let absOffset = abs(scheduleOffset)
+            let minutes = Int(absOffset) / 60
+            let seconds = Int(absOffset) % 60
+            let timeString = minutes > 0 ? "\(minutes)m \(seconds)s" : "\(seconds)s"
+            
+            if scheduleOffset > 0 {
+                scheduleOffsetString = "\(timeString) behind"
+            } else {
+                scheduleOffsetString = "\(timeString) ahead"
+            }
+        }
+    }
+    
+    private func updateEstimatedFinishingTimeString() {
+        let estimatedFinish = originalFinishingTime.addingTimeInterval(scheduleOffset)
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        estimatedFinishingTimeString = formatter.string(from: estimatedFinish)
+    }
+    
+    func resetTimer() {
+        pauseTimer()
+        isOverrun = false
+        lastOffsetUpdateTime = nil
+        configureCurrentTask()
     }
     
     deinit {

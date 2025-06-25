@@ -33,6 +33,7 @@ struct RoutineRunnerView: View {
     // Add state for UI toggle and sheet presentation
     @State private var detailsVisible: Bool = false
     @State private var showTaskList: Bool = false
+    @State private var showDurationSuggestions: Bool = false
     @Namespace private var animation // Add namespace for matched geometry effect
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineRunnerView")
@@ -111,6 +112,15 @@ struct RoutineRunnerView: View {
                             .padding(.top, 50) // INCREASED Space between task name and progress bar (was 15)
                             // No opacity/offset needed as it's always visible relative to task name
                             // Conditionally offset progress bar DOWN in simple view
+                            .offset(y: detailsVisible ? 0 : 30)
+                            
+                            // --- Task Progress Bar ---
+                            TaskProgressBarView(
+                                value: runner.taskProgressFraction,
+                                label: "Task Progress"
+                            )
+                            .frame(width: geometry.size.width - 80)
+                            .padding(.top, 5)
                             .offset(y: detailsVisible ? 0 : 30)
 
                             // --- Conditional Detailed View Content Group (Status, Next Task, Buttons) ---
@@ -287,7 +297,24 @@ struct RoutineRunnerView: View {
                         .font(.largeTitle)
                         .padding()
 
-                    Spacer().frame(height: 40) // Space before button
+                    Spacer().frame(height: 20) // Space before suggestions
+                    
+                    // Show duration suggestions if any
+                    if !runner.durationSuggestions.isEmpty {
+                        Button {
+                            showDurationSuggestions = true
+                        } label: {
+                            Label("View Duration Suggestions (\(runner.durationSuggestions.count))", systemImage: "clock.arrow.2.circlepath")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.orange)
+                                .cornerRadius(10)
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    Spacer().frame(height: 20) // Space before button
 
                     Button {
                         logger.info("Return to Schedule button tapped.")
@@ -331,6 +358,10 @@ struct RoutineRunnerView: View {
                 // CRITICAL: Ensure the correct 'runner' instance is passed
                 RoutineRunnerDetailView(runner: runner)
             }
+        }
+        .sheet(isPresented: $showDurationSuggestions) {
+            TaskDurationSuggestionsView(suggestions: runner.durationSuggestions)
+                .environment(\.managedObjectContext, runner.context)
         }
         .onChange(of: scenePhase) { newPhase in
             logger.info("Scene phase changed to: \\(String(describing: newPhase))")

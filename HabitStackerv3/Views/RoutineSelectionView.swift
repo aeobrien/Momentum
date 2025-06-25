@@ -19,6 +19,8 @@ struct RoutineSelectionView: View {
     @State private var navigateToRunner: Bool = false
     @State private var showSchedulePreviewModal: Bool = false
     @State private var scheduleForPreview: [ScheduledTask]? = nil
+    @State private var showRunFromSheet: Bool = false
+    @State private var runFromStartIndex: Int = 0
     
     @State private var runnerInstance: RoutineRunner? = nil
     
@@ -204,6 +206,18 @@ struct RoutineSelectionView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
+        .sheet(isPresented: $showRunFromSheet) {
+            if let routine = selectedRoutine {
+                RunFromSelectionView(routine: routine, selectedStartIndex: $runFromStartIndex)
+            }
+        }
+        .onChange(of: runFromStartIndex) { newIndex in
+            if newIndex > 0 {
+                // User selected a start point, run from that index
+                runRoutineFromIndex(newIndex)
+                runFromStartIndex = 0 // Reset for next use
+            }
+        }
         .onAppear {
             logger.info("RoutineSelectionView appeared.")
             if selectedRoutine == nil {
@@ -335,6 +349,14 @@ struct RoutineSelectionView: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
                 .disabled(isDisabled)
+                .contextMenu {
+                    Button(action: {
+                        showRunFromSheet = true
+                    }) {
+                        Label("Run from...", systemImage: "play.circle")
+                    }
+                    .disabled(selectedRoutine == nil)
+                }
 
                 Button {
                     runRoutineRandomly()
@@ -365,6 +387,52 @@ struct RoutineSelectionView: View {
             )
         }
         .ignoresSafeArea(.keyboard)
+    }
+    
+    private func runRoutineFromIndex(_ startIndex: Int) {
+        logger.info("'Run from index \(startIndex)' selected.")
+        isLoading = true
+        errorMessage = ""
+        showError = false
+        runnerInstance = nil
+
+        Task {
+            do {
+                var schedule = try await generateSchedule()
+                guard let routine = selectedRoutine else {
+                    logger.error("Defensive check failed: Routine became unselected after schedule generation.")
+                    throw SchedulingError.routineLoadError
+                }
+                
+                // Remove tasks before the start index
+                if startIndex > 0 && startIndex < schedule.count {
+                    schedule = Array(schedule.dropFirst(startIndex))
+                    logger.info("Starting routine from task \(startIndex + 1), removed \(startIndex) previous tasks")
+                }
+
+                DispatchQueue.main.async {
+                    let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule, originalFinishingTime: self.selectedTime)
+                    self.runnerInstance = newRunner
+                    self.isLoading = false
+                    self.navigateToRunner = true
+                    logger.info("Navigating to RoutineRunner starting from task \(startIndex + 1).")
+                }
+            } catch let error as SchedulingError {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                    self.isLoading = false
+                    self.logger.error("SchedulingError during run from index: \(error.localizedDescription)")
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                    self.isLoading = false
+                    self.logger.error("Unexpected error during run from index: \(error.localizedDescription)")
+                }
+            }
+        }
     }
     
     private func generateSchedule() async throws -> [ScheduledTask] {

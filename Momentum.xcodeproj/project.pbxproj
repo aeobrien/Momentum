@@ -38,6 +38,14 @@
 		DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */; };
 		DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */; };
 		DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */; };
+		DDAE4BA32E0B26D200C573DB /* RunFromSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */; };
+		DDAE4BA42E0B26D200C573DB /* TaskDurationSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */; };
+		DDAE4BA52E0B26D200C573DB /* TaskDurationSuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */; };
+		DDAE4BA72E0B271100C573DB /* TaskProgressBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */; };
+		DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */; };
+		DDAE4BAB2E0C196200C573DB /* DebugMigrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */; };
+		DDAE4BAD2E0C52DF00C573DB /* SimpleMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */; };
+		DDAE4BAF2E0C5A7E00C573DB /* AutomaticMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */; };
 		DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */; };
 		DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */; };
 		DDF227F22CC957B50014505A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F12CC957B50014505A /* Assets.xcassets */; };
@@ -145,6 +153,14 @@
 		DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineRunnerView.swift; sourceTree = "<group>"; };
 		DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineDetailView.swift; sourceTree = "<group>"; };
 		DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRunnerWrapper.swift; sourceTree = "<group>"; };
+		DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunFromSelectionView.swift; sourceTree = "<group>"; };
+		DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDurationSuggestion.swift; sourceTree = "<group>"; };
+		DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDurationSuggestionsView.swift; sourceTree = "<group>"; };
+		DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgressBarView.swift; sourceTree = "<group>"; };
+		DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataMigration.swift; sourceTree = "<group>"; };
+		DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMigrationView.swift; sourceTree = "<group>"; };
+		DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleMigration.swift; sourceTree = "<group>"; };
+		DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticMigration.swift; sourceTree = "<group>"; };
 		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
 		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
 		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -340,11 +356,14 @@
 				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
 				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
 				DDF228342CC959AA0014505A /* AddTaskView.swift */,
+				DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */,
 				DDF2282E2CC959690014505A /* ContentView.swift */,
 				DD947FED2CDC155E0014A929 /* CoreDataStack.swift */,
 				DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */,
 				DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */,
+				DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */,
 				DDF228182CC958890014505A /* CustomTask.swift */,
+				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
 				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
 				DDF228B32CC98DEA0014505A /* EditRoutineView.swift */,
 				DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */,
@@ -359,6 +378,7 @@
 				DDF228C12CC9A06B0014505A /* ResultExtensions.swift */,
 				DDF228972CC96AD50014505A /* Routine.swift */,
 				DDF228AB2CC96C310014505A /* RoutineDetailView.swift */,
+				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
 				DDF2289D2CC96B640014505A /* RoutineError.swift */,
 				DDF228A92CC96C190014505A /* RoutineListView.swift */,
 				DDF2289F2CC96B730014505A /* RoutineLogger.swift */,
@@ -374,7 +394,11 @@
 				DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */,
 				DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */,
 				DD5902B32CDD2347005F040A /* RoutineTestView.swift */,
+				DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */,
 				DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */,
+				DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */,
+				DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */,
+				DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */,
 				DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */,
 				DDF228BF2CC99E200014505A /* SchedulingError.swift */,
 				DD4222C62CDCCF7B008B839C /* SearchBar.swift */,
@@ -553,6 +577,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DDAE4BA72E0B271100C573DB /* TaskProgressBarView.swift in Sources */,
 				DDF228862CC95DDC0014505A /* HabitStackerv3App.swift in Sources */,
 				DDF228B62CC98ED70014505A /* RoutineStorageInterface.swift in Sources */,
 				DDF228C02CC99E200014505A /* SchedulingError.swift in Sources */,
@@ -583,6 +608,7 @@
 				DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */,
 				DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */,
 				DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */,
+				DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */,
 				DDF2288E2CC95DF60014505A /* TaskInstance.swift in Sources */,
 				DDF2288F2CC95DF60014505A /* ContentView.swift in Sources */,
 				DDF228CD2CCD8E440014505A /* RoutineTaskCard.swift in Sources */,
@@ -603,11 +629,15 @@
 				DDF228A02CC96B730014505A /* RoutineLogger.swift in Sources */,
 				DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */,
 				DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */,
+				DDAE4BAF2E0C5A7E00C573DB /* AutomaticMigration.swift in Sources */,
 				DDF228AA2CC96C190014505A /* RoutineListView.swift in Sources */,
 				DDF228CF2CCD95E60014505A /* TaskCardView.swift in Sources */,
 				DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */,
 				DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */,
 				DDF228A42CC96BCA0014505A /* PriorityCalculator.swift in Sources */,
+				DDAE4BA32E0B26D200C573DB /* RunFromSelectionView.swift in Sources */,
+				DDAE4BA42E0B26D200C573DB /* TaskDurationSuggestion.swift in Sources */,
+				DDAE4BA52E0B26D200C573DB /* TaskDurationSuggestionsView.swift in Sources */,
 				DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */,
 				DDF228E02CCFB3E80014505A /* InternalLogManager.swift in Sources */,
 				DDF228B42CC98DEA0014505A /* EditRoutineView.swift in Sources */,
@@ -617,10 +647,12 @@
 				DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */,
 				DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */,
 				DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */,
+				DDAE4BAB2E0C196200C573DB /* DebugMigrationView.swift in Sources */,
 				DDF228A62CC96BDF0014505A /* TaskSelectionProcess.swift in Sources */,
 				DDF228C42CCAD2920014505A /* RoutineRunner.swift in Sources */,
 				DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */,
 				DD9480022CDC17730014A929 /* CDTask+Extensions.swift in Sources */,
+				DDAE4BAD2E0C52DF00C573DB /* SimpleMigration.swift in Sources */,
 				DDF228932CC95DF60014505A /* PerformanceMonitor.swift in Sources */,
 				DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */,
 				DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */,
@@ -810,7 +842,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -841,7 +873,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

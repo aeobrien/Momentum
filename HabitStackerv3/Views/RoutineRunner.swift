@@ -58,11 +58,17 @@ class RoutineRunner: ObservableObject {
         }
         return "Task \(currentTaskIndex + 1) / \(scheduledTasks.count)"
     }
+    
+    /// The fraction of the current task completed, based on time elapsed (0.0 to 1.0).
+    @Published var taskProgressFraction: Double = 0.0
+    
+    /// Tasks that have duration suggestions based on average completion times
+    @Published var durationSuggestions: [TaskDurationSuggestion] = []
 
     // MARK: - Core Data & Routine Properties
 
     /// The Core Data managed object context.
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     /// The specific routine being run. (No longer the primary source of tasks)
     let routine: CDRoutine // Changed back from private let
     /// The pre-processed, ordered list of tasks to run with their allocated durations.
@@ -208,7 +214,10 @@ class RoutineRunner: ObservableObject {
         backgroundEnterTime = nil
         isOverrun = false
         lastOffsetUpdateTime = nil
-        DispatchQueue.main.async { self.isOverrun = false }
+        DispatchQueue.main.async { 
+            self.isOverrun = false
+            self.taskProgressFraction = 0.0 // Reset task progress
+        }
 
         updateRemainingTimeDisplay(currentTaskDuration) // Show full (allocated) duration initially
         updateScheduleOffsetString() // Update offset string display
@@ -259,6 +268,10 @@ class RoutineRunner: ObservableObject {
     private func completeRoutine(errorMessage: String? = nil) {
         logger.log(level: .info, "Routine '\(self.routine.name ?? "Unnamed", privacy: .public)' completed. Final schedule offset: \(self.scheduleOffset, format: .fixed(precision: 1))s")
         self.currentTaskIndex = -1 // Reset index
+        
+        // Check for duration suggestions before marking complete
+        checkForDurationSuggestions()
+        
         // Update published properties on the main thread
         DispatchQueue.main.async {
             self.currentTaskName = errorMessage ?? "Routine Complete!"
@@ -610,6 +623,14 @@ class RoutineRunner: ObservableObject {
 
             // Update the display regardless of overrun state first
             self.updateRemainingTimeDisplay(timeRemaining) // This now handles 00:00 correctly
+            
+            // Update task progress fraction
+            if self.currentTaskDuration > 0 {
+                let progress = elapsedTime / self.currentTaskDuration
+                DispatchQueue.main.async {
+                    self.taskProgressFraction = min(max(progress, 0.0), 1.0) // Clamp between 0 and 1
+                }
+            }
 
             // --- Overrun Handling ---
             // Change condition to < 0 to trigger overrun only for negative time
@@ -1218,6 +1239,62 @@ class RoutineRunner: ObservableObject {
                 // Consider more robust error handling depending on the app's needs
                 // fatalError("Unresolved error \(nserror), \(nserror.userInfo)") // Avoid fatalError in production
             }
+        }
+    }
+    
+    /// Checks all tasks in the routine for duration suggestions based on average completion times
+    private func checkForDurationSuggestions() {
+        logger.info("Checking for task duration suggestions")
+        var suggestions: [TaskDurationSuggestion] = []
+        
+        // Check each unique task that was in this routine
+        let uniqueTasks = Set(scheduledTasks.map { $0.task })
+        
+        for task in uniqueTasks {
+            // Skip if not tracking average time
+            guard task.shouldTrackAverageTime else { continue }
+            
+            // Get completion times count
+            let completionCount = (task.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
+            
+            // Need at least 30 completions for a decent average
+            guard completionCount >= 30 else {
+                logger.debug("Task '\(task.taskName ?? "Unnamed")' has only \(completionCount) completions, need 30")
+                continue
+            }
+            
+            // Get average completion time
+            guard let avgTime = task.averageCompletionTime else { continue }
+            
+            // Get current task duration (using minDuration as the standard)
+            let currentDurationMinutes = Int(task.minDuration)
+            let currentDurationSeconds = Double(currentDurationMinutes * 60)
+            
+            // Calculate percentage difference
+            let percentDiff = abs(avgTime - currentDurationSeconds) / currentDurationSeconds * 100
+            
+            logger.debug("Task '\(task.taskName ?? "Unnamed")': avg=\(avgTime)s, current=\(currentDurationSeconds)s, diff=\(percentDiff)%")
+            
+            // Check if difference is 30% or more
+            if percentDiff >= 30 {
+                let suggestedMinutes = Int(round(avgTime / 60))
+                
+                let suggestion = TaskDurationSuggestion(
+                    task: task,
+                    currentDuration: currentDurationMinutes,
+                    suggestedDuration: suggestedMinutes,
+                    averageCompletionTime: avgTime,
+                    completionCount: completionCount
+                )
+                
+                suggestions.append(suggestion)
+                logger.info("Suggesting duration change for '\(task.taskName ?? "Unnamed")': \(currentDurationMinutes)min → \(suggestedMinutes)min")
+            }
+        }
+        
+        // Update the published suggestions
+        DispatchQueue.main.async {
+            self.durationSuggestions = suggestions
         }
     }
 }

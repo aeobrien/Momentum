@@ -7,8 +7,7 @@ struct MomentumApp: App {
     init() {
         UINavigationBar.appearance().prefersLargeTitles = false
         
-        // Force portrait orientation
-        UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+        // Set portrait orientation lock
         AppDelegate.orientationLock = .portrait
     }
     
@@ -52,24 +51,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // private let logger = AppLogger.create(subsystem: "com.app.AppDelegate", category: "Migration")
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        // Remove Data Migration Call - No longer needed
-        /*
-        Task {
-            let logger = AppLogger.create(subsystem: "com.app.AppDelegate", category: "Migration") // Define logger locally if needed for context
-            do {
-                // Calls to DataMigrationService removed as the service is deleted
-                // let migrationService = DataMigrationService()
-                // try await migrationService.migrateData()
-                // let verificationResult = try await migrationService.verifyMigration()
-                
-                // ... migration verification logging removed ...
-
-                logger.info("Old migration logic block skipped.")
-            } catch {
-                logger.error("Old migration logic block encountered error (should not happen)", error: error)
-            }
-        }
-        */
+        // Perform automatic migration if needed (before Core Data initialization)
+        AutomaticMigration.shared.performMigrationIfNeeded()
+        
         return true
     }
     

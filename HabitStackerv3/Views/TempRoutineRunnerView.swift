@@ -66,6 +66,15 @@ struct TempRoutineRunnerView: View {
                                 .padding(.top, 50)
                                 .offset(y: detailsVisible ? 0 : 30)
                                 
+                                // Task Progress Bar
+                                TaskProgressBarView(
+                                    value: runner.taskProgressFraction,
+                                    label: "Task Progress"
+                                )
+                                .frame(width: geometry.size.width - 80)
+                                .padding(.top, 5)
+                                .offset(y: detailsVisible ? 0 : 30)
+                                
                                 // Detailed View Content
                                 if detailsVisible {
                                     Spacer().frame(height: 20)
@@ -80,7 +89,7 @@ struct TempRoutineRunnerView: View {
                                                 .foregroundColor(scheduleColor())
                                         }
                                         
-                                        Text("Estimated finish: " + estimatedFinishTime())
+                                        Text("Estimated finish: " + runner.estimatedFinishingTimeString)
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
