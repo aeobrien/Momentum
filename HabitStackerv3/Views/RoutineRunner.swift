@@ -28,6 +28,8 @@ class RoutineRunner: ObservableObject {
     @Published var isOverrun: Bool = false // Made public for view access
     /// The name of the next task in the schedule, or nil if the current task is the last.
     @Published var nextTaskName: String? = nil
+    /// Indicates if we're currently handling an interruption task
+    @Published var isHandlingInterruption: Bool = false
 
     // MARK: - Progress Properties (Published for UI)
     /// The total allocated time for all tasks in the routine (in seconds).
@@ -102,6 +104,10 @@ class RoutineRunner: ObservableObject {
     private var timeToCountDownAtStart: TimeInterval = 0
     /// Timestamp of the last time the schedule offset was updated due to overrun.
     private var lastOffsetUpdateTime: Date? = nil
+    
+    // MARK: - Interruption Properties
+    /// Stores the interrupted task and its remaining time
+    private var interruptedTaskState: (taskIndex: Int, remainingTime: TimeInterval)?
 
 
     // MARK: - Schedule Offset Properties
@@ -330,6 +336,22 @@ class RoutineRunner: ObservableObject {
         let completedTask = self.scheduledTasks[self.currentTaskIndex].task
         let completedTaskName = completedTask.taskName ?? "Unnamed Task"
         logger.info("User marked task '\(completedTaskName, privacy: .public)' complete.")
+        
+        // Check if we're completing an interruption task
+        if isHandlingInterruption && completedTaskName == "Interruption" {
+            logger.info("Completing interruption task, will restore interrupted task")
+            // Don't record completion time or update task status for interruption
+            timer?.cancel()
+            timer = nil
+            isRunning = false
+            
+            // Update completed duration for the interruption
+            completedDuration += 180 // 3 minutes
+            
+            // Restore the interrupted task
+            restoreInterruptedTask()
+            return
+        }
 
         timer?.cancel() // Stop the timer
         timer = nil
@@ -413,6 +435,37 @@ class RoutineRunner: ObservableObject {
         let skippedTask = self.scheduledTasks[self.currentTaskIndex].task
         let skippedTaskName = skippedTask.taskName ?? "Unnamed Task"
         logger.info("User skipped task '\(skippedTaskName, privacy: .public)'.")
+        
+        // Check if we're skipping an interruption task
+        if isHandlingInterruption && skippedTaskName == "Interruption" {
+            logger.info("Skipping interruption task, will restore interrupted task")
+            // Calculate time saved from skipping interruption
+            var timeElapsed: TimeInterval = 0
+            if let pauseTime = self.remainingTimeOnPause {
+                timeElapsed = 180 - pauseTime // 3 minutes - remaining
+            } else if let start = startTime {
+                timeElapsed = Date().timeIntervalSince(start)
+            }
+            let timeSaved = 180 - timeElapsed
+            
+            // Update schedule offset
+            self.scheduleOffset -= timeSaved
+            logger.info("Interruption skipped. Time saved: \(timeSaved)s")
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+            
+            // Stop timer
+            timer?.cancel()
+            timer = nil
+            isRunning = false
+            
+            // Update completed duration
+            completedDuration += 180 // Count full interruption duration as completed
+            
+            // Restore the interrupted task
+            restoreInterruptedTask()
+            return
+        }
 
         // Calculate time saved by skipping
         let expectedDuration = self.currentTaskDuration // This is the allocated duration
@@ -778,6 +831,114 @@ class RoutineRunner: ObservableObject {
         
         DispatchQueue.main.async {
             self.estimatedFinishingTimeString = "Est. finish: \(timeString)"
+        }
+    }
+
+    // MARK: - Interruption Handling
+    
+    /// Handles the interruption button press, saving current task and inserting a 3-minute interruption
+    func handleInterruption() {
+        guard currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete else {
+            logger.warning("Cannot handle interruption: no active task or routine complete")
+            return
+        }
+        
+        guard !isHandlingInterruption else {
+            logger.warning("Already handling an interruption")
+            return
+        }
+        
+        logger.info("Handling interruption for task '\(self.currentTaskName)'")
+        
+        // Calculate remaining time for current task
+        var remainingTime: TimeInterval = 0
+        if let pauseTime = remainingTimeOnPause {
+            remainingTime = pauseTime
+        } else if let start = startTime {
+            let elapsed = Date().timeIntervalSince(start)
+            remainingTime = max(0, timeToCountDownAtStart - elapsed)
+        } else {
+            remainingTime = currentTaskDuration
+        }
+        
+        // Store the interrupted task state
+        interruptedTaskState = (taskIndex: currentTaskIndex, remainingTime: remainingTime)
+        
+        // Stop the current timer
+        timer?.cancel()
+        timer = nil
+        isRunning = false
+        
+        // Create interruption task
+        let interruptionTask = CDTask(context: context)
+        interruptionTask.uuid = UUID()
+        interruptionTask.taskName = "Interruption"
+        interruptionTask.minDuration = 3
+        interruptionTask.maxDuration = 3
+        interruptionTask.essentiality = 3 // Essential
+        interruptionTask.shouldTrackAverageTime = false
+        
+        // Create scheduled task with 3 minutes duration
+        let interruptionScheduledTask = ScheduledTask(task: interruptionTask, allocatedDuration: 180) // 3 minutes = 180 seconds
+        
+        // Insert interruption task at current position
+        scheduledTasks.insert(interruptionScheduledTask, at: currentTaskIndex)
+        
+        // Update total routine duration
+        totalRoutineDuration += 180
+        
+        // Update schedule offset (subtract 3 minutes as we're adding time)
+        scheduleOffset += 180
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
+        
+        // Mark that we're handling an interruption
+        isHandlingInterruption = true
+        
+        // Configure and start the interruption task
+        configureTask(at: currentTaskIndex)
+        startTimer()
+        
+        logger.info("Interruption task started. Original task saved with \(remainingTime)s remaining")
+    }
+    
+    /// Restores the interrupted task after the interruption is complete or skipped
+    private func restoreInterruptedTask() {
+        guard let interruptedState = interruptedTaskState else {
+            logger.warning("No interrupted task state to restore")
+            return
+        }
+        
+        logger.info("Restoring interrupted task")
+        
+        // Remove the interruption task from the schedule
+        if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count {
+            let removedTask = scheduledTasks.remove(at: currentTaskIndex)
+            
+            // Update total routine duration
+            totalRoutineDuration -= removedTask.allocatedDuration
+            
+            // The current index now points to the original task (or next task if it was the last)
+            // No need to change currentTaskIndex
+        }
+        
+        // Clear interruption state
+        interruptedTaskState = nil
+        isHandlingInterruption = false
+        
+        // Configure the restored task with saved remaining time
+        if currentTaskIndex < scheduledTasks.count {
+            configureTask(at: currentTaskIndex)
+            
+            // Override the duration with the saved remaining time
+            remainingTimeOnPause = interruptedState.remainingTime
+            updateRemainingTimeDisplay(interruptedState.remainingTime)
+            
+            // Start the timer (it will use remainingTimeOnPause)
+            startTimer()
+        } else {
+            // If we removed the last task, complete the routine
+            completeRoutine()
         }
     }
 

@@ -186,7 +186,7 @@ struct RoutineRunnerView: View {
                                 // Spacer remains static
                                 Spacer().frame(height: 15)
 
-                                HStack(spacing: 40) {
+                                HStack(spacing: 32) {
                                     // Skip Button
                                     Button {
                                         logger.info("Skip button tapped.")
@@ -224,6 +224,17 @@ struct RoutineRunnerView: View {
                                             Text(runner.isRunning ? "Pause" : "Resume").font(.caption)
                                         }.foregroundColor(.blue)
                                     }.disabled(runner.isRoutineComplete)
+
+                                    // Interruption Button
+                                    Button {
+                                        logger.info("Interruption button tapped.")
+                                        runner.handleInterruption()
+                                    } label: {
+                                        VStack {
+                                            Image(systemName: "exclamationmark.circle.fill").font(.title)
+                                            Text("Wait").font(.caption)
+                                        }.foregroundColor(.purple)
+                                    }.disabled(runner.isRoutineComplete || runner.isHandlingInterruption)
 
                                     // Tasks Button
                                     Button {
