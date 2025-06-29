@@ -13,6 +13,9 @@ struct TaskListView: View {
     @State private var showExportSuccess = false
     @State private var showLogsView = false
     @State private var showResetConfirmation = false
+    #if DEBUG
+    @State private var showCloudKitDebug = false
+    #endif
     
     private let logger = AppLogger.create(subsystem: "com.app.TaskListView", category: "UI")
     
@@ -137,6 +140,14 @@ struct TaskListView: View {
                 Button(action: exportTasks) {
                     Image(systemName: "square.and.arrow.up")
                 }
+                #if DEBUG
+                Button(action: {
+                    showCloudKitDebug = true
+                }) {
+                    Image(systemName: "icloud.and.arrow.up.fill")
+                }
+                .tint(.blue)
+                #endif
             },
             trailing: Button(action: {
                 logger.debug("Opening add task view")
@@ -153,6 +164,11 @@ struct TaskListView: View {
         .sheet(isPresented: $showLogsView) {
             LogsView()
         }
+        #if DEBUG
+        .sheet(isPresented: $showCloudKitDebug) {
+            CloudKitDebugView()
+        }
+        #endif
         .alert("Tasks Exported", isPresented: $showExportSuccess) {
             Button("OK", role: .cancel) {}
         } message: {

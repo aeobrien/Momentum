@@ -54,6 +54,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Perform automatic migration if needed (before Core Data initialization)
         AutomaticMigration.shared.performMigrationIfNeeded()
         
+        // Setup CloudKit remote change notifications
+        CoreDataStack.shared.setupRemoteChangeNotifications()
+        
+        // Initialize CloudKit preferences sync
+        _ = CloudKitPreferences.shared
+        
+        // Log iCloud availability status
+        if CoreDataStack.shared.isCloudKitAvailable {
+            print("iCloud is available - data will sync automatically")
+        } else {
+            print("iCloud is not available - app will work offline only")
+        }
+        
         return true
     }
     

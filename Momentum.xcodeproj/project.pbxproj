@@ -13,6 +13,10 @@
 		DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C42CDCCF6F008B839C /* TaskCard.swift */; };
 		DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C62CDCCF7B008B839C /* SearchBar.swift */; };
 		DD4222C92CDCD342008B839C /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C82CDCD342008B839C /* DateExtensions.swift */; };
+		DD4EDAA92E0C7E81008353E4 /* CloudKitPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4EDAA62E0C7E81008353E4 /* CloudKitPreferences.swift */; };
+		DD4EDAAA2E0C7E81008353E4 /* CloudKitTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4EDAA82E0C7E81008353E4 /* CloudKitTestView.swift */; };
+		DD4EDAAB2E0C7E81008353E4 /* CloudKitSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4EDAA72E0C7E81008353E4 /* CloudKitSyncManager.swift */; };
+		DD4EDAAE2E0C87AA008353E4 /* CloudKitDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4EDAAD2E0C87AA008353E4 /* CloudKitDebugView.swift */; };
 		DD5902B02CDD1CFA005F040A /* ToDoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902AF2CDD1CFA005F040A /* ToDoView.swift */; };
 		DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */; };
 		DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B32CDD2347005F040A /* RoutineTestView.swift */; };
@@ -128,6 +132,11 @@
 		DD4222C42CDCCF6F008B839C /* TaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCard.swift; sourceTree = "<group>"; };
 		DD4222C62CDCCF7B008B839C /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
 		DD4222C82CDCD342008B839C /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
+		DD4EDAA62E0C7E81008353E4 /* CloudKitPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitPreferences.swift; sourceTree = "<group>"; };
+		DD4EDAA72E0C7E81008353E4 /* CloudKitSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncManager.swift; sourceTree = "<group>"; };
+		DD4EDAA82E0C7E81008353E4 /* CloudKitTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitTestView.swift; sourceTree = "<group>"; };
+		DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
+		DD4EDAAD2E0C87AA008353E4 /* CloudKitDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitDebugView.swift; sourceTree = "<group>"; };
 		DD5902AF2CDD1CFA005F040A /* ToDoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoView.swift; sourceTree = "<group>"; };
 		DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestHarness.swift; sourceTree = "<group>"; };
 		DD5902B32CDD2347005F040A /* RoutineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestView.swift; sourceTree = "<group>"; };
@@ -251,6 +260,7 @@
 		DDF227E12CC957B20014505A = {
 			isa = PBXGroup;
 			children = (
+				DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */,
 				DDF227EC2CC957B30014505A /* HabitStackerv3 */,
 				DDF227FD2CC957B50014505A /* HabitStackerv3Tests */,
 				DDF228072CC957B50014505A /* HabitStackerv3UITests */,
@@ -353,6 +363,10 @@
 		DDF2282D2CC959530014505A /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				DD4EDAA62E0C7E81008353E4 /* CloudKitPreferences.swift */,
+				DD4EDAA72E0C7E81008353E4 /* CloudKitSyncManager.swift */,
+				DD4EDAA82E0C7E81008353E4 /* CloudKitTestView.swift */,
+				DD4EDAAD2E0C87AA008353E4 /* CloudKitDebugView.swift */,
 				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
 				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
 				DDF228342CC959AA0014505A /* AddTaskView.swift */,
@@ -579,6 +593,9 @@
 			files = (
 				DDAE4BA72E0B271100C573DB /* TaskProgressBarView.swift in Sources */,
 				DDF228862CC95DDC0014505A /* HabitStackerv3App.swift in Sources */,
+				DD4EDAA92E0C7E81008353E4 /* CloudKitPreferences.swift in Sources */,
+				DD4EDAAA2E0C7E81008353E4 /* CloudKitTestView.swift in Sources */,
+				DD4EDAAB2E0C7E81008353E4 /* CloudKitSyncManager.swift in Sources */,
 				DDF228B62CC98ED70014505A /* RoutineStorageInterface.swift in Sources */,
 				DDF228C02CC99E200014505A /* SchedulingError.swift in Sources */,
 				DDF228882CC95DF60014505A /* TaskStorageInterface.swift in Sources */,
@@ -601,6 +618,7 @@
 				DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */,
 				DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */,
 				DDF228A22CC96B830014505A /* RoutineStorage.swift in Sources */,
+				DD4EDAAE2E0C87AA008353E4 /* CloudKitDebugView.swift in Sources */,
 				DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */,
 				DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */,
 				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
@@ -825,6 +843,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HabitStackerv3/Preview Content\"";
@@ -856,6 +875,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HabitStackerv3/Preview Content\"";

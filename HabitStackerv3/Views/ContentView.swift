@@ -13,6 +13,7 @@ struct ContentView: View {
     
     #if DEBUG
     @State private var showTestView = false
+    @State private var showCloudKitDebug = false
     #endif
     
     var body: some View {
@@ -82,6 +83,12 @@ struct ContentView: View {
         .sheet(isPresented: $showTempRoutineEntry) {
             TempRoutineEntryView()
         }
+        #if DEBUG
+        .sheet(isPresented: $showCloudKitDebug) {
+            CloudKitDebugView()
+        }
+        #endif
+        .cloudKitSyncStatus() // Add CloudKit sync status indicator
     }
 }
 
