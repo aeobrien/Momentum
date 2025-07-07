@@ -71,26 +71,7 @@ struct RoutineListView: View {
             }
             .listStyle(InsetGroupedListStyle())
             .navigationBarTitle("Routines")
-            .toolbar { // Replaced navigationBarItems with .toolbar
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button { // Import from File Button
-                        showFileImporter = true
-                    } label: {
-                        Label("Import from File", systemImage: "square.and.arrow.down")
-                    }
-                    
-                    Button { // Paste from Clipboard Button
-                        pasteRoutinesFromClipboard()
-                    } label: {
-                        Label("Paste JSON", systemImage: "doc.on.clipboard")
-                    }
-                    
-                    Button { // Export Button
-                        exportRoutines()
-                    } label: {
-                        Label("Export Routines", systemImage: "square.and.arrow.up")
-                    }
-                }
+            .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { // Add Button
                         showCreateRoutine = true

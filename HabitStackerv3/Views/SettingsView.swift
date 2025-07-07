@@ -1,0 +1,267 @@
+import SwiftUI
+import CoreData
+
+
+struct SettingsView: View {
+    
+    // Remove the default 22-pt padding above the first section header
+    init() {
+        if #available(iOS 15, *) {
+            UITableView.appearance().sectionHeaderTopPadding = 0
+        }
+    }
+    
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var backupManager = iCloudBackupManager.shared
+    
+    @State private var showLogsView = false
+    @State private var showResetConfirmation = false
+    @State private var showExportSuccess = false
+    @State private var showBackupRestoreView = false
+    @State private var showCloudKitDebug = false
+    @State private var showRoutineExportSuccess = false
+    @State private var showRoutineImportAlert = false
+    @State private var importedRoutinesCount = 0
+    
+    private let logger = AppLogger.create(subsystem: "com.app.SettingsView", category: "UI")
+    
+    var body: some View {
+        List {
+            // MARK: Data Management
+            Section(header: Text("Data Management")) {
+                    
+                    Button {
+                        showBackupRestoreView = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "icloud.and.arrow.up.down")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("Backup & Restore")
+                            Spacer()
+                            if let lastBackup = backupManager.lastBackupDate {
+                                Text(lastBackup, style: .relative)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    
+                    Button(action: exportAllData) {
+                        HStack {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("Export Tasks as JSON")
+                            Spacer()
+                        }
+                    }
+                    
+                    Button(action: exportRoutines) {
+                        HStack {
+                            Image(systemName: "star.square.on.square")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("Export Routines as JSON")
+                            Spacer()
+                        }
+                    }
+                    
+                    Button(action: importRoutinesFromClipboard) {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("Import Routines from Clipboard")
+                            Spacer()
+                        }
+                    }
+                    
+                    Button {
+                        showResetConfirmation = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise.circle")
+                                .foregroundColor(.orange)
+                                .frame(width: 30)
+                            Text("Reset All Completion Dates")
+                            Spacer()
+                        }
+                    }
+                }
+                
+                // MARK: Diagnostics
+                Section(header: Text("Diagnostics")) {
+                    Button { showLogsView = true } label: {
+                        HStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("View Logs")
+                            Spacer()
+                        }
+                    }
+                    
+                    #if DEBUG
+                    Button { showCloudKitDebug = true } label: {
+                        HStack {
+                            Image(systemName: "icloud.circle")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("CloudKit Debug")
+                            Spacer()
+                        }
+                    }
+                    #endif
+                }
+                
+                // MARK: About
+                Section(header: Text("About")) {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Build")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        
+        // MARK: Sheets
+        .sheet(isPresented: $showLogsView)            { LogsView() }
+        .sheet(isPresented: $showBackupRestoreView)   { BackupRestoreView() }
+        #if DEBUG
+        .sheet(isPresented: $showCloudKitDebug)       { CloudKitDebugView() }
+        #endif
+        
+        // MARK: Alerts
+        .alert("Tasks Exported", isPresented: $showExportSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("All tasks have been exported to clipboard as JSON")
+        }
+        .alert("Reset Completion Dates?", isPresented: $showResetConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset All", role: .destructive) { resetAllCompletionDates() }
+        } message: {
+            Text("This will remove the \"Last Completed\" date from all tasks. This action cannot be undone.")
+        }
+        .alert("Routines Exported", isPresented: $showRoutineExportSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("All routines have been exported to clipboard as JSON")
+        }
+        .alert("Routines Imported", isPresented: $showRoutineImportAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("\(importedRoutinesCount) new routine(s) have been imported successfully")
+        }
+    }
+    
+    // MARK: - Data actions (unchanged from your original)
+    
+    private func exportAllData() {
+        let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDTask.taskName, ascending: true)]
+        
+        do {
+            let tasks = try viewContext.fetch(fetchRequest)
+            let domainTasks = tasks.map { $0.toDomainModel() }
+            
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            encoder.dateEncodingStrategy = .iso8601
+            
+            let jsonData = try encoder.encode(domainTasks)
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                UIPasteboard.general.string = jsonString
+                showExportSuccess = true
+                logger.info("Successfully exported \(tasks.count) tasks to clipboard")
+            }
+        } catch {
+            logger.error("Failed to export tasks", error: error)
+        }
+    }
+    
+    private func resetAllCompletionDates() {
+        let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+        
+        do {
+            let tasks = try viewContext.fetch(fetchRequest)
+            for task in tasks { task.lastCompleted = nil }
+            try viewContext.save()
+            logger.info("Reset completion dates for \(tasks.count) tasks")
+        } catch {
+            logger.error("Failed to reset completion dates", error: error)
+        }
+    }
+    
+    private func exportRoutines() {
+        let fetchRequest: NSFetchRequest<CDRoutine> = CDRoutine.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDRoutine.name, ascending: true)]
+        
+        do {
+            let cdRoutines = try viewContext.fetch(fetchRequest)
+            let routines = cdRoutines.map { $0.toDomainModel() }
+            
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            encoder.dateEncodingStrategy = .iso8601
+            
+            let jsonData = try encoder.encode(routines)
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                UIPasteboard.general.string = jsonString
+                showRoutineExportSuccess = true
+                logger.info("Successfully exported \(routines.count) routines to clipboard")
+            }
+        } catch {
+            logger.error("Failed to export routines", error: error)
+        }
+    }
+    
+    private func importRoutinesFromClipboard() {
+        guard let jsonString = UIPasteboard.general.string,
+              let jsonData  = jsonString.data(using: .utf8) else {
+            logger.warning("No valid JSON text found in clipboard")
+            return
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let routines = try decoder.decode([Routine].self, from: jsonData)
+            
+            importedRoutinesCount = 0
+            for routine in routines {
+                let fetchRequest: NSFetchRequest<CDRoutine> = CDRoutine.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "name == %@", routine.name)
+                
+                if try viewContext.count(for: fetchRequest) == 0 {
+                    let cdRoutine = CDRoutine(context: viewContext)
+                    cdRoutine.update(from: routine, context: viewContext)
+                    importedRoutinesCount += 1
+                }
+            }
+            
+            if importedRoutinesCount > 0 {
+                try viewContext.save()
+                showRoutineImportAlert = true
+                logger.info("Successfully imported \(importedRoutinesCount) routines")
+            } else {
+                logger.info("No new routines to import (all already exist)")
+            }
+        } catch {
+            logger.error("Failed to import routines", error: error)
+        }
+    }
+}
+

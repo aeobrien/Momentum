@@ -60,6 +60,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Initialize CloudKit preferences sync
         _ = CloudKitPreferences.shared
         
+        // Initialize iCloud backup manager and schedule automatic backups
+        _ = iCloudBackupManager.shared
+        iCloudBackupManager.shared.scheduleAutomaticBackup()
+        
         // Log iCloud availability status
         if CoreDataStack.shared.isCloudKitAvailable {
             print("iCloud is available - data will sync automatically")

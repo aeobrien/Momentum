@@ -34,6 +34,7 @@ struct RoutineRunnerView: View {
     @State private var detailsVisible: Bool = false
     @State private var showTaskList: Bool = false
     @State private var showDurationSuggestions: Bool = false
+    @State private var showBackgroundTasks: Bool = true
     @Namespace private var animation // Add namespace for matched geometry effect
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineRunnerView")
@@ -131,13 +132,31 @@ struct RoutineRunnerView: View {
 
                                 // --- Status Section (Using runner's schedule offset) ---
                                 VStack(spacing: 12) {
-                                    HStack {
-                                        Image(systemName: scheduleIconName())
-                                            .foregroundColor(scheduleColor())
-                                        Text(runner.scheduleOffsetString)
-                                            .font(.headline)
-                                            .foregroundColor(scheduleColor())
+                                    Button {
+                                        if runner.canSpendTime {
+                                            runner.showSpendTimeSheet = true
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: scheduleIconName())
+                                                .foregroundColor(scheduleColor())
+                                            if runner.canSpendTime && runner.scheduleOffsetString.contains("ahead") {
+                                                Image(systemName: "bitcoinsign.circle.fill")
+                                                    .foregroundColor(.yellow)
+                                                    .font(.caption)
+                                            }
+                                            Text(runner.scheduleOffsetString)
+                                                .font(.headline)
+                                                .foregroundColor(scheduleColor())
+                                            if runner.canSpendTime && runner.scheduleOffsetString.contains("ahead") {
+                                                Image(systemName: "bitcoinsign.circle.fill")
+                                                    .foregroundColor(.yellow)
+                                                    .font(.caption)
+                                            }
+                                        }
                                     }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .disabled(!runner.canSpendTime)
                                     
                                     // Estimated finishing time
                                     Text(runner.estimatedFinishingTimeString)
@@ -186,68 +205,92 @@ struct RoutineRunnerView: View {
                                 // Spacer remains static
                                 Spacer().frame(height: 15)
 
-                                HStack(spacing: 32) {
-                                    // Skip Button
-                                    Button {
-                                        logger.info("Skip button tapped.")
-                                        runner.skipCurrentTask()
-                                    } label: {
-                                        VStack {
-                                            Image(systemName: "forward.fill").font(.title)
-                                            Text("Skip").font(.caption)
-                                        }.foregroundColor(.yellow)
-                                    }.disabled(runner.isRoutineComplete)
+                                VStack(spacing: 15) {
+                                    // First row of buttons
+                                    HStack(spacing: 32) {
+                                        // Skip Button
+                                        Button {
+                                            logger.info("Skip button tapped.")
+                                            runner.skipCurrentTask()
+                                        } label: {
+                                            VStack {
+                                                Image(systemName: "forward.fill").font(.title)
+                                                Text("Skip").font(.caption)
+                                            }.foregroundColor(.yellow)
+                                        }.disabled(runner.isRoutineComplete)
 
-                                    // Delay Button
-                                    Button {
-                                        logger.info("Delay button tapped.")
-                                        runner.delayCurrentTask()
-                                    } label: {
-                                        VStack {
-                                            Image(systemName: "hourglass").font(.title)
-                                            Text("Delay").font(.caption)
-                                        }.foregroundColor(.orange)
-                                    }.disabled(runner.isRoutineComplete || !runner.canDelayCurrentTask)
+                                        // Delay Button
+                                        Button {
+                                            logger.info("Delay button tapped.")
+                                            runner.delayCurrentTask()
+                                        } label: {
+                                            VStack {
+                                                Image(systemName: "hourglass").font(.title)
+                                                Text("Delay").font(.caption)
+                                            }.foregroundColor(.orange)
+                                        }.disabled(runner.isRoutineComplete || !runner.canDelayCurrentTask)
 
-                                    // Pause/Resume Button
-                                    Button {
-                                        if runner.isRunning {
-                                            logger.info("Pause button tapped.")
-                                            runner.pauseTimer()
-                                        } else {
-                                            logger.info("Resume button tapped.")
-                                            runner.startTimer()
+                                        // Pause/Resume Button
+                                        Button {
+                                            if runner.isRunning {
+                                                logger.info("Pause button tapped.")
+                                                runner.pauseTimer()
+                                            } else {
+                                                logger.info("Resume button tapped.")
+                                                runner.startTimer()
+                                            }
+                                        } label: {
+                                            VStack {
+                                                Image(systemName: runner.isRunning ? "pause.fill" : "play.fill").font(.title)
+                                                Text(runner.isRunning ? "Pause" : "Resume").font(.caption)
+                                            }.foregroundColor(.blue)
+                                        }.disabled(runner.isRoutineComplete)
+
+                                        // Interruption Button
+                                        Button {
+                                            logger.info("Interruption button tapped.")
+                                            runner.handleInterruption()
+                                        } label: {
+                                            VStack {
+                                                Image(systemName: "exclamationmark.circle.fill").font(.title)
+                                                Text("Wait").font(.caption)
+                                            }.foregroundColor(.purple)
+                                        }.disabled(runner.isRoutineComplete || runner.isHandlingInterruption)
+
+                                        // Tasks Button
+                                        Button {
+                                            logger.debug("Tasks button tapped.")
+                                            showTaskList.toggle()
+                                        } label: {
+                                            VStack {
+                                                Image(systemName: "list.bullet").font(.title)
+                                                Text("Tasks").font(.caption)
+                                            }.foregroundColor(.blue)
                                         }
-                                    } label: {
-                                        VStack {
-                                            Image(systemName: runner.isRunning ? "pause.fill" : "play.fill").font(.title)
-                                            Text(runner.isRunning ? "Pause" : "Resume").font(.caption)
-                                        }.foregroundColor(.blue)
-                                    }.disabled(runner.isRoutineComplete)
-
-                                    // Interruption Button
-                                    Button {
-                                        logger.info("Interruption button tapped.")
-                                        runner.handleInterruption()
-                                    } label: {
-                                        VStack {
-                                            Image(systemName: "exclamationmark.circle.fill").font(.title)
-                                            Text("Wait").font(.caption)
-                                        }.foregroundColor(.purple)
-                                    }.disabled(runner.isRoutineComplete || runner.isHandlingInterruption)
-
-                                    // Tasks Button
-                                    Button {
-                                        logger.debug("Tasks button tapped.")
-                                        showTaskList.toggle()
-                                    } label: {
-                                        VStack {
-                                            Image(systemName: "list.bullet").font(.title)
-                                            Text("Tasks").font(.caption)
-                                        }.foregroundColor(.blue)
+                                    }
+                                    
+                                    // Continue in Background button (shown when eligible)
+                                    if runner.canMoveToBackground {
+                                        Button {
+                                            logger.info("Continue in Background button tapped.")
+                                            withAnimation {
+                                                runner.moveCurrentTaskToBackground()
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "arrow.up.backward.circle.fill")
+                                                Text("Continue in Background")
+                                            }
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 10)
+                                            .background(Color.indigo)
+                                            .cornerRadius(20)
+                                        }
                                     }
                                 }
-                                .frame(height: 60) // Fixed height
+                                .frame(minHeight: 60, maxHeight: 120) // Flexible height for additional button
                                 .frame(maxWidth: .infinity)
                                 // Updated transition offset for Action Buttons
                                 .transition(.opacity.combined(with: .offset(y: -80))) // Was -50
@@ -285,9 +328,16 @@ struct RoutineRunnerView: View {
                     }
                     .frame(height: 80) // Give fixed height to the bottom bar area
                 }
+                // Background Tasks Bar as overlay (if any tasks are in background)
+                .overlay(alignment: .top) {
+                    if !runner.backgroundTasks.isEmpty && showBackgroundTasks {
+                        BackgroundTasksBar(runner: runner)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
                 // --- Move Toolbar here --- 
-                .toolbar { // Add custom back/cancel button if needed
-                    ToolbarItem(placement: .navigationBarLeading) {
+                .toolbar {
+                    ToolbarItemGroup(placement: .navigationBarLeading) {
                         if !runner.isRoutineComplete { // Only show if routine is running
                             Button {
                                 logger.warning("User tapped custom back button - cancelling routine.")
@@ -372,6 +422,10 @@ struct RoutineRunnerView: View {
         }
         .sheet(isPresented: $showDurationSuggestions) {
             TaskDurationSuggestionsView(suggestions: runner.durationSuggestions)
+                .environment(\.managedObjectContext, runner.context)
+        }
+        .sheet(isPresented: $runner.showSpendTimeSheet) {
+            SpendOverUnderView(runner: runner)
                 .environment(\.managedObjectContext, runner.context)
         }
         .onChange(of: scenePhase) { newPhase in

@@ -6,10 +6,6 @@ struct ContentView: View {
     
     // State variable to track the selected tab tag
     @State private var selectedTabTag: Int = 0 // Default to Tasks tab (tag 0)
-    @State private var showTempRoutineEntry = false
-    
-    // Constant for the temp action tag
-    private let tempActionTabTag = 99
     
     #if DEBUG
     @State private var showTestView = false
@@ -52,36 +48,20 @@ struct ContentView: View {
             // Todo Tab
             NavigationView {
                 ToDoView()
-                    .navigationTitle("To Do")
             }
             .tabItem {
                 Label("To Do", systemImage: "checkmark.circle")
             }
             .tag(3) // Assign tag 3
             
-            // Temp Routine Tab (Action Trigger)
-            Text("Temp Routine Action Trigger") // Placeholder view
-                .tabItem {
-                    Label("Temp", systemImage: "timer")
-                }
-                .tag(tempActionTabTag) // Assign the special tag
-        }
-        .onChange(of: selectedTabTag) { newTag in
-            // Check if the Temp Action tab was selected
-            if newTag == tempActionTabTag {
-                // Show the temp routine entry sheet
-                showTempRoutineEntry = true
-                
-                // Switch back to the previous tab
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    if selectedTabTag == tempActionTabTag {
-                        selectedTabTag = 0 // Switch back to Tasks tab
-                    }
-                }
+            // Settings Tab
+            NavigationView {
+                SettingsView()
             }
-        }
-        .sheet(isPresented: $showTempRoutineEntry) {
-            TempRoutineEntryView()
+            .tabItem {
+                Label("Settings", systemImage: "gear")
+            }
+            .tag(4) // Assign tag 4
         }
         #if DEBUG
         .sheet(isPresented: $showCloudKitDebug) {

@@ -10,12 +10,6 @@ struct TaskListView: View {
     @State private var searchText: String = ""
     @State private var showAddTask = false
     @State private var sortMode: SortMode = .nameAsc
-    @State private var showExportSuccess = false
-    @State private var showLogsView = false
-    @State private var showResetConfirmation = false
-    #if DEBUG
-    @State private var showCloudKitDebug = false
-    #endif
     
     private let logger = AppLogger.create(subsystem: "com.app.TaskListView", category: "UI")
     
@@ -123,32 +117,6 @@ struct TaskListView: View {
         .navigationTitle("Tasks")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(
-            leading: HStack {
-                Button(action: {
-                    logger.debug("Showing reset completion confirmation")
-                    showResetConfirmation = true
-                }) {
-                    Image(systemName: "arrow.counterclockwise.circle")
-                }
-                .tint(.orange)
-                Button(action: {
-                    logger.debug("Opening logs view")
-                    showLogsView = true
-                }) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                }
-                Button(action: exportTasks) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                #if DEBUG
-                Button(action: {
-                    showCloudKitDebug = true
-                }) {
-                    Image(systemName: "icloud.and.arrow.up.fill")
-                }
-                .tint(.blue)
-                #endif
-            },
             trailing: Button(action: {
                 logger.debug("Opening add task view")
                 showAddTask = true
@@ -161,45 +129,8 @@ struct TaskListView: View {
                 createTask(from: newTask)
             }
         }
-        .sheet(isPresented: $showLogsView) {
-            LogsView()
-        }
-        #if DEBUG
-        .sheet(isPresented: $showCloudKitDebug) {
-            CloudKitDebugView()
-        }
-        #endif
-        .alert("Tasks Exported", isPresented: $showExportSuccess) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Task list has been copied to clipboard")
-        }
-        .alert("Reset Completion Dates?", isPresented: $showResetConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Reset All", role: .destructive) {
-                resetAllCompletionDates()
-            }
-        } message: {
-            Text("This will remove the \"Last Completed\" date from all tasks. This action cannot be undone.")
-        }
     }
     
-    private func exportTasks() {
-        let tasks = filteredAndSortedTasks.map { $0.toDomainModel() }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        
-        do {
-            let jsonData = try encoder.encode(tasks)
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                UIPasteboard.general.string = jsonString
-                showExportSuccess = true
-                logger.info("Successfully exported \(tasks.count) tasks to clipboard")
-            }
-        } catch {
-            logger.error("Failed to export tasks", error: error)
-        }
-    }
     
     private func deleteTask(_ cdTask: CDTask) {
         logger.info("Deleting task: \(cdTask.taskName ?? "")")
@@ -220,20 +151,6 @@ struct TaskListView: View {
         }
     }
     
-    private func resetAllCompletionDates() {
-        logger.info("Resetting lastCompleted date for all \(cdTasks.count) tasks...")
-        let allTasks = cdTasks
-        for task in allTasks {
-            task.lastCompleted = nil
-        }
-
-        do {
-            try viewContext.save()
-            logger.info("Successfully reset completion dates.")
-        } catch {
-            logger.error("Failed to save context after resetting completion dates", error: error)
-        }
-    }
     
     private func createTask(from task: CustomTask) {
         let cdTask = CDTask(context: viewContext)

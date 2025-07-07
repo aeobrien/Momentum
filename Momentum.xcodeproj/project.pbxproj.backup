@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		00A0451AF8C245A98E7DC0A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982602432B884C5290157ADB /* SettingsView.swift */; };
-		0342EFDC3A2F4E42A2560623 /* BackupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB675999AA484797121287 /* BackupDetailView.swift */; };
-		4A65B470B02F4D9ABB48D859 /* BackupData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */; };
-		51A29F7609D94E0E835C1840 /* BackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F746B448122346998D7F6199 /* BackupRestoreView.swift */; };
-		AB7B0934618B40EA8D804D23 /* iCloudBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */; };
-		B4354DC99ECB4B2DA76962C8 /* MomentumBackupDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */; };
 		DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */; };
 		DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */; };
 		DD3CB6AB2DB6D05A009B2C5C /* SchedulePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */; };
@@ -28,7 +22,6 @@
 		DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B32CDD2347005F040A /* RoutineTestView.swift */; };
 		DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B92CDE5D48005F040A /* TestingStructs.swift */; };
 		DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */; };
-		DD70B57F2E1C297400673D79 /* BackgroundTaskViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */; };
 		DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */; };
 		DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */; };
 		DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */; };
@@ -134,10 +127,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		4FAB675999AA484797121287 /* BackupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupDetailView.swift; sourceTree = "<group>"; };
-		982602432B884C5290157ADB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumBackupDocument.swift; sourceTree = "<group>"; };
-		CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupData.swift; sourceTree = "<group>"; };
 		DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Momentum.xcdatamodel; sourceTree = "<group>"; };
 		DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableDurationTaskScheduling.swift; sourceTree = "<group>"; };
 		DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SchedulePreviewView.swift; path = Views/SchedulePreviewView.swift; sourceTree = "<group>"; };
@@ -154,7 +143,6 @@
 		DD5902B32CDD2347005F040A /* RoutineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestView.swift; sourceTree = "<group>"; };
 		DD5902B92CDE5D48005F040A /* TestingStructs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestingStructs.swift; sourceTree = "<group>"; };
 		DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimisationSystem.swift; sourceTree = "<group>"; };
-		DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskViews.swift; sourceTree = "<group>"; };
 		DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -183,7 +171,6 @@
 		DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMigrationView.swift; sourceTree = "<group>"; };
 		DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleMigration.swift; sourceTree = "<group>"; };
 		DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticMigration.swift; sourceTree = "<group>"; };
-		DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudBackupManager.swift; sourceTree = "<group>"; };
 		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
 		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
 		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -243,7 +230,6 @@
 		DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalLogManager.swift; sourceTree = "<group>"; };
 		DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToCompleteView.swift; sourceTree = "<group>"; };
 		DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendOverUnderView.swift; sourceTree = "<group>"; };
-		F746B448122346998D7F6199 /* BackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRestoreView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -379,33 +365,28 @@
 		DDF2282D2CC959530014505A /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */,
-				DDF228342CC959AA0014505A /* AddTaskView.swift */,
-				DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */,
-				CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */,
-				4FAB675999AA484797121287 /* BackupDetailView.swift */,
-				F746B448122346998D7F6199 /* BackupRestoreView.swift */,
-				DD4EDAAD2E0C87AA008353E4 /* CloudKitDebugView.swift */,
 				DD4EDAA62E0C7E81008353E4 /* CloudKitPreferences.swift */,
 				DD4EDAA72E0C7E81008353E4 /* CloudKitSyncManager.swift */,
 				DD4EDAA82E0C7E81008353E4 /* CloudKitTestView.swift */,
+				DD4EDAAD2E0C87AA008353E4 /* CloudKitDebugView.swift */,
+				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
+				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
+				DDF228342CC959AA0014505A /* AddTaskView.swift */,
+				DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */,
 				DDF2282E2CC959690014505A /* ContentView.swift */,
-				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
 				DD947FED2CDC155E0014A929 /* CoreDataStack.swift */,
 				DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */,
 				DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */,
-				DDF228182CC958890014505A /* CustomTask.swift */,
-				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
 				DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */,
+				DDF228182CC958890014505A /* CustomTask.swift */,
+				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
+				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
 				DDF228B32CC98DEA0014505A /* EditRoutineView.swift */,
 				DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */,
-				DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */,
 				DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */,
 				DDF228D52CCEBFDA0014505A /* LogRecord.swift */,
 				DDF228DD2CCEE3220014505A /* LogSession.swift */,
 				DDF228D72CCEC0160014505A /* LogsView.swift */,
-				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
-				AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */,
 				DDF228B12CC97E500014505A /* MultipleSelectionRow.swift */,
 				DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */,
 				DDF2282B2CC959450014505A /* PerformanceMonitor.swift */,
@@ -413,6 +394,7 @@
 				DDF228C12CC9A06B0014505A /* ResultExtensions.swift */,
 				DDF228972CC96AD50014505A /* Routine.swift */,
 				DDF228AB2CC96C310014505A /* RoutineDetailView.swift */,
+				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
 				DDF2289D2CC96B640014505A /* RoutineError.swift */,
 				DDF228A92CC96C190014505A /* RoutineListView.swift */,
 				DDF2289F2CC96B730014505A /* RoutineLogger.swift */,
@@ -428,44 +410,41 @@
 				DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */,
 				DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */,
 				DD5902B32CDD2347005F040A /* RoutineTestView.swift */,
+				DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */,
 				DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */,
 				DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */,
+				DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */,
+				DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */,
 				DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */,
 				DDF228BF2CC99E200014505A /* SchedulingError.swift */,
 				DD4222C62CDCCF7B008B839C /* SearchBar.swift */,
-				982602432B884C5290157ADB /* SettingsView.swift */,
 				DDF228BB2CC99C630014505A /* SetupLogger.swift */,
-				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
 				DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */,
 				DDF228D02CCD9ACE0014505A /* SortMode.swift */,
-				DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */,
 				DDF228CA2CCD8C400014505A /* SplashScreenView.swift */,
 				DD4222C42CDCCF6F008B839C /* TaskCard.swift */,
 				DDF228CE2CCD95E60014505A /* TaskCardView.swift */,
 				DDF228322CC9599D0014505A /* TaskDetailView.swift */,
-				DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */,
-				DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */,
 				DDF2281C2CC958A40014505A /* TaskInstance.swift */,
 				DDF228302CC959920014505A /* TaskListView.swift */,
-				DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */,
 				DDF228A52CC96BDF0014505A /* TaskSelectionProcess.swift */,
 				DDF2281F2CC958B40014505A /* TaskStorage.swift */,
 				DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */,
 				DDF228212CC958D50014505A /* TaskStorageError.swift */,
 				DDF228232CC958EA0014505A /* TaskStorageInterface.swift */,
 				DDF228AF2CC97A670014505A /* TaskViewModel.swift */,
-				DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */,
 				DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */,
+				DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */,
 				DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */,
 				DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */,
-				DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */,
+				DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */,
 				DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */,
 				DDAE4B962E0B080400C573DB /* TempTaskList.swift */,
 				DD5902B92CDE5D48005F040A /* TestingStructs.swift */,
 				DD5902AF2CDD1CFA005F040A /* ToDoView.swift */,
-				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
 				DDF2281A2CC958990014505A /* Version.swift */,
 				DDF228292CC959370014505A /* VersionManager.swift */,
+				DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -620,12 +599,6 @@
 				DD4EDAA92E0C7E81008353E4 /* CloudKitPreferences.swift in Sources */,
 				DD4EDAAA2E0C7E81008353E4 /* CloudKitTestView.swift in Sources */,
 				DD4EDAAB2E0C7E81008353E4 /* CloudKitSyncManager.swift in Sources */,
-				4A65B470B02F4D9ABB48D859 /* BackupData.swift in Sources */,
-				B4354DC99ECB4B2DA76962C8 /* MomentumBackupDocument.swift in Sources */,
-				AB7B0934618B40EA8D804D23 /* iCloudBackupManager.swift in Sources */,
-				51A29F7609D94E0E835C1840 /* BackupRestoreView.swift in Sources */,
-				00A0451AF8C245A98E7DC0A1 /* SettingsView.swift in Sources */,
-				0342EFDC3A2F4E42A2560623 /* BackupDetailView.swift in Sources */,
 				DDF228B62CC98ED70014505A /* RoutineStorageInterface.swift in Sources */,
 				DDF228C02CC99E200014505A /* SchedulingError.swift in Sources */,
 				DDF228882CC95DF60014505A /* TaskStorageInterface.swift in Sources */,
@@ -668,7 +641,6 @@
 				DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */,
 				DDF228912CC95DF60014505A /* Version.swift in Sources */,
 				DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */,
-				DD70B57F2E1C297400673D79 /* BackgroundTaskViews.swift in Sources */,
 				DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */,
 				DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */,
 				DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */,

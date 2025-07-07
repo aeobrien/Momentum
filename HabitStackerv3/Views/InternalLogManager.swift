@@ -46,11 +46,11 @@ final class InternalLogManager: ObservableObject {
         documentsDirectoryURL.appendingPathComponent("crash_reports.log")
     }
     
-    private func sessionFileURL(for timeBlock: TimeBlock, date: Date) -> URL {
+    private func sessionFileURL(for date: Date) -> URL {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = dateFormatter.string(from: date)
-        return logsFolderURL.appendingPathComponent("\(dateString)-\(timeBlock.rawValue).json")
+        return logsFolderURL.appendingPathComponent("\(dateString).json")
     }
 
     // MARK: - Initialization
@@ -86,17 +86,17 @@ final class InternalLogManager: ObservableObject {
             let now = Date()
             var sessionChanged = false
             
-            // Check if we need to start a new session based on time block
+            // Check if we need to start a new session based on day
             // This needs careful synchronization if currentSession can be accessed from multiple threads
             // Accessing currentSession here within the queue should be safe
-            if TimeBlock.from(date: now) != self.currentSession.timeBlock {
+            if !Calendar.current.isDate(now, inSameDayAs: self.currentSession.startTime) {
                 // Log session change to console
-                print("[InternalLogManager] Time block changed. Ending old session, starting new.")
+                print("[InternalLogManager] Day changed. Ending old session, starting new.")
                 self.endCurrentSessionUnsafe(endTime: now) // Call unsafe version since we're already in the queue
                 // Update currentSession safely within the queue
                 self.currentSession = LogSession(startTime: now)
                 sessionChanged = true
-                print("[InternalLogManager] New Time Block Session Started. ID: \(self.currentSession.id)")
+                print("[InternalLogManager] New Daily Session Started. ID: \(self.currentSession.id)")
             }
             
             let record = LogRecord(
@@ -158,14 +158,14 @@ final class InternalLogManager: ObservableObject {
             }
 
             let groupedSessions = Dictionary(grouping: allSessionsToConsider) { session in
-                TimeBlockDate(date: session.startTime, block: session.timeBlock)
+                Calendar.current.startOfDay(for: session.startTime)
             }
             
             self.logger.info("[saveIfNeeded] Preparing to save \(allSessionsToConsider.count) session(s) across \(groupedSessions.count) file(s). Current session ID: \(sessionToSave?.id.uuidString ?? "None")")
             
-            for (blockDate, sessionsInBlock) in groupedSessions {
-                let fileURL = self.sessionFileURL(for: blockDate.block, date: blockDate.date)
-                let trimmedSessions = Array(sessionsInBlock.sorted { $0.startTime > $1.startTime }.prefix(self.maxSessionsPerTimeBlock))
+            for (date, sessionsInDay) in groupedSessions {
+                let fileURL = self.sessionFileURL(for: date)
+                let trimmedSessions = Array(sessionsInDay.sorted { $0.startTime > $1.startTime }.prefix(self.maxSessionsPerTimeBlock))
                 
                 // --- Add detailed logging before write --- 
                 self.logger.debug("[saveIfNeeded] Attempting to save \(trimmedSessions.count) session(s) to file: \(fileURL.lastPathComponent)")
@@ -341,25 +341,23 @@ final class InternalLogManager: ObservableObject {
             logger.info("Loading sessions for dates: \(datesToLoad.map { $0.description(with: .current) })")
 
             for date in datesToLoad {
-                for timeBlock in TimeBlock.allCases {
-                    let fileURL = self.sessionFileURL(for: timeBlock, date: date)
-                    guard fileManager.fileExists(atPath: fileURL.path) else { continue }
-                    
-                    fileCount += 1
-                    do {
-                        let data = try Data(contentsOf: fileURL)
-                        let decoder = JSONDecoder()
-                        decoder.dateDecodingStrategy = .iso8601
-                        let sessionsFromFile = try decoder.decode([LogSession].self, from: data)
-                        loadedSessions.append(contentsOf: sessionsFromFile)
-                        sessionCount += sessionsFromFile.count
-                        self.logger.debug("Successfully loaded \(sessionsFromFile.count) sessions from \(fileURL.lastPathComponent)")
-                    } catch {
-                        // Log detailed error but continue to the next file
-                        self.logger.error("Failed to load/decode \(fileURL.lastPathComponent): \(error.localizedDescription)")
-                        // Optionally log the full error object for more detail:
-                        // self.logger.error("Full decoding error for \(fileURL.lastPathComponent): \(error)")
-                    }
+                let fileURL = self.sessionFileURL(for: date)
+                guard fileManager.fileExists(atPath: fileURL.path) else { continue }
+                
+                fileCount += 1
+                do {
+                    let data = try Data(contentsOf: fileURL)
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601
+                    let sessionsFromFile = try decoder.decode([LogSession].self, from: data)
+                    loadedSessions.append(contentsOf: sessionsFromFile)
+                    sessionCount += sessionsFromFile.count
+                    self.logger.debug("Successfully loaded \(sessionsFromFile.count) sessions from \(fileURL.lastPathComponent)")
+                } catch {
+                    // Log detailed error but continue to the next file
+                    self.logger.error("Failed to load/decode \(fileURL.lastPathComponent): \(error.localizedDescription)")
+                    // Optionally log the full error object for more detail:
+                    // self.logger.error("Full decoding error for \(fileURL.lastPathComponent): \(error)")
                 }
             }
             

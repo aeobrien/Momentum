@@ -8,6 +8,26 @@ import SwiftUI
 import OSLog
 import CoreData
 
+// MARK: - Background Task State
+/// Represents a task running in the background with its own timer state
+struct BackgroundTaskState: Identifiable {
+    let id = UUID()
+    let task: CDTask
+    let taskIndex: Int
+    let allocatedDuration: TimeInterval
+    var remainingTime: TimeInterval
+    var startTime: Date?
+    var isRunning: Bool = true
+    var timer: AnyCancellable?
+    
+    init(task: CDTask, taskIndex: Int, allocatedDuration: TimeInterval, remainingTime: TimeInterval) {
+        self.task = task
+        self.taskIndex = taskIndex
+        self.allocatedDuration = allocatedDuration
+        self.remainingTime = remainingTime
+    }
+}
+
 /// Manages the state and logic for running a routine, including the timer.
 // Renamed from RoutineRunnerViewModel to RoutineRunner
 class RoutineRunner: ObservableObject {
@@ -30,6 +50,16 @@ class RoutineRunner: ObservableObject {
     @Published var nextTaskName: String? = nil
     /// Indicates if we're currently handling an interruption task
     @Published var isHandlingInterruption: Bool = false
+    /// Indicates if the spend time button should be enabled
+    @Published var canSpendTime: Bool = false
+    /// Shows the spend over-under time sheet
+    @Published var showSpendTimeSheet: Bool = false
+    
+    // MARK: - Background Task Properties
+    /// Tasks currently running in the background
+    @Published var backgroundTasks: [BackgroundTaskState] = []
+    /// Indicates if the current task can be moved to background
+    @Published var canMoveToBackground: Bool = false
 
     // MARK: - Progress Properties (Published for UI)
     /// The total allocated time for all tasks in the routine (in seconds).
@@ -96,7 +126,7 @@ class RoutineRunner: ObservableObject {
     private var currentTaskDuration: TimeInterval = 0
     /// The exact time when the timer was last started or resumed.
     private var startTime: Date? = nil
-    /// The time remaining when the timer was paused. Stores actual time left, not overrun.
+    /// The time remaining when the timer was paused. Stores actual time left, including negative values for overrun.
     private var remainingTimeOnPause: TimeInterval? = nil
     /// Timestamp of when the app entered the background. Used to calculate elapsed time.
     private var backgroundEnterTime: Date? = nil
@@ -108,13 +138,22 @@ class RoutineRunner: ObservableObject {
     // MARK: - Interruption Properties
     /// Stores the interrupted task and its remaining time
     private var interruptedTaskState: (taskIndex: Int, remainingTime: TimeInterval)?
+    
+    // MARK: - Unscheduled Tasks Properties
+    /// Tasks that were not scheduled due to time constraints, with their original order
+    private var unscheduledTasks: [(task: CDTask, originalOrder: Int32)] = []
+    /// The minimum duration among unscheduled tasks (for enabling spend button)
+    private var shortestUnscheduledDuration: TimeInterval = .infinity
+    
+    /// Stores the task to return to after completing a background task that was brought to foreground
+    private var returnToTaskState: (index: Int, remainingTime: TimeInterval)?
 
 
     // MARK: - Schedule Offset Properties
 
     /// Tracks the total deviation from the scheduled completion times (in seconds).
     /// Negative means ahead of schedule, Positive means behind schedule.
-    private var scheduleOffset: TimeInterval = 0
+    private(set) var scheduleOffset: TimeInterval = 0
     
     /// The original finishing time selected when the routine was started.
     @Published private(set) var originalFinishingTime: Date = Date()
@@ -163,6 +202,10 @@ class RoutineRunner: ObservableObject {
         logger.info("Total calculated routine duration: \(self.totalRoutineDuration / 60, format: .fixed(precision: 1)) minutes.")
 
         logger.info("RoutineRunner initialized for routine: \(routine.name ?? "Unnamed Routine") with \(schedule.count) scheduled tasks.")
+        
+        // Identify unscheduled tasks
+        identifyUnscheduledTasks(routine: routine, scheduledTasks: schedule)
+        
         // fetchAndSortTasks() // No longer needed - schedule is provided
         prepareFirstTask() // Set up the first task from the schedule
         updateScheduleOffsetString() // Initialize offset string
@@ -173,6 +216,64 @@ class RoutineRunner: ObservableObject {
 
     /// Fetches the CDRoutineTask entities from the provided CDRoutine and sorts them by their 'order' attribute.
     // private func fetchAndSortTasks() { ... } // No longer needed
+    
+    /// Identifies tasks that were not scheduled due to time constraints (but are eligible)
+    private func identifyUnscheduledTasks(routine: CDRoutine, scheduledTasks: [ScheduledTask]) {
+        guard let relations = routine.taskRelations as? Set<CDRoutineTask> else {
+            logger.warning("Could not fetch routine relations for unscheduled tasks identification")
+            return
+        }
+        
+        // Create a set of scheduled task IDs for quick lookup
+        let scheduledTaskIDs = Set(scheduledTasks.map { $0.task.objectID })
+        
+        // Find all tasks that are in the routine but not scheduled
+        for relation in relations {
+            guard let task = relation.task else { continue }
+            
+            if !scheduledTaskIDs.contains(task.objectID) {
+                // Check if task is eligible using same logic as scheduler
+                if isTaskEligibleForScheduling(task: task) {
+                    unscheduledTasks.append((task: task, originalOrder: relation.order))
+                    
+                    // Update shortest duration
+                    let taskDuration = TimeInterval(task.minDuration * 60)
+                    if taskDuration < shortestUnscheduledDuration {
+                        shortestUnscheduledDuration = taskDuration
+                    }
+                } else {
+                    logger.debug("Task '\(task.taskName ?? "Unnamed")' is unscheduled but not eligible due to repetition interval")
+                }
+            }
+        }
+        
+        // Sort unscheduled tasks by original order
+        unscheduledTasks.sort { $0.originalOrder < $1.originalOrder }
+        
+        logger.info("Identified \(self.unscheduledTasks.count) eligible unscheduled tasks. Shortest duration: \(self.shortestUnscheduledDuration / 60) minutes")
+    }
+    
+    /// Checks if a task is eligible for scheduling using the same logic as CoreDataTaskScheduler
+    private func isTaskEligibleForScheduling(task: CDTask) -> Bool {
+        // Rule 1: Always eligible if never completed
+        guard let lastCompleted = task.lastCompleted else {
+            return true
+        }
+        
+        // Rule 2: Check for daily reset (repetitionInterval == 0)
+        if task.repetitionInterval == 0 {
+            let isToday = Calendar.current.isDateInToday(lastCompleted)
+            // Eligible only if it wasn't completed today
+            return !isToday
+        }
+        
+        // Rule 3: Interval-based eligibility (repetitionInterval > 0)
+        let now = Date()
+        let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
+        let requiredInterval = TimeInterval(task.repetitionInterval)
+        
+        return secondsSinceCompletion >= requiredInterval
+    }
 
 
     /// Sets up the very first task without starting the timer.
@@ -241,6 +342,9 @@ class RoutineRunner: ObservableObject {
 
         // Update completed duration whenever a new task is configured
         updateCompletedDuration()
+        
+        // Update whether this task can be moved to background
+        updateCanMoveToBackground()
     }
 
     /// Advances to the next task in the routine.
@@ -257,6 +361,22 @@ class RoutineRunner: ObservableObject {
         // Update completed duration *before* incrementing the index
         updateCompletedDuration() 
         
+        // Check if we should return to a saved task state
+        if let savedState = returnToTaskState {
+            logger.info("Returning to saved task at index \(savedState.index)")
+            returnToTaskState = nil // Clear the saved state
+            
+            currentTaskIndex = savedState.index
+            configureTask(at: currentTaskIndex)
+            
+            // Restore the saved remaining time
+            remainingTimeOnPause = savedState.remainingTime
+            updateRemainingTimeDisplay(savedState.remainingTime)
+            
+            startTimer()
+            return
+        }
+        
         let nextIndex = self.currentTaskIndex + 1
         if nextIndex < self.scheduledTasks.count {
             logger.info("Advancing to task \(nextIndex + 1).)")
@@ -264,8 +384,15 @@ class RoutineRunner: ObservableObject {
             self.configureTask(at: self.currentTaskIndex)
             self.startTimer()
         } else {
-            logger.info("Advanced past the last task. Routine complete.")
-            self.completeRoutine()
+            // Check if there are background tasks still running
+            if !backgroundTasks.isEmpty {
+                logger.info("No more scheduled tasks, but \(self.backgroundTasks.count) background task(s) still running. Switching to first background task.")
+                // Switch the first background task to foreground
+                switchBackgroundTaskToForeground(at: 0)
+            } else {
+                logger.info("Advanced past the last task. Routine complete.")
+                self.completeRoutine()
+            }
         }
     }
 
@@ -679,7 +806,18 @@ class RoutineRunner: ObservableObject {
             
             // Update task progress fraction
             if self.currentTaskDuration > 0 {
-                let progress = elapsedTime / self.currentTaskDuration
+                // Calculate total elapsed time including any overrun
+                let totalElapsed: TimeInterval
+                if self.timeToCountDownAtStart <= 0 {
+                    // We started in overrun mode (after backgrounding during overrun)
+                    // The negative timeToCountDownAtStart represents how much we were already overrun
+                    totalElapsed = self.currentTaskDuration + abs(self.timeToCountDownAtStart) + elapsedTime
+                } else {
+                    // Normal case or resumed from pause
+                    totalElapsed = self.currentTaskDuration - self.timeToCountDownAtStart + elapsedTime
+                }
+                
+                let progress = totalElapsed / self.currentTaskDuration
                 DispatchQueue.main.async {
                     self.taskProgressFraction = min(max(progress, 0.0), 1.0) // Clamp between 0 and 1
                 }
@@ -750,15 +888,14 @@ class RoutineRunner: ObservableObject {
         let elapsed = Date().timeIntervalSince(startTime ?? Date()) // Time since last start/resume
         let remaining = timeToCountDownAtStart - elapsed // Calculate actual time left
 
-        if remaining > 0 && !isOverrun {
-            // Only store remaining time if > 0 and not already in overrun
-            remainingTimeOnPause = remaining
+        // Store the remaining time regardless of whether it's positive or negative
+        // This preserves overrun state when backgrounding
+        remainingTimeOnPause = remaining
+        
+        if remaining > 0 {
             logger.debug("Remaining time on pause stored: \(remaining, format: .fixed(precision: 1))s")
         } else {
-            // If remaining is zero or negative, or we were already in overrun, clear the pause time
-            remainingTimeOnPause = nil
-            // Don't reset isOverrun here, as we might be pausing *during* overrun
-            logger.debug("Timer paused with no positive time remaining or during overrun. Cleared remainingTimeOnPause.")
+            logger.debug("Timer paused during overrun. Stored negative remaining time: \(remaining, format: .fixed(precision: 1))s")
         }
 
         // Update published state on main thread
@@ -817,9 +954,15 @@ class RoutineRunner: ObservableObject {
                 newString = "\(formattedOffset) behind schedule"
             }
         }
-         DispatchQueue.main.async {
-             self.scheduleOffsetString = newString
-         }
+        
+        // Update canSpendTime based on schedule offset and available unscheduled tasks
+        let availableTime = max(0, -offset) // Positive when ahead of schedule
+        let canSpend = availableTime >= shortestUnscheduledDuration && !unscheduledTasks.isEmpty && !isRoutineComplete
+        
+        DispatchQueue.main.async {
+            self.scheduleOffsetString = newString
+            self.canSpendTime = canSpend
+        }
     }
     
     /// Updates the `estimatedFinishingTimeString` published property based on the original finishing time and schedule offset.
@@ -942,6 +1085,108 @@ class RoutineRunner: ObservableObject {
         }
     }
 
+    // MARK: - Spend Time Methods
+    
+    /// Returns unscheduled tasks that can be afforded with current over-under time
+    func getAffordableUnscheduledTasks() -> [(task: CDTask, originalOrder: Int32, duration: TimeInterval)] {
+        let availableTime = max(0, -scheduleOffset)
+        
+        return unscheduledTasks.compactMap { taskInfo in
+            let duration = TimeInterval(taskInfo.task.minDuration * 60)
+            if duration <= availableTime {
+                return (task: taskInfo.task, originalOrder: taskInfo.originalOrder, duration: duration)
+            }
+            return nil
+        }
+    }
+    
+    /// Adds selected unscheduled tasks to the schedule
+    func addUnscheduledTasks(_ tasksToAdd: [(task: CDTask, originalOrder: Int32)]) {
+        logger.info("Adding \(tasksToAdd.count) unscheduled tasks to the schedule")
+        
+        for taskInfo in tasksToAdd {
+            let duration = TimeInterval(taskInfo.task.minDuration * 60)
+            let scheduledTask = ScheduledTask(task: taskInfo.task, allocatedDuration: duration)
+            
+            // Find insertion point
+            let insertionIndex = findInsertionIndex(for: taskInfo.originalOrder)
+            scheduledTasks.insert(scheduledTask, at: insertionIndex)
+            
+            // Update tracking
+            totalRoutineDuration += duration
+            scheduleOffset += duration // This reduces the "ahead" time
+            
+            // Remove from unscheduled list
+            unscheduledTasks.removeAll { $0.task.objectID == taskInfo.task.objectID }
+            
+            logger.info("Added task '\(taskInfo.task.taskName ?? "Unnamed")' at index \(insertionIndex)")
+        }
+        
+        // Update shortest unscheduled duration
+        shortestUnscheduledDuration = .infinity
+        for taskInfo in unscheduledTasks {
+            let duration = TimeInterval(taskInfo.task.minDuration * 60)
+            if duration < shortestUnscheduledDuration {
+                shortestUnscheduledDuration = duration
+            }
+        }
+        
+        // Update UI
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
+        updateNextTaskName()
+        updateCompletedDuration()
+        
+        // Notify SwiftUI
+        objectWillChange.send()
+    }
+    
+    /// Finds the correct insertion index for a task based on its original order
+    private func findInsertionIndex(for originalOrder: Int32) -> Int {
+        // Get the original order of completed tasks
+        var highestCompletedOrder: Int32 = -1
+        
+        // Check completed tasks (those before currentTaskIndex)
+        for i in 0..<max(0, currentTaskIndex) {
+            if let relation = routine.taskRelations?.allObjects.first(where: { relation in
+                guard let routineTask = relation as? CDRoutineTask else { return false }
+                return routineTask.task?.objectID == scheduledTasks[i].task.objectID
+            }) as? CDRoutineTask {
+                highestCompletedOrder = max(highestCompletedOrder, relation.order)
+            }
+        }
+        
+        // If we've passed this task's original position, add to end
+        if originalOrder <= highestCompletedOrder {
+            return scheduledTasks.count
+        }
+        
+        // Otherwise, find the correct position to maintain order
+        for i in max(0, currentTaskIndex)..<scheduledTasks.count {
+            if let relation = routine.taskRelations?.allObjects.first(where: { relation in
+                guard let routineTask = relation as? CDRoutineTask else { return false }
+                return routineTask.task?.objectID == scheduledTasks[i].task.objectID
+            }) as? CDRoutineTask {
+                if relation.order > originalOrder {
+                    return i
+                }
+            }
+        }
+        
+        return scheduledTasks.count
+    }
+    
+    /// Updates the next task name if needed after adding tasks
+    private func updateNextTaskName() {
+        let nextIndex = currentTaskIndex + 1
+        if nextIndex < scheduledTasks.count {
+            self.nextTaskName = scheduledTasks[nextIndex].task.taskName
+            logger.debug("Updated next task name: \(self.nextTaskName ?? "None")")
+        } else {
+            self.nextTaskName = nil
+        }
+    }
+
     // MARK: - Public Control Methods
     
     /// Reorders tasks in the current schedule (affects only this run, not the saved routine)
@@ -1002,6 +1247,13 @@ class RoutineRunner: ObservableObject {
         isOverrun = false
         lastOffsetUpdateTime = nil
         
+        // Stop all background timers
+        for i in backgroundTasks.indices {
+            backgroundTasks[i].timer?.cancel()
+            backgroundTasks[i].timer = nil
+        }
+        backgroundTasks.removeAll()
+        
         // Update UI state on main thread
         DispatchQueue.main.async {
             self.isRunning = false
@@ -1010,11 +1262,231 @@ class RoutineRunner: ObservableObject {
         
         logger.info("Routine stopped and all timers cleaned up.")
     }
+    
+    // MARK: - Background Task Methods
+    
+    /// Moves the current task to background and advances to the next task
+    func moveCurrentTaskToBackground() {
+        guard currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete else {
+            logger.warning("Cannot move to background: no active task or routine complete")
+            return
+        }
+        
+        // Don't allow interruption tasks to be backgrounded
+        let currentTaskName = scheduledTasks[currentTaskIndex].task.taskName ?? ""
+        if currentTaskName == "Interruption" {
+            logger.warning("Cannot move interruption task to background")
+            return
+        }
+        
+        logger.info("Moving task '\(currentTaskName)' to background")
+        
+        // If this was a task we returned to, clear the saved state
+        if let savedState = returnToTaskState, savedState.index == currentTaskIndex {
+            returnToTaskState = nil
+            logger.info("Cleared saved return state as task is being moved to background")
+        }
+        
+        // Calculate remaining time for current task (including negative values for overrun)
+        var remainingTime: TimeInterval = currentTaskDuration
+        if let pauseTime = remainingTimeOnPause {
+            remainingTime = pauseTime
+        } else if let start = startTime, isRunning {
+            let elapsed = Date().timeIntervalSince(start)
+            remainingTime = timeToCountDownAtStart - elapsed // Don't use max(0, ...) to preserve negative values
+        }
+        
+        // Create background task state
+        var backgroundTask = BackgroundTaskState(
+            task: scheduledTasks[currentTaskIndex].task,
+            taskIndex: currentTaskIndex,
+            allocatedDuration: currentTaskDuration,
+            remainingTime: remainingTime
+        )
+        
+        // Stop the current timer
+        timer?.cancel()
+        timer = nil
+        isRunning = false
+        
+        // Start background timer for this task
+        startBackgroundTimer(for: &backgroundTask)
+        backgroundTasks.append(backgroundTask)
+        
+        logger.info("Task moved to background with \(remainingTime)s remaining")
+        
+        // Advance to next task
+        advanceToNextTask()
+    }
+    
+    /// Starts a timer for a background task
+    private func startBackgroundTimer(for backgroundTask: inout BackgroundTaskState) {
+        backgroundTask.startTime = Date()
+        backgroundTask.isRunning = true
+        
+        let taskId = backgroundTask.id
+        let initialRemainingTime = backgroundTask.remainingTime
+        
+        backgroundTask.timer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self = self,
+                      let index = self.backgroundTasks.firstIndex(where: { $0.id == taskId }) else { return }
+                
+                var task = self.backgroundTasks[index]
+                
+                if task.isRunning, let startTime = task.startTime {
+                    let elapsed = Date().timeIntervalSince(startTime)
+                    // Use initial remaining time, not allocated duration (preserve negative values)
+                    task.remainingTime = initialRemainingTime - elapsed
+                    
+                    // Update the task in the array
+                    self.backgroundTasks[index] = task
+                    
+                    // Don't auto-complete tasks in overrun - let user decide when to complete
+                    // Only show visual indication that time is up
+                }
+            }
+    }
+    
+    /// Completes a background task
+    func completeBackgroundTask(at index: Int) {
+        guard index >= 0 && index < backgroundTasks.count else { return }
+        
+        var task = backgroundTasks[index]
+        task.timer?.cancel()
+        task.timer = nil
+        task.isRunning = false
+        
+        let taskName = task.task.taskName ?? "Unnamed"
+        logger.info("Completing background task '\(taskName)'")
+        
+        // Update task completion status
+        task.task.lastCompleted = Date()
+        
+        // Calculate next due date
+        let repetitionIntervalSeconds = TimeInterval(task.task.repetitionInterval)
+        if repetitionIntervalSeconds > 0 {
+            task.task.nextDueDate = Date().addingTimeInterval(repetitionIntervalSeconds)
+        } else {
+            task.task.nextDueDate = nil
+        }
+        
+        // Record completion time if tracking
+        if task.task.shouldTrackAverageTime {
+            let duration = task.allocatedDuration - task.remainingTime
+            recordCompletionTime(for: task.task, duration: duration)
+        }
+        
+        // Remove from background tasks
+        backgroundTasks.remove(at: index)
+        
+        // Save context
+        saveContext()
+        
+        logger.info("Background task '\(taskName)' completed and removed")
+    }
+    
+    /// Switches a background task back to foreground
+    func switchBackgroundTaskToForeground(at backgroundIndex: Int) {
+        guard backgroundIndex >= 0 && backgroundIndex < backgroundTasks.count else { return }
+        
+        let backgroundTask = backgroundTasks[backgroundIndex]
+        logger.info("Switching background task '\(backgroundTask.task.taskName ?? "Unnamed")' to foreground")
+        
+        // First, pause the current task if it's running
+        if isRunning {
+            pauseTimer()
+        }
+        
+        // Stop background timer
+        var task = backgroundTasks[backgroundIndex]
+        task.timer?.cancel()
+        task.timer = nil
+        
+        // Save the current task state to return to later (only if we don't already have a saved state)
+        if returnToTaskState == nil && currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
+            // Calculate remaining time for current task
+            var currentRemainingTime: TimeInterval = currentTaskDuration
+            if let pauseTime = remainingTimeOnPause {
+                currentRemainingTime = pauseTime
+            } else if let start = startTime {
+                let elapsed = Date().timeIntervalSince(start)
+                currentRemainingTime = timeToCountDownAtStart - elapsed
+            }
+            
+            returnToTaskState = (index: currentTaskIndex, remainingTime: currentRemainingTime)
+            logger.info("Saving return state: task at index \(self.currentTaskIndex) with \(currentRemainingTime)s remaining")
+        }
+        
+        // Remove the task we're bringing to foreground from background tasks
+        backgroundTasks.remove(at: backgroundIndex)
+        
+        // Find where this background task was originally in the scheduled tasks
+        if let taskPosition = scheduledTasks.firstIndex(where: { $0.task.objectID == backgroundTask.task.objectID }) {
+            // Jump to the background task's original position
+            currentTaskIndex = taskPosition
+            
+            // Update the scheduled task with the remaining time from background
+            scheduledTasks[taskPosition] = ScheduledTask(
+                task: backgroundTask.task,
+                allocatedDuration: backgroundTask.allocatedDuration
+            )
+            
+            // Configure the task
+            configureTask(at: currentTaskIndex)
+            
+            // Set the remaining time from the background task
+            remainingTimeOnPause = backgroundTask.remainingTime
+            updateRemainingTimeDisplay(backgroundTask.remainingTime)
+            
+            // Start the timer
+            startTimer()
+            
+            logger.info("Activated background task at its original position \(taskPosition)")
+        } else {
+            logger.error("Could not find background task in scheduled tasks - it may have been removed")
+        }
+    }
+    
+    /// Updates whether the current task can be moved to background
+    private func updateCanMoveToBackground() {
+        guard currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete else {
+            canMoveToBackground = false
+            return
+        }
+        
+        // Don't allow if this is the last task
+        if currentTaskIndex >= scheduledTasks.count - 1 {
+            canMoveToBackground = false
+            return
+        }
+        
+        // Don't allow interruption tasks
+        let taskName = scheduledTasks[currentTaskIndex].task.taskName ?? ""
+        if taskName == "Interruption" {
+            canMoveToBackground = false
+            return
+        }
+        
+        // Don't allow if we already have too many background tasks (limit to 3)
+        if backgroundTasks.count >= 3 {
+            canMoveToBackground = false
+            return
+        }
+        
+        canMoveToBackground = true
+    }
 
      // MARK: - Deinitialization
      deinit {
          logger.info("RoutineRunner deinitialized.")
          timer?.cancel()
+         
+         // Cancel all background timers
+         for i in backgroundTasks.indices {
+             backgroundTasks[i].timer?.cancel()
+         }
      }
 
     // MARK: - Scene Phase Handling
@@ -1068,17 +1540,59 @@ class RoutineRunner: ObservableObject {
                         updateScheduleOffsetString()
                         updateEstimatedFinishingTimeString()
 
-                        // Update display to 00:00 immediately
-                        updateRemainingTimeDisplay(0)
+                        // Update display to show current overrun time
+                        updateRemainingTimeDisplay(-overrunDuration)
+                        
+                        // Update task progress fraction to reflect overrun state
+                        if currentTaskDuration > 0 {
+                            let totalElapsed = currentTaskDuration + overrunDuration
+                            let progress = totalElapsed / currentTaskDuration
+                            DispatchQueue.main.async {
+                                self.taskProgressFraction = min(max(progress, 0.0), 1.0)
+                            }
+                        }
 
-                        // Restart timer in overrun mode (counting up from 0)
-                        startTime = Date() // Reset start time for overrun counting
+                        // Restart timer in overrun mode (counting from the overrun duration)
+                        startTime = Date().addingTimeInterval(-overrunDuration) // Backdate start time to account for background overrun
                         timeToCountDownAtStart = 0 // We are counting up now
                         remainingTimeOnPause = nil // Clear pause state
                         lastOffsetUpdateTime = Date() // Set last offset update time
-                        startTimerMechanism() // Start the actual timer
-                        DispatchQueue.main.async { self.isRunning = true } // Ensure UI updates
-                        logger.info("Restarted timer in overrun mode after background.")
+                        
+                        // Start the timer manually without calling startTimer to avoid resetting our backdated startTime
+                        isRunning = true
+                        DispatchQueue.main.async { self.isRunning = true }
+                        
+                        // Setup the Combine timer to fire every second
+                        timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+                            guard let self = self, self.isRunning else { return }
+                            
+                            let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
+                            let timeRemaining = self.timeToCountDownAtStart - elapsedTime
+                            
+                            self.updateRemainingTimeDisplay(timeRemaining)
+                            
+                            // Update task progress fraction
+                            if self.currentTaskDuration > 0 {
+                                // We're in overrun mode after backgrounding, so calculate total elapsed including overrun
+                                let totalElapsed = self.currentTaskDuration + elapsedTime
+                                let progress = totalElapsed / self.currentTaskDuration
+                                DispatchQueue.main.async {
+                                    self.taskProgressFraction = min(max(progress, 0.0), 1.0)
+                                }
+                            }
+                            
+                            // Since we're already in overrun, continue updating schedule offset
+                            if let lastUpdate = self.lastOffsetUpdateTime {
+                                let timeSinceLastUpdate = fireDate.timeIntervalSince(lastUpdate)
+                                self.scheduleOffset += timeSinceLastUpdate
+                                self.updateScheduleOffsetString()
+                                self.updateEstimatedFinishingTimeString()
+                                self.lastOffsetUpdateTime = fireDate
+                                self.logger.trace("Overrun: Added \(timeSinceLastUpdate, format: .fixed(precision: 1))s to offset. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
+                            }
+                        }
+                        
+                        logger.info("Restarted timer in overrun mode after background with \(overrunDuration, format: .fixed(precision: 1))s already elapsed.")
                     }
                 } else {
                     // Timer wasn't running when backgrounded (e.g., paused manually before backgrounding)
@@ -1087,6 +1601,12 @@ class RoutineRunner: ObservableObject {
                     // Ensure display is correct if it was paused
                     if let pauseTime = remainingTimeOnPause {
                          updateRemainingTimeDisplay(pauseTime)
+                         // Restore overrun state if the pause time is negative
+                         if pauseTime < 0 && !isOverrun {
+                             isOverrun = true
+                             DispatchQueue.main.async { self.isOverrun = true }
+                             logger.info("Restored overrun state after returning from background with negative remaining time.")
+                         }
                     } else if !isRunning && startTime == nil && currentTaskIndex != -1 {
                          // If first task and never started, show full duration
                          updateRemainingTimeDisplay(currentTaskDuration)
@@ -1199,15 +1719,22 @@ class RoutineRunner: ObservableObject {
             return
         }
 
-        // Stop the current timer logic (like pausing) but don't change isRunning state yet
+        // Capture the remaining time for the delayed task before stopping the timer
+        var delayedTaskRemainingTime: TimeInterval? = nil
+        if let start = startTime {
+            // Timer was running, calculate remaining time
+            let elapsed = Date().timeIntervalSince(start)
+            delayedTaskRemainingTime = max(0, timeToCountDownAtStart - elapsed)
+            logger.debug("Timer stopped for delay. \(delayedTaskRemainingTime!, format: .fixed(precision: 1))s were remaining.")
+        } else if let pauseTime = remainingTimeOnPause {
+            // Timer was paused, use the stored remaining time
+            delayedTaskRemainingTime = pauseTime
+            logger.debug("Task was paused with \(pauseTime, format: .fixed(precision: 1))s remaining.")
+        }
+        
+        // Stop the current timer logic
         timer?.cancel()
         timer = nil
-        if let start = startTime {
-            // Capture remaining time if timer was running, although it won't be used for the delayed task later
-            let elapsed = Date().timeIntervalSince(start)
-            let timeRemaining = max(0, timeToCountDownAtStart - elapsed) // Use the effective start duration
-             logger.debug("Timer stopped for delay. \(timeRemaining, format: .fixed(precision: 1))s were remaining.")
-        }
         startTime = nil
         remainingTimeOnPause = nil // Reset pause state
         backgroundEnterTime = nil
@@ -1215,7 +1742,14 @@ class RoutineRunner: ObservableObject {
         lastOffsetUpdateTime = nil
 
         // --- Reorder the scheduledTasks array ---
-        let taskToDelay = scheduledTasks.remove(at: currentTaskIndex)
+        var taskToDelay = scheduledTasks.remove(at: currentTaskIndex)
+        
+        // Store the remaining time with the delayed task
+        if let remainingTime = delayedTaskRemainingTime {
+            // Create a new ScheduledTask with the remaining time as allocated duration
+            taskToDelay = ScheduledTask(task: taskToDelay.task, allocatedDuration: remainingTime)
+        }
+        
         logger.info("Removed task '\(taskToDelay.task.taskName ?? "Unnamed")' from index \(self.currentTaskIndex) for delay.")
 
         // Calculate the new index, ensuring it doesn't exceed bounds
@@ -1223,7 +1757,7 @@ class RoutineRunner: ObservableObject {
         // We clamp this to the end of the *modified* array.
         let insertionIndex = min(currentTaskIndex + delayCount, scheduledTasks.count)
         scheduledTasks.insert(taskToDelay, at: insertionIndex)
-        logger.info("Inserted task '\(taskToDelay.task.taskName ?? "Unnamed")' back at index \(insertionIndex). New count: \(self.scheduledTasks.count)")
+        logger.info("Inserted task '\(taskToDelay.task.taskName ?? "Unnamed")' back at index \(insertionIndex) with \(taskToDelay.allocatedDuration, format: .fixed(precision: 1))s remaining. New count: \(self.scheduledTasks.count)")
 
         // --- Configure the *new* task at currentTaskIndex ---
         // The currentTaskIndex itself doesn't change yet, but the task *at* that index has changed.

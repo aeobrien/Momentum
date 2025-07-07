@@ -21,6 +21,7 @@ struct RoutineSelectionView: View {
     @State private var scheduleForPreview: [ScheduledTask]? = nil
     @State private var showRunFromSheet: Bool = false
     @State private var runFromStartIndex: Int = 0
+    @State private var showTempRoutineEntry = false
     
     @State private var runnerInstance: RoutineRunner? = nil
     
@@ -185,6 +186,15 @@ struct RoutineSelectionView: View {
         }
         .navigationTitle("Select Routine")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showTempRoutineEntry = true
+                }) {
+                    Image(systemName: "timer")
+                }
+            }
+        }
         .sheet(isPresented: $showSchedulePreviewModal) {
             if let schedule = scheduleForPreview, let routine = selectedRoutine {
                 SchedulePreviewView(
@@ -211,6 +221,9 @@ struct RoutineSelectionView: View {
                 RunFromSelectionView(routine: routine, selectedStartIndex: $runFromStartIndex)
             }
         }
+        .sheet(isPresented: $showTempRoutineEntry) {
+            TempRoutineEntryView()
+        }
         .onChange(of: runFromStartIndex) { newIndex in
             if newIndex > 0 {
                 // User selected a start point, run from that index
@@ -224,9 +237,15 @@ struct RoutineSelectionView: View {
                 selectedRoutine = getDefaultRoutine()
                 logger.info("Selected default routine: \(selectedRoutine?.name ?? "None")")
             }
-            if selectedTime <= Date() {
+            
+            // Set default time to essential tasks duration
+            if let routine = selectedRoutine {
+                let durations = calculateDurations(for: routine)
+                updateTimeForDuration(durations.essential)
+                logger.info("Set default time based on essential tasks duration: \(durations.essential) minutes")
+            } else if selectedTime <= Date() {
                 selectedTime = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date()
-                logger.info("Initialized selectedTime to 5 minutes in the future.")
+                logger.info("No routine selected, initialized selectedTime to 5 minutes in the future.")
             }
         }
         .onReceive(timer) { _ in
@@ -254,6 +273,13 @@ struct RoutineSelectionView: View {
         .padding(.horizontal)
         .onChange(of: selectedRoutine) { newRoutine in
             logger.info("Routine selection changed to: \(newRoutine?.name ?? "None")")
+            
+            // Update time to essential tasks duration for the new routine
+            if let routine = newRoutine {
+                let durations = calculateDurations(for: routine)
+                updateTimeForDuration(durations.essential)
+                logger.info("Updated time based on essential tasks duration: \(durations.essential) minutes")
+            }
         }
     }
     
