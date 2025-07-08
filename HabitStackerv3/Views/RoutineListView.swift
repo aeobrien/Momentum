@@ -22,6 +22,8 @@ struct RoutineListView: View {
     @State private var showCreateRoutine = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var searchText: String = ""
+    @State private var sortMode: RoutineSortMode = .nameAsc
     
     // State for Export/Import
     @State private var showShareSheet = false
@@ -29,6 +31,42 @@ struct RoutineListView: View {
     @State private var routineFileURLToShare: URL? = nil // URL for temp file
     
     private let logger = RoutineLogger(category: "RoutineListView")
+    
+    private var filteredAndSortedRoutines: [CDRoutine] {
+        let filtered = Array(cdRoutines.filter { routine in
+            searchText.isEmpty || (routine.name ?? "").localizedCaseInsensitiveContains(searchText)
+        })
+        
+        return filtered.sorted { (routine1: CDRoutine, routine2: CDRoutine) -> Bool in
+            switch sortMode {
+            case .nameAsc:
+                return (routine1.name ?? "") < (routine2.name ?? "")
+            case .nameDesc:
+                return (routine1.name ?? "") > (routine2.name ?? "")
+            case .mostTasks:
+                return (routine1.taskRelations?.count ?? 0) > (routine2.taskRelations?.count ?? 0)
+            case .fewestTasks:
+                return (routine1.taskRelations?.count ?? 0) < (routine2.taskRelations?.count ?? 0)
+            case .longestFirst:
+                return totalDuration(for: routine1) > totalDuration(for: routine2)
+            case .shortestFirst:
+                return totalDuration(for: routine1) < totalDuration(for: routine2)
+            case .newestFirst:
+                return (routine1.lastUsed ?? Date.distantPast) > (routine2.lastUsed ?? Date.distantPast)
+            case .oldestFirst:
+                return (routine1.lastUsed ?? Date.distantPast) < (routine2.lastUsed ?? Date.distantPast)
+            }
+        }
+    }
+    
+    private func totalDuration(for routine: CDRoutine) -> Int {
+        guard let relations = routine.taskRelations as? Set<CDRoutineTask> else {
+            return 0
+        }
+        return relations.compactMap { $0.task }.reduce(0) { total, task in
+            total + Int(task.minDuration)
+        }
+    }
     
     init(viewModel: RoutineViewModel) {
         self.viewModel = viewModel
@@ -44,86 +82,147 @@ struct RoutineListView: View {
     }
     
     var body: some View {
-        List {
-                ForEach(cdRoutines, id: \.uuid) { cdRoutine in
-                    NavigationLink(
-                        destination: RoutineDetailView(cdRoutine: cdRoutine, viewModel: viewModel)
-                    ) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(cdRoutine.name ?? "")
-                                    .font(.headline)
-                                Text("\(cdRoutine.taskRelations?.count ?? 0) tasks")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+        VStack(spacing: 0) {
+            // Search and Sort Section
+            VStack(spacing: 12) {
+                HStack {
+                    RoutineSearchBar(text: $searchText)
+                    
+                    Menu {
+                        ForEach(RoutineSortMode.allCases, id: \.self) { mode in
+                            Button(action: {
+                                sortMode = mode
+                                logger.debug("Sort mode changed to: \(mode.rawValue)")
+                            }) {
+                                HStack {
+                                    Text(mode.rawValue)
+                                    if sortMode == mode {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
                             }
-                            
-                            Spacer()
-                            
-                            Text(cdRoutine.lastUsed ?? Date(), style: .date)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 4)
-                    }
-                }
-                .onDelete(perform: delete)
-            }
-            .listStyle(InsetGroupedListStyle())
-            .navigationBarTitle("Routines")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { // Add Button
-                        showCreateRoutine = true
                     } label: {
-                        Label("Add Routine", systemImage: "plus")
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
                     }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
-            .sheet(isPresented: $showCreateRoutine) {
-                CreateRoutineView(viewModel: viewModel)
-            }
-            .sheet(isPresented: $showShareSheet) { // Share Sheet for Export
-                if let url = routineFileURLToShare { // Use the file URL
-                    ActivityViewControllerWrapper(activityItems: [url]) // Pass URL
-                        .onDisappear { // Clean up temp file when sheet is dismissed
-                            cleanupTempFile()
+            .padding(.bottom, 12)
+            .background(Color(.systemBackground))
+            
+            Divider()
+            
+            // Routines List
+            if filteredAndSortedRoutines.isEmpty {
+                VStack(spacing: 12) {
+                    Text("No Routines Found")
+                        .font(.headline)
+                    Text(searchText.isEmpty ? "Add your first routine to get started" : "Try adjusting your search")
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(filteredAndSortedRoutines, id: \.objectID) { cdRoutine in
+                        NavigationLink(
+                            destination: RoutineDetailView(cdRoutine: cdRoutine, viewModel: viewModel)
+                        ) {
+                            RoutineCard(cdRoutine: cdRoutine)
                         }
-                } else {
-                    // Optional: Show an alert if data is nil
-                    Text("Error preparing data for sharing.")
-                }
-            }
-            .fileImporter( // File Importer for Import
-                isPresented: $showFileImporter,
-                allowedContentTypes: [UTType.json], // Allow only JSON files
-                allowsMultipleSelection: false
-            ) { result in
-                switch result {
-                case .success(let urls):
-                    guard let url = urls.first else {
-                        logger.error("No URL received from file importer.")
-                        errorMessage = "Could not get the selected file."
-                        showErrorAlert = true
-                        return
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                deleteRoutine(cdRoutine)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
-                    importRoutines(from: url)
-                case .failure(let error):
-                    logger.error("File import failed", error: error)
-                    errorMessage = "Failed to import file: \(error.localizedDescription)"
+                }
+                .listStyle(PlainListStyle())
+            }
+        }
+        .navigationTitle("Routines")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { // Add Button
+                    showCreateRoutine = true
+                } label: {
+                    Label("Add Routine", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showCreateRoutine) {
+            CreateRoutineView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showShareSheet) { // Share Sheet for Export
+            if let url = routineFileURLToShare { // Use the file URL
+                ActivityViewControllerWrapper(activityItems: [url]) // Pass URL
+                    .onDisappear { // Clean up temp file when sheet is dismissed
+                        cleanupTempFile()
+                    }
+            } else {
+                // Optional: Show an alert if data is nil
+                Text("Error preparing data for sharing.")
+            }
+        }
+        .fileImporter( // File Importer for Import
+            isPresented: $showFileImporter,
+            allowedContentTypes: [UTType.json], // Allow only JSON files
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else {
+                    logger.error("No URL received from file importer.")
+                    errorMessage = "Could not get the selected file."
                     showErrorAlert = true
+                    return
                 }
+                importRoutines(from: url)
+            case .failure(let error):
+                logger.error("File import failed", error: error)
+                errorMessage = "Failed to import file: \(error.localizedDescription)"
+                showErrorAlert = true
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+        }
+        .onReceive(viewModel.$errorMessage) { error in
+            if let error = error {
+                self.errorMessage = error
+                self.showErrorAlert = true
+                logger.error("Error received from ViewModel: \(error)")
             }
-            .onReceive(viewModel.$errorMessage) { error in
-                if let error = error {
-                    self.errorMessage = error
-                    self.showErrorAlert = true
-                    logger.error("Error received from ViewModel: \(error)")
-                }
+        }
+    }
+    
+    private func deleteRoutine(_ cdRoutine: CDRoutine) {
+        logger.info("Deleting routine: \(cdRoutine.name ?? "")")
+        
+        // Remove all task relations first
+        if let relations = cdRoutine.taskRelations as? Set<CDRoutineTask> {
+            for relation in relations {
+                viewContext.delete(relation)
             }
+        }
+        
+        viewContext.delete(cdRoutine)
+        
+        do {
+            try viewContext.save()
+        } catch {
+            logger.error("Failed to delete routine", error: error)
+            errorMessage = "Failed to delete routine: \(error.localizedDescription)"
+            showErrorAlert = true
+        }
     }
     
     // --- Paste from Clipboard Function --- 
@@ -291,30 +390,6 @@ struct RoutineListView: View {
         } catch {
             logger.error("Failed during routine import processing", error: error)
             errorMessage = "Failed to process imported routines: \(error.localizedDescription)"
-            showErrorAlert = true
-        }
-    }
-    
-    private func delete(at offsets: IndexSet) {
-        for index in offsets {
-            let cdRoutine = cdRoutines[index]
-            logger.info("Deleting routine: \(cdRoutine.name ?? "")")
-            
-            // Remove all task relations first
-            if let relations = cdRoutine.taskRelations as? Set<CDRoutineTask> {
-                for relation in relations {
-                    viewContext.delete(relation)
-                }
-            }
-            
-            viewContext.delete(cdRoutine)
-        }
-        
-        do {
-            try viewContext.save()
-        } catch {
-            logger.error("Failed to delete routine", error: error)
-            errorMessage = "Failed to delete routine: \(error.localizedDescription)"
             showErrorAlert = true
         }
     }

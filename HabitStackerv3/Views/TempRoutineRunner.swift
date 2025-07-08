@@ -8,6 +8,16 @@ struct TempTask {
     let duration: Int // in minutes
 }
 
+// Background task state for temporary routines
+struct TempBackgroundTaskState: Identifiable {
+    let id = UUID()
+    let task: TempTask
+    let taskIndex: Int
+    var remainingTime: TimeInterval
+    var isRunning: Bool = true
+    var timer: Timer?
+}
+
 // Modified RoutineRunner for temporary routines
 class TempRoutineRunner: ObservableObject {
     @Published var currentTaskName: String = "Loading..."
@@ -21,6 +31,9 @@ class TempRoutineRunner: ObservableObject {
     @Published var nextTaskName: String? = nil
     @Published var totalRoutineDuration: TimeInterval = 0
     @Published var completedDuration: TimeInterval = 0
+    @Published var isHandlingInterruption: Bool = false
+    @Published var backgroundTasks: [TempBackgroundTaskState] = []
+    @Published var canMoveToBackground: Bool = false
     
     private(set) var tasks: [TempTask]
     private(set) var currentTaskIndex: Int = -1
@@ -30,6 +43,7 @@ class TempRoutineRunner: ObservableObject {
     private var scheduleOffset: TimeInterval = 0
     private var startTime: Date? = nil
     private var lastOffsetUpdateTime: Date? = nil
+    private var interruptedTaskState: (taskIndex: Int, remainingTime: TimeInterval)?
     
     var progressFraction: Double {
         guard totalRoutineDuration > 0 else { return 0.0 }
@@ -81,6 +95,7 @@ class TempRoutineRunner: ObservableObject {
         taskProgressFraction = 0.0 // Reset task progress
         
         updateRemainingTimeDisplay()
+        updateCanMoveToBackground()
         
         // Set next task name
         if currentTaskIndex < tasks.count - 1 {
@@ -159,6 +174,16 @@ class TempRoutineRunner: ObservableObject {
     func markTaskComplete() {
         let wasRunning = isRunning
         pauseTimer()
+        
+        // Check if we're completing an interruption
+        if isHandlingInterruption && tasks[currentTaskIndex].name == "Interruption" {
+            // Update completed duration for interruption
+            completedDuration += 180
+            
+            // Restore the interrupted task
+            restoreInterruptedTask()
+            return
+        }
         
         // Calculate actual completion time for schedule offset
         if isOverrun {
@@ -276,7 +301,119 @@ class TempRoutineRunner: ObservableObject {
         configureCurrentTask()
     }
     
+    // MARK: - Interruption Handling
+    
+    func handleInterruption() {
+        guard currentTaskIndex >= 0 && currentTaskIndex < tasks.count && !isRoutineComplete else { return }
+        guard !isHandlingInterruption else { return }
+        
+        // Store the current task state
+        interruptedTaskState = (taskIndex: currentTaskIndex, remainingTime: remainingTime)
+        
+        // Pause current timer
+        pauseTimer()
+        
+        // Create interruption task
+        let interruptionTask = TempTask(name: "Interruption", duration: 3)
+        
+        // Insert at current position
+        tasks.insert(interruptionTask, at: currentTaskIndex)
+        
+        // Update total duration
+        totalRoutineDuration += 180 // 3 minutes
+        
+        // Mark as handling interruption
+        isHandlingInterruption = true
+        
+        // Configure the interruption task
+        configureCurrentTask()
+        startTimer()
+    }
+    
+    private func restoreInterruptedTask() {
+        guard let interruptedState = interruptedTaskState else { return }
+        
+        // Remove the interruption task
+        if currentTaskIndex >= 0 && currentTaskIndex < tasks.count {
+            tasks.remove(at: currentTaskIndex)
+            totalRoutineDuration -= 180
+        }
+        
+        // Clear interruption state
+        interruptedTaskState = nil
+        isHandlingInterruption = false
+        
+        // Restore the interrupted task
+        if currentTaskIndex < tasks.count {
+            configureCurrentTask()
+            remainingTime = interruptedState.remainingTime
+            updateRemainingTimeDisplay()
+            startTimer()
+        }
+    }
+    
+    // MARK: - Background Task Handling
+    
+    func moveCurrentTaskToBackground() {
+        guard currentTaskIndex >= 0 && currentTaskIndex < tasks.count && !isRoutineComplete else { return }
+        
+        // Don't allow interruption tasks to be backgrounded
+        if tasks[currentTaskIndex].name == "Interruption" { return }
+        
+        // Create background task state
+        var backgroundTask = TempBackgroundTaskState(
+            task: tasks[currentTaskIndex],
+            taskIndex: currentTaskIndex,
+            remainingTime: remainingTime
+        )
+        
+        // Pause current timer
+        pauseTimer()
+        
+        // Start background timer
+        startBackgroundTimer(for: &backgroundTask)
+        backgroundTasks.append(backgroundTask)
+        
+        // Move to next task
+        markTaskComplete()
+        
+        updateCanMoveToBackground()
+    }
+    
+    private func startBackgroundTimer(for backgroundTask: inout TempBackgroundTaskState) {
+        let taskId = backgroundTask.id
+        let initialRemainingTime = backgroundTask.remainingTime
+        
+        backgroundTask.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self,
+                  let index = self.backgroundTasks.firstIndex(where: { $0.id == taskId }) else { return }
+            
+            self.backgroundTasks[index].remainingTime -= 1
+            self.updateEstimatedFinishingTimeString()
+        }
+    }
+    
+    func completeBackgroundTask(at index: Int) {
+        guard index >= 0 && index < backgroundTasks.count else { return }
+        
+        backgroundTasks[index].timer?.invalidate()
+        backgroundTasks.remove(at: index)
+        
+        updateCanMoveToBackground()
+    }
+    
+    private func updateCanMoveToBackground() {
+        // Allow background tasks only if not the last task and not already have a background task
+        canMoveToBackground = currentTaskIndex >= 0 && 
+                             currentTaskIndex < tasks.count - 1 && 
+                             backgroundTasks.isEmpty &&
+                             !isRoutineComplete
+    }
+    
     deinit {
         timer?.invalidate()
+        for i in backgroundTasks.indices {
+            backgroundTasks[i].timer?.invalidate()
+        }
     }
 }

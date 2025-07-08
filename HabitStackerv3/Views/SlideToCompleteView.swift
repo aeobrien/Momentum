@@ -25,11 +25,15 @@ struct SlideToCompleteView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                // Background
+                // Background with visible border
                 RoundedRectangle(cornerRadius: 30)
                     .fill(Color(.systemGray6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 30)
+                            .stroke(Color(.systemGray4), lineWidth: 1)
+                    )
                 
-                // Gradient layer
+                // Gradient layer - extends to right edge of button
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -38,7 +42,7 @@ struct SlideToCompleteView: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: offset)
+                    .frame(width: offset + 60) // Add full button width to reach right edge
                     .clipShape(RoundedRectangle(cornerRadius: 30))
                 
                 // "Slide to Complete" text
@@ -49,7 +53,7 @@ struct SlideToCompleteView: View {
                 
                 // Slider
                 HStack {
-                    RoundedRectangle(cornerRadius: 30)
+                    RoundedRectangle(cornerRadius: 25)
                         .fill(Color.blue)
                         .frame(width: 60, height: 50)
                         .overlay(

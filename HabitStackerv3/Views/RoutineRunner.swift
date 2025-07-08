@@ -195,11 +195,13 @@ class RoutineRunner: ObservableObject {
         self.context = context
         self.scheduledTasks = schedule
         self.routine = routine // Use the passed-in routine
-        self.originalFinishingTime = originalFinishingTime
-
-        // Calculate total duration
+        
+        // Calculate total duration first
         self.totalRoutineDuration = schedule.reduce(0) { $0 + $1.allocatedDuration }
         logger.info("Total calculated routine duration: \(self.totalRoutineDuration / 60, format: .fixed(precision: 1)) minutes.")
+        
+        // Set originalFinishingTime to be the start time plus the total duration
+        self.originalFinishingTime = originalFinishingTime.addingTimeInterval(self.totalRoutineDuration)
 
         logger.info("RoutineRunner initialized for routine: \(routine.name ?? "Unnamed Routine") with \(schedule.count) scheduled tasks.")
         
@@ -804,6 +806,9 @@ class RoutineRunner: ObservableObject {
             // Update the display regardless of overrun state first
             self.updateRemainingTimeDisplay(timeRemaining) // This now handles 00:00 correctly
             
+            // Update estimated finishing time on each timer tick for accuracy
+            self.updateEstimatedFinishingTimeString()
+            
             // Update task progress fraction
             if self.currentTaskDuration > 0 {
                 // Calculate total elapsed time including any overrun
@@ -945,9 +950,20 @@ class RoutineRunner: ObservableObject {
         if abs(offset) < 1.0 {
             newString = "On schedule"
         } else {
-            let minutes = Int(abs(offset)) / 60
-            let seconds = Int(abs(offset)) % 60
-            let formattedOffset = String(format: "%d:%02d", minutes, seconds)
+            let totalSeconds = Int(abs(offset))
+            let hours = totalSeconds / 3600
+            let minutes = (totalSeconds % 3600) / 60
+            let seconds = totalSeconds % 60
+            
+            let formattedOffset: String
+            if hours > 0 {
+                // Show hours, minutes, and seconds when 60+ minutes
+                formattedOffset = String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            } else {
+                // Show just minutes and seconds when under 60 minutes
+                formattedOffset = String(format: "%d:%02d", minutes, seconds)
+            }
+            
             if offset < 0 {
                 newString = "\(formattedOffset) ahead of schedule"
             } else {
@@ -965,9 +981,38 @@ class RoutineRunner: ObservableObject {
         }
     }
     
-    /// Updates the `estimatedFinishingTimeString` published property based on the original finishing time and schedule offset.
+    /// Updates the `estimatedFinishingTimeString` published property based on current time and remaining tasks.
     private func updateEstimatedFinishingTimeString() {
-        let estimatedFinishingTime = originalFinishingTime.addingTimeInterval(scheduleOffset)
+        var totalRemainingTime: TimeInterval = 0
+        
+        // Add remaining time for current task
+        if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
+            // Calculate current task remaining time
+            var currentRemaining: TimeInterval = currentTaskDuration
+            if let pauseTime = remainingTimeOnPause {
+                currentRemaining = pauseTime
+            } else if let start = startTime, isRunning {
+                let elapsed = Date().timeIntervalSince(start)
+                currentRemaining = timeToCountDownAtStart - elapsed
+            }
+            // Only add positive remaining time (if overrun, don't add negative time)
+            totalRemainingTime += max(0, currentRemaining)
+        }
+        
+        // Add all future tasks in the schedule
+        if currentTaskIndex >= 0 {
+            for i in (currentTaskIndex + 1)..<scheduledTasks.count {
+                totalRemainingTime += scheduledTasks[i].allocatedDuration
+            }
+        }
+        
+        // Add remaining time for all background tasks
+        for bgTask in backgroundTasks {
+            // Only add positive remaining time
+            totalRemainingTime += max(0, bgTask.remainingTime)
+        }
+        
+        let estimatedFinishingTime = Date().addingTimeInterval(totalRemainingTime)
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         let timeString = formatter.string(from: estimatedFinishingTime)
@@ -1012,7 +1057,7 @@ class RoutineRunner: ObservableObject {
         timer = nil
         isRunning = false
         
-        // Create interruption task
+        // Create interruption task (marked as session task to prevent permanent storage)
         let interruptionTask = CDTask(context: context)
         interruptionTask.uuid = UUID()
         interruptionTask.taskName = "Interruption"
@@ -1020,6 +1065,7 @@ class RoutineRunner: ObservableObject {
         interruptionTask.maxDuration = 3
         interruptionTask.essentiality = 3 // Essential
         interruptionTask.shouldTrackAverageTime = false
+        interruptionTask.isSessionTask = true // Mark as session task to prevent it from appearing in task lists
         
         // Create scheduled task with 3 minutes duration
         let interruptionScheduledTask = ScheduledTask(task: interruptionTask, allocatedDuration: 180) // 3 minutes = 180 seconds
@@ -1057,6 +1103,12 @@ class RoutineRunner: ObservableObject {
         // Remove the interruption task from the schedule
         if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count {
             let removedTask = scheduledTasks.remove(at: currentTaskIndex)
+            
+            // Delete the interruption task from Core Data context to prevent it from being saved
+            if removedTask.task.taskName == "Interruption" && removedTask.task.isSessionTask {
+                context.delete(removedTask.task)
+                logger.info("Deleted interruption task from context")
+            }
             
             // Update total routine duration
             totalRoutineDuration -= removedTask.allocatedDuration
@@ -1343,6 +1395,9 @@ class RoutineRunner: ObservableObject {
                     // Update the task in the array
                     self.backgroundTasks[index] = task
                     
+                    // Update estimated finishing time as background tasks progress
+                    self.updateEstimatedFinishingTimeString()
+                    
                     // Don't auto-complete tasks in overrun - let user decide when to complete
                     // Only show visual indication that time is up
                 }
@@ -1361,6 +1416,13 @@ class RoutineRunner: ObservableObject {
         let taskName = task.task.taskName ?? "Unnamed"
         logger.info("Completing background task '\(taskName)'")
         
+        // Calculate actual duration and update schedule offset
+        let actualDuration = task.allocatedDuration - task.remainingTime
+        let expectedDuration = task.allocatedDuration
+        let deviation = actualDuration - expectedDuration
+        scheduleOffset += deviation
+        logger.info("Background task '\(taskName)' completed. Actual: \(actualDuration)s, Expected: \(expectedDuration)s, Deviation: \(deviation)s")
+        
         // Update task completion status
         task.task.lastCompleted = Date()
         
@@ -1374,12 +1436,20 @@ class RoutineRunner: ObservableObject {
         
         // Record completion time if tracking
         if task.task.shouldTrackAverageTime {
-            let duration = task.allocatedDuration - task.remainingTime
-            recordCompletionTime(for: task.task, duration: duration)
+            recordCompletionTime(for: task.task, duration: actualDuration)
+        }
+        
+        // Update completed duration for progress bar
+        if task.taskIndex < currentTaskIndex {
+            updateCompletedDuration()
         }
         
         // Remove from background tasks
         backgroundTasks.remove(at: index)
+        
+        // Update displays
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
         
         // Save context
         saveContext()
@@ -1469,8 +1539,8 @@ class RoutineRunner: ObservableObject {
             return
         }
         
-        // Don't allow if we already have too many background tasks (limit to 3)
-        if backgroundTasks.count >= 3 {
+        // Don't allow if we already have a background task (limit to 1)
+        if !backgroundTasks.isEmpty {
             canMoveToBackground = false
             return
         }
@@ -1661,10 +1731,11 @@ class RoutineRunner: ObservableObject {
     }
 
     // MARK: - Progress Calculation
-    /// Updates the `completedDuration` based on the `currentTaskIndex`.
+    /// Updates the `completedDuration` based on completed tasks only (excluding background tasks).
     private func updateCompletedDuration() {
         // Capture the index *before* going async to prevent race condition on completion
         let indexAtScheduling = self.currentTaskIndex
+        let currentBackgroundIndices = Set(self.backgroundTasks.map { $0.taskIndex })
 
         // Use weak self in async block to avoid potential retain cycles
         DispatchQueue.main.async { [weak self] in
@@ -1687,11 +1758,18 @@ class RoutineRunner: ObservableObject {
                  return
             }
 
-            // Sum the allocated durations of all tasks *before* the captured index
-            let duration = self.scheduledTasks.prefix(indexAtScheduling).reduce(0) { $0 + $1.allocatedDuration }
+            // Sum the allocated durations of all tasks *before* the captured index, excluding background tasks
+            var duration: TimeInterval = 0
+            for i in 0..<indexAtScheduling {
+                // Only count tasks that are not currently in the background
+                if !currentBackgroundIndices.contains(i) {
+                    duration += self.scheduledTasks[i].allocatedDuration
+                }
+            }
+            
             if self.completedDuration != duration {
                 self.completedDuration = duration
-                self.logger.debug("Updated completed duration: \(duration / 60, format: .fixed(precision: 1))m (using captured index \(indexAtScheduling))")
+                self.logger.debug("Updated completed duration: \(duration / 60, format: .fixed(precision: 1))m (excluding \(currentBackgroundIndices.count) background tasks)")
                 self.objectWillChange.send()
             }
         }

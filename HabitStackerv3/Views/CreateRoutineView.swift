@@ -1,6 +1,92 @@
 import SwiftUI
 import CoreData
 
+// Custom compact task card for CreateRoutineView
+struct CompactTaskCard: View {
+    @ObservedObject var cdTask: CDTask
+    let isSelected: Bool
+    var onRemove: (() -> Void)? = nil
+    var onAdd: (() -> Void)? = nil
+    
+    private func essentialityColor(_ value: Int16) -> Color {
+        switch value {
+        case 3: return .red
+        case 2: return .orange
+        case 1: return .green
+        default: return .gray
+        }
+    }
+    
+    private var durationText: String {
+        if cdTask.minDuration == cdTask.maxDuration {
+            return "\(cdTask.minDuration)m"
+        } else {
+            return "\(cdTask.minDuration)-\(cdTask.maxDuration)m"
+        }
+    }
+    
+    private var essentialityText: String {
+        switch cdTask.essentiality {
+        case 3: return "Essential"
+        case 2: return "Core"
+        case 1: return "Optional"
+        default: return "Optional"
+        }
+    }
+    
+    var body: some View {
+        HStack {
+            if isSelected {
+                Button(action: { onRemove?() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .imageScale(.large)
+                }
+                .padding(.trailing, 4)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(cdTask.taskName ?? "")
+                    .font(.headline)
+                
+                HStack {
+                    Image(systemName: "clock")
+                        .foregroundColor(.gray)
+                    Text(durationText)
+                        .foregroundColor(.gray)
+                }
+                .font(.subheadline)
+            }
+            
+            Spacer()
+            
+            Text(essentialityText)
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(essentialityColor(cdTask.essentiality).opacity(0.2))
+                .foregroundColor(essentialityColor(cdTask.essentiality))
+                .cornerRadius(8)
+            
+            if isSelected {
+                Image(systemName: "line.3.horizontal")
+                    .foregroundColor(.gray)
+            } else {
+                Button(action: { onAdd?() }) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.blue)
+                        .imageScale(.large)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(radius: 1)
+    }
+}
+
 struct CreateRoutineView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.presentationMode) var presentationMode
@@ -13,6 +99,7 @@ struct CreateRoutineView: View {
     @State private var errorMessage: String = ""
     @State private var sortMode: SortMode = .nameAsc
     @State private var editMode: EditMode = .inactive
+    @State private var selectedTab = 0 // 0 for Available Tasks, 1 for Routine Tasks
     
     private let logger = AppLogger.create(subsystem: "com.app.CreateRoutineView", category: "UI")
     private let performanceMonitor = PerformanceMonitor.shared
@@ -56,51 +143,24 @@ struct CreateRoutineView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 12) {
-                    // Routine Name Input
-                    TextField("Routine Name", text: $routineName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                    
-                    // Selected Tasks Section
-                    VStack(alignment: .leading) {
-                        Text("Routine Tasks")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 12)
-                        
-                        if selectedTasks.isEmpty {
-                            Text("Add tasks from below to create your routine")
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding()
-                        } else {
-                            ForEach(selectedTasks, id: \.uuid) { cdTask in
-                                TaskCard(
-                                    cdTask: cdTask,
-                                    isSelected: true,
-                                    onRemove: {
-                                        withAnimation {
-                                            selectedTaskUUIDs.removeAll { $0 == cdTask.uuid?.uuidString }
-                                        }
-                                    }
-                                )
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
+            VStack(spacing: 0) {
+                // Routine Name Input
+                TextField("Routine Name", text: $routineName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    
-                    // Available Tasks Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Available Tasks")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
+                
+                // Tab Selection
+                Picker("", selection: $selectedTab) {
+                    Text("Available Tasks").tag(0)
+                    Text("Routine Tasks").tag(1)
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+                
+                // Tab Content
+                if selectedTab == 0 {
+                    // Available Tasks Tab
+                    VStack(spacing: 0) {
                         HStack {
                             SearchBar(text: $searchText)
                             
@@ -124,36 +184,68 @@ struct CreateRoutineView: View {
                                     .imageScale(.large)
                             }
                         }
-                        .padding(.horizontal)
+                        .padding()
                         
-                        if availableTasks.isEmpty {
-                            Text(searchText.isEmpty ? "No available tasks found" : "No tasks match your search")
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                if availableTasks.isEmpty {
+                                    Text(searchText.isEmpty ? "No available tasks found" : "No tasks match your search")
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .padding()
+                                } else {
+                                    ForEach(availableTasks, id: \.uuid) { cdTask in
+                                        CompactTaskCard(
+                                            cdTask: cdTask,
+                                            isSelected: false,
+                                            onAdd: {
+                                                withAnimation {
+                                                    if let uuid = cdTask.uuid?.uuidString {
+                                                        selectedTaskUUIDs.append(uuid)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                            .padding(.top, 8)
+                        }
+                    }
+                } else {
+                    // Routine Tasks Tab
+                    List {
+                        if selectedTasks.isEmpty {
+                            Text("No tasks added yet")
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
-                                .padding()
+                                .padding(.vertical, 40)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                         } else {
-                            ForEach(availableTasks, id: \.uuid) { cdTask in
-                                TaskCard(
+                            ForEach(selectedTasks, id: \.uuid) { cdTask in
+                                CompactTaskCard(
                                     cdTask: cdTask,
-                                    isSelected: false,
-                                    onAdd: {
+                                    isSelected: true,
+                                    onRemove: {
                                         withAnimation {
-                                            if let uuid = cdTask.uuid?.uuidString {
-                                                selectedTaskUUIDs.append(uuid)
-                                            }
+                                            selectedTaskUUIDs.removeAll { $0 == cdTask.uuid?.uuidString }
                                         }
                                     }
                                 )
-                                .padding(.horizontal)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            }
+                            .onMove { source, destination in
+                                selectedTaskUUIDs.move(fromOffsets: source, toOffset: destination)
                             }
                         }
                     }
-                    .padding(.vertical)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                    .listStyle(PlainListStyle())
+                    .environment(\.editMode, .constant(.active))
                 }
-                .padding(.vertical)
             }
             .navigationTitle("Create Routine")
             .navigationBarTitleDisplayMode(.inline)

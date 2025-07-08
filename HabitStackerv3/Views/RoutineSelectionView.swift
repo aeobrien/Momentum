@@ -186,6 +186,7 @@ struct RoutineSelectionView: View {
         }
         .navigationTitle("Select Routine")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {

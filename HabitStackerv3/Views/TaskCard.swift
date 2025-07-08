@@ -32,17 +32,8 @@ struct TaskCard: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(cdTask.taskName ?? "")
-                        .font(.headline)
-                    
-                    if cdTask.isSessionTask {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 6, height: 6)
-                            .padding(.leading, 2)
-                    }
-                }
+                Text(cdTask.taskName ?? "")
+                    .font(.headline)
                 
                 HStack {
                     Image(systemName: "clock")
@@ -68,12 +59,6 @@ struct TaskCard: View {
                 Button(action: { onRemove?() }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
-                        .imageScale(.large)
-                }
-            } else {
-                Button(action: { onAdd?() }) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
                         .imageScale(.large)
                 }
             }

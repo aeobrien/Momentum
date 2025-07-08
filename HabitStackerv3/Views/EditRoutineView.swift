@@ -15,6 +15,7 @@ struct EditRoutineView: View {
     @State private var errorMessage: String = ""
     @State private var sortMode: SortMode = .nameAsc
     @State private var editMode: EditMode = .active
+    @State private var selectedTab = 1 // Start with Routine Tasks tab
     
     private let logger = AppLogger.create(subsystem: "com.app.EditRoutineView", category: "UI")
     
@@ -63,100 +64,105 @@ struct EditRoutineView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Routine Name Input
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Routine Name")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                TextField("Enter routine name", text: $routineName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-            }
-            .padding()
-            .background(Color(.systemBackground))
+            TextField("Routine Name", text: $routineName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
             
-            List {
-                Section(header:
+            // Tab Selection
+            Picker("", selection: $selectedTab) {
+                Text("Available Tasks").tag(0)
+                Text("Routine Tasks").tag(1)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.horizontal)
+            
+            // Tab Content
+            if selectedTab == 0 {
+                // Available Tasks Tab
+                VStack(spacing: 0) {
                     HStack {
-                        Text("ROUTINE TASKS")
-                        Spacer()
-                        Text("Drag to reorder")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        SearchBar(text: $searchText)
+                        
+                        Menu {
+                            ForEach(SortMode.allCases, id: \.self) { mode in
+                                Button(action: {
+                                    sortMode = mode
+                                    logger.debug("Sort mode changed to: \(mode.rawValue)")
+                                }) {
+                                    HStack {
+                                        Text(mode.rawValue)
+                                        if sortMode == mode {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down.circle")
+                                .foregroundColor(.blue)
+                                .imageScale(.large)
+                        }
                     }
-                ) {
+                    .padding()
+                    
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            if availableTasks.isEmpty {
+                                Text(searchText.isEmpty ? "No available tasks found" : "No tasks match your search")
+                                    .foregroundColor(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding()
+                            } else {
+                                ForEach(availableTasks, id: \.uuid) { cdTask in
+                                    CompactTaskCard(
+                                        cdTask: cdTask,
+                                        isSelected: false,
+                                        onAdd: {
+                                            withAnimation {
+                                                addTask(cdTask)
+                                            }
+                                        }
+                                    )
+                                    .padding(.horizontal)
+                                }
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+            } else {
+                // Routine Tasks Tab
+                List {
                     if sortedRelations.isEmpty {
-                        Text("Add tasks from below to create your routine")
+                        Text("No tasks added yet")
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .listRowBackground(Color(.systemGroupedBackground))
+                            .padding(.vertical, 40)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     } else {
                         ForEach(sortedRelations, id: \.self) { relation in
                             if let task = relation.task {
-                                TaskCard(
+                                CompactTaskCard(
                                     cdTask: task,
                                     isSelected: true,
                                     onRemove: {
-                                        removeTask(relation)
-                                    }
-                                )
-                                    .swipeActions {
-                                        Button(role: .destructive) {
+                                        withAnimation {
                                             removeTask(relation)
-                                        } label: {
-                                            Label("Remove", systemImage: "trash")
                                         }
                                     }
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                             }
                         }
                         .onMove(perform: moveTask)
                     }
                 }
-                
-                Section(header:
-                    VStack(spacing: 8) {
-                        Text("AVAILABLE TASKS")
-                        
-                        HStack {
-                            SearchBar(text: $searchText)
-                            
-                            Menu {
-                                ForEach(SortMode.allCases, id: \.self) { mode in
-                                    Button(action: { sortMode = mode }) {
-                                        HStack {
-                                            Text(mode.rawValue)
-                                            if sortMode == mode {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "arrow.up.arrow.down.circle")
-                                    .foregroundColor(.blue)
-                                    .imageScale(.large)
-                            }
-                        }
-                    }
-                ) {
-                    if availableTasks.isEmpty {
-                        Text(searchText.isEmpty ? "No available tasks" : "No tasks match your search")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .listRowBackground(Color(.systemGroupedBackground))
-                    } else {
-                        ForEach(availableTasks) { task in
-                            TaskCard(
-                                cdTask: task,
-                                isSelected: false,
-                                onAdd: {
-                                    addTask(task)
-                                }
-                            )
-                        }
-                    }
-                }
+                .listStyle(PlainListStyle())
+                .environment(\.editMode, .constant(.active))
             }
-            .listStyle(InsetGroupedListStyle())
-            .environment(\.editMode, .constant(.active))
         }
         .navigationTitle("Edit Routine")
         .navigationBarTitleDisplayMode(.inline)

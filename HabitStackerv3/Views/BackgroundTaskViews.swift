@@ -5,28 +5,18 @@ struct BackgroundTasksBar: View {
     @ObservedObject var runner: RoutineRunner
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(runner.backgroundTasks.indices, id: \.self) { index in
-                    BackgroundTaskPill(
-                        task: runner.backgroundTasks[index],
-                        onTap: {
-                            runner.switchBackgroundTaskToForeground(at: index)
-                        },
-                        onComplete: {
-                            runner.completeBackgroundTask(at: index)
-                        }
-                    )
+        if let firstTask = runner.backgroundTasks.first {
+            BackgroundTaskPill(
+                task: firstTask,
+                onTap: {
+                    runner.switchBackgroundTaskToForeground(at: 0)
+                },
+                onComplete: {
+                    runner.completeBackgroundTask(at: 0)
                 }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            )
+            .padding(.horizontal, 50) // Padding to stay between X and info buttons
         }
-        .background(
-            Color(.systemBackground)
-                .opacity(0.95)
-                .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
-        )
     }
 }
 
@@ -43,19 +33,21 @@ struct BackgroundTaskPill: View {
     }
     
     var body: some View {
-        HStack(spacing: 6) {
-            // Task name and time
-            VStack(alignment: .leading, spacing: 1) {
-                Text(task.task.taskName ?? "Unnamed")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                
-                Text(remainingTimeString)
-                    .font(.caption2)
-                    .foregroundColor(task.remainingTime <= 0 ? .red : .secondary)
-                    .fontWeight(task.remainingTime <= 0 ? .bold : .regular)
-            }
+        HStack(spacing: 8) {
+            // Task name
+            Text(task.task.taskName ?? "Unnamed")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .layoutPriority(1)
+            
+            // Time remaining
+            Text(remainingTimeString)
+                .font(.caption)
+                .foregroundColor(task.remainingTime <= 0 ? .red : .white.opacity(0.8))
+                .fontWeight(task.remainingTime <= 0 ? .bold : .regular)
+                .monospacedDigit()
             
             // Complete button
             Button {
@@ -66,13 +58,19 @@ struct BackgroundTaskPill: View {
                     .font(.system(size: 16))
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 16)
         .padding(.vertical, 6)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(15)
+        .frame(height: 30) // Same height as top bar buttons
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.7))
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                )
+        )
         .onTapGesture {
             onTap()
         }
     }
 }
-
