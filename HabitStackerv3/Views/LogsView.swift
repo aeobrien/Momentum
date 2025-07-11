@@ -17,26 +17,41 @@ struct LogsView: View {
         case crashReports
     }
     
-    private var sortedSessions: [LogSession] {
+    private var dailyLogs: [(date: Date, logCount: Int, errorCount: Int, warningCount: Int)] {
         let sessions = logManager.getAllSessions()
-        return sessions.sorted {
-            sortOrder == .descending ? $0.startTime > $1.startTime : $0.startTime < $1.startTime
+        let calendar = Calendar.current
+        
+        // Group sessions by day
+        let grouped = Dictionary(grouping: sessions) { session in
+            calendar.startOfDay(for: session.startTime)
         }
+        
+        // Calculate totals for each day
+        return grouped.map { (date, sessions) in
+            let totalLogs = sessions.reduce(0) { $0 + $1.records.count }
+            let totalErrors = sessions.reduce(0) { $0 + $1.records.filter { $0.level == .error || $0.level == .fatal }.count }
+            let totalWarnings = sessions.reduce(0) { $0 + $1.records.filter { $0.level == .warning }.count }
+            
+            return (date: date, logCount: totalLogs, errorCount: totalErrors, warningCount: totalWarnings)
+        }
+        .sorted { sortOrder == .descending ? $0.date > $1.date : $0.date < $1.date }
     }
     
     var body: some View {
         NavigationView {
             VStack {
-                // List of log sessions
+                // List of daily logs
                 List {
-                    ForEach(sortedSessions) { session in
-                        LogSessionRow(
-                            session: session,
-                            isCurrentSession: session.id == logManager.currentSession.id
+                    ForEach(dailyLogs, id: \.date) { dayLog in
+                        DailyLogRow(
+                            date: dayLog.date,
+                            logCount: dayLog.logCount,
+                            errorCount: dayLog.errorCount,
+                            warningCount: dayLog.warningCount
                         )
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            copySessionToClipboard(session)
+                            copyDayLogsToClipboard(for: dayLog.date)
                         }
                     }
                 }
@@ -111,9 +126,19 @@ struct LogsView: View {
         }
     }
     
-    private func copySessionToClipboard(_ session: LogSession) {
-        UIPasteboard.general.string = logManager.getFormattedSessionLogs(session)
-        copiedAlertType = .sessionLogs // Set alert type
+    private func copyDayLogsToClipboard(for date: Date) {
+        let calendar = Calendar.current
+        let sessions = logManager.getAllSessions().filter { session in
+            calendar.isDate(session.startTime, inSameDayAs: date)
+        }
+        
+        let combinedLogs = sessions
+            .sorted { $0.startTime < $1.startTime }
+            .map { logManager.getFormattedSessionLogs($0) }
+            .joined(separator: "\n\n")
+        
+        UIPasteboard.general.string = combinedLogs
+        copiedAlertType = .sessionLogs
         showingCopiedAlert = true
     }
     
@@ -131,39 +156,19 @@ struct LogsView: View {
     }
 }
 
-struct LogSessionRow: View {
-    let session: LogSession
-    let isCurrentSession: Bool
-    
-    private var errorCount: Int {
-        session.records.filter { $0.level == .error || $0.level == .fatal }.count
-    }
-    
-    private var warningCount: Int {
-        session.records.filter { $0.level == .warning }.count
-    }
+struct DailyLogRow: View {
+    let date: Date
+    let logCount: Int
+    let errorCount: Int
+    let warningCount: Int
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(formattedDate(session.startTime))
-                    .font(.headline)
-                
-                if isCurrentSession {
-                    Text("(Current)")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                }
-                
-                Spacer()
-                
-                Text(formatDuration(session.duration))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+            Text(formattedDate(date))
+                .font(.headline)
             
             HStack(spacing: 12) {
-                Label("\(session.records.count) logs", systemImage: "doc.text")
+                Label("\(logCount) logs", systemImage: "doc.text")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -180,24 +185,20 @@ struct LogSessionRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
     
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, HH:mm:ss"
-        return formatter.string(from: date)
-    }
-    
-    private func formatDuration(_ interval: TimeInterval) -> String {
-        let minutes = Int(interval) / 60
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
+        let calendar = Calendar.current
         
-        if hours > 0 {
-            return "\(hours)h \(remainingMinutes)m"
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
         } else {
-            return "\(minutes)m"
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter.string(from: date)
         }
     }
 }

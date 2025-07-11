@@ -10,6 +10,7 @@ struct TaskListView: View {
     @State private var searchText: String = ""
     @State private var showAddTask = false
     @State private var sortMode: SortMode = .nameAsc
+    @State private var infoMode = false
     
     private let logger = AppLogger.create(subsystem: "com.app.TaskListView", category: "UI")
     
@@ -51,7 +52,8 @@ struct TaskListView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             // Search and Sort Section
             VStack(spacing: 12) {
                 HStack {
@@ -116,9 +118,50 @@ struct TaskListView: View {
                 .listStyle(PlainListStyle())
             }
         }
+        .grayscale(infoMode ? 1 : 0)
+        .disabled(infoMode)
+        
+        // Info overlay
+        if infoMode {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    infoMode = false
+                }
+            
+            VStack(spacing: 20) {
+                Text("Tasks View")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("This page shows a list of all tasks added to the app along with their duration or duration range and their priority rating. Tap a task to see more information on it, or to edit any of its parameters. To create a new task, tap the + icon in the top right corner of the screen.")
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Button("Got it") {
+                    infoMode = false
+                }
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+            .padding(.horizontal, 40)
+        }
+        }
         .navigationTitle("Tasks")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(
+            leading: Button(action: {
+                infoMode.toggle()
+            }) {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.blue)
+            },
             trailing: Button(action: {
                 logger.debug("Opening add task view")
                 showAddTask = true

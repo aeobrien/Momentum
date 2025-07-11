@@ -24,6 +24,7 @@ struct RoutineListView: View {
     @State private var errorMessage: String = ""
     @State private var searchText: String = ""
     @State private var sortMode: RoutineSortMode = .nameAsc
+    @State private var infoMode = false
     
     // State for Export/Import
     @State private var showShareSheet = false
@@ -82,7 +83,8 @@ struct RoutineListView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             // Search and Sort Section
             VStack(spacing: 12) {
                 HStack {
@@ -147,9 +149,52 @@ struct RoutineListView: View {
                 .listStyle(PlainListStyle())
             }
         }
+        .grayscale(infoMode ? 1 : 0)
+        .disabled(infoMode)
+        
+        // Info overlay
+        if infoMode {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    infoMode = false
+                }
+            
+            VStack(spacing: 20) {
+                Text("Routines View")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("This page shows a list of all routines added to the app, along with how many tasks they contain, when they were last run, and their varying durations when all tasks of different priority tiers are run. Tap a routine to see more information about it, or to edit it.")
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Button("Got it") {
+                    infoMode = false
+                }
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+            .padding(.horizontal, 40)
+        }
+        }
         .navigationTitle("Routines")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    infoMode.toggle()
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.blue)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { // Add Button
                     showCreateRoutine = true

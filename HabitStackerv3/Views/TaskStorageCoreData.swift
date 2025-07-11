@@ -3,14 +3,26 @@ import Foundation
 import OSLog
 
 final class TaskStorageCoreData: TaskStorageInterface {
-    private let context: NSManagedObjectContext
+    private var context: NSManagedObjectContext {
+        DataStoreManager.shared.viewContext
+    }
     private let logger: Logger
     
     static let shared = TaskStorageCoreData()
     
     private init() {
-        self.context = CoreDataStack.shared.viewContext
         self.logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "TaskStorageCoreData")
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDataStoreChange),
+            name: .dataStoreDidChange,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDataStoreChange() {
+        logger.info("Data store changed, context updated")
     }
     
     // MARK: - TaskStorageInterface Methods

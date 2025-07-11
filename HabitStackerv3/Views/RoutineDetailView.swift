@@ -87,10 +87,6 @@ struct RoutineDetailView: View {
                 
                 // Tasks List
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Tasks")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
                     ForEach(orderedTasks, id: \.self) { task in
                         TaskCard(cdTask: task, isSelected: false)
                             .padding(.horizontal)

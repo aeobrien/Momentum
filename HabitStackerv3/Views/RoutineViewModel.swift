@@ -12,6 +12,20 @@ class RoutineViewModel: ObservableObject {
     
     init() {
         fetchRoutines()
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDataStoreChange),
+            name: .dataStoreDidChange,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDataStoreChange() {
+        logger.info("Data store changed, refreshing routines")
+        // Clear selected routine as it may not exist in the new store
+        selectedRoutine = nil
+        fetchRoutines()
     }
     
     /// Fetches all routines from storage.

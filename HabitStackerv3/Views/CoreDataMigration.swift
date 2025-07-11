@@ -72,7 +72,7 @@ class CoreDataMigration {
         
         // Get contexts
         let oldContext = oldContainer.viewContext
-        let newContext = CoreDataStack.shared.viewContext
+        let newContext = DataStoreManager.shared.viewContext
         
         do {
             // Migrate Tasks

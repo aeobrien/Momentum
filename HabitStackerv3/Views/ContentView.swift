@@ -3,13 +3,13 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var taskViewModel = TaskViewModel()
     @StateObject private var routineViewModel = RoutineViewModel()
+    @EnvironmentObject var dataStoreManager: DataStoreManager
     
     // State variable to track the selected tab tag
     @State private var selectedTabTag: Int = 0 // Default to Tasks tab (tag 0)
     
     #if DEBUG
     @State private var showTestView = false
-    @State private var showCloudKitDebug = false
     #endif
     
     var body: some View {
@@ -63,12 +63,7 @@ struct ContentView: View {
             }
             .tag(4) // Assign tag 4
         }
-        #if DEBUG
-        .sheet(isPresented: $showCloudKitDebug) {
-            CloudKitDebugView()
-        }
-        #endif
-        .cloudKitSyncStatus() // Add CloudKit sync status indicator
+        .id(dataStoreManager.storeChangeID)
     }
 }
 

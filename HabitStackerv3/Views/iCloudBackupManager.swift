@@ -371,7 +371,7 @@ class iCloudBackupManager: ObservableObject {
         if hoursSinceLastBackup >= 24 {
             Task {
                 do {
-                    let context = CoreDataStack.shared.persistentContainer.viewContext
+                    let context = DataStoreManager.shared.viewContext
                     try await createBackup(context: context)
                 } catch {
                     self.logger.error("Automatic backup failed: \(error)")

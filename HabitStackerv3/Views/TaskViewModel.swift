@@ -13,6 +13,20 @@ class TaskViewModel: ObservableObject {
     
     init() {
         fetchTasks()
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDataStoreChange),
+            name: .dataStoreDidChange,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDataStoreChange() {
+        logger.info("Data store changed, refreshing tasks")
+        // Clear selected task as it may not exist in the new store
+        selectedTask = nil
+        fetchTasks()
     }
     
     /// Fetches all tasks from storage.

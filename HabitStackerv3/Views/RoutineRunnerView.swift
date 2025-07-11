@@ -76,8 +76,22 @@ struct RoutineRunnerView: View {
                     VStack(spacing: 20) {
                         // Top bar with X, routine info, and info button
                         if minimalMode {
-                            // Minimal mode - just show X button in top-left
+                            // Minimal mode - just show info button in top-left
                             HStack {
+                                Button(action: {
+                                    if infoMode {
+                                        infoMode = false
+                                        highlightedElement = nil
+                                    } else {
+                                        infoMode = true
+                                        highlightedElement = nil
+                                    }
+                                }) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                        .font(.title2)
+                                }
+                                Spacer()
                                 Button(action: {
                                     presentationMode.wrappedValue.dismiss()
                                 }) {
@@ -85,7 +99,6 @@ struct RoutineRunnerView: View {
                                         .foregroundStyle(.blue)
                                         .font(.title2)
                                 }
-                                Spacer()
                             }
                             .padding(.horizontal)
                             .padding(.top, 12)
@@ -97,12 +110,12 @@ struct RoutineRunnerView: View {
                                         infoMode = false
                                         highlightedElement = nil
                                     } else {
-                                        // Handle exit action
-                                        presentationMode.wrappedValue.dismiss()
+                                        infoMode = true
+                                        highlightedElement = nil
                                     }
                                 }) {
-                                    Image(systemName: "xmark")
-                                        .foregroundStyle(.blue)
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
                                         .font(.title2)
                                 }
                                 
@@ -127,12 +140,12 @@ struct RoutineRunnerView: View {
                                         infoMode = false
                                         highlightedElement = nil
                                     } else {
-                                        infoMode = true
-                                        highlightedElement = nil
+                                        // Handle exit action
+                                        presentationMode.wrappedValue.dismiss()
                                     }
                                 }) {
-                                    Image(systemName: "info.circle")
-                                        .foregroundColor(.blue)
+                                    Image(systemName: "xmark")
+                                        .foregroundStyle(.blue)
                                         .font(.title2)
                                 }
                             }

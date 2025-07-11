@@ -108,6 +108,15 @@ struct AddTaskView: View {
     @State private var showJSONPreview: Bool = false // For clipboard import
     @State private var jsonPreviewContent: String = "" // For clipboard import
     
+    // Info popover states
+    @State private var showTaskNameInfo = false
+    @State private var showEssentialityInfo = false
+    @State private var showSessionTaskInfo = false
+    @State private var showTrackAverageInfo = false
+    @State private var showDurationInfo = false
+    @State private var showRepeatDailyInfo = false
+    @State private var showRepeatIntervalInfo = false
+    
     // JSON parsing helper struct that matches the expected input format
     private struct TaskInput: Codable {
         let taskName: String
@@ -201,8 +210,20 @@ struct AddTaskView: View {
                     Section("Task Details") {
                         // Task Name
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Task Name")
-                                .formLabelStyle()
+                            HStack {
+                                Text("Task Name")
+                                    .formLabelStyle()
+                                Button(action: { showTaskNameInfo.toggle() }) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                        .imageScale(.small)
+                                }
+                                .popover(isPresented: $showTaskNameInfo) {
+                                    Text("Enter a descriptive name for your task")
+                                        .padding()
+                                        .frame(maxWidth: 250)
+                                }
+                            }
                             TextField("Enter task name", text: $taskName)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
@@ -210,8 +231,20 @@ struct AddTaskView: View {
                         
                         // Essentiality
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Essentiality")
-                                .formLabelStyle()
+                            HStack {
+                                Text("Essentiality")
+                                    .formLabelStyle()
+                                Button(action: { showEssentialityInfo.toggle() }) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundColor(.blue)
+                                        .imageScale(.small)
+                                }
+                                .popover(isPresented: $showEssentialityInfo) {
+                                    Text("How important is this task? Essential tasks are prioritized first, followed by Core, then Non-Essential tasks when time is limited.")
+                                        .padding()
+                                        .frame(maxWidth: 250)
+                                }
+                            }
                             Picker("", selection: $selectedEssentiality) {
                                 ForEach(Essentiality.allCases) { essentiality in
                                     HStack {
@@ -247,7 +280,19 @@ struct AddTaskView: View {
                     }
                     
                     // --- Section 2: Duration ---
-                    Section("Duration") {
+                    Section(header: HStack {
+                        Text("Duration")
+                        Button(action: { showDurationInfo.toggle() }) {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                                .imageScale(.small)
+                        }
+                        .popover(isPresented: $showDurationInfo) {
+                            Text("Specify how long the task takes. Use variable duration if the time varies depending on circumstances.")
+                                .padding()
+                                .frame(maxWidth: 250)
+                        }
+                    }) {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("Variable Duration", isOn: $isVariableDuration.animation())
                                 .padding(.bottom, 4) // Add padding below toggle

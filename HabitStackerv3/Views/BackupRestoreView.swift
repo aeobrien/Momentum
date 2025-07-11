@@ -103,9 +103,6 @@ struct BackupRestoreView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Text("CloudKit sync is still active and provides real-time synchronization across devices.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
             }
             .navigationTitle("Backup & Restore")

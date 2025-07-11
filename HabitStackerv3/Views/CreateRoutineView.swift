@@ -68,10 +68,7 @@ struct CompactTaskCard: View {
                 .foregroundColor(essentialityColor(cdTask.essentiality))
                 .cornerRadius(8)
             
-            if isSelected {
-                Image(systemName: "line.3.horizontal")
-                    .foregroundColor(.gray)
-            } else {
+            if !isSelected {
                 Button(action: { onAdd?() }) {
                     Image(systemName: "plus.circle.fill")
                         .foregroundColor(.blue)
@@ -241,6 +238,15 @@ struct CreateRoutineView: View {
                             .onMove { source, destination in
                                 selectedTaskUUIDs.move(fromOffsets: source, toOffset: destination)
                             }
+                            
+                            // Small grey text underneath the tasks list
+                            Text("Drag to re-order tasks")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 8)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                         }
                     }
                     .listStyle(PlainListStyle())

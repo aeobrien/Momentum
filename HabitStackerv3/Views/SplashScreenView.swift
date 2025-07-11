@@ -10,10 +10,12 @@ import SwiftUI
 
 struct SplashScreenView: View {
     @State private var isActive = false
+    @EnvironmentObject var dataStoreManager: DataStoreManager
 
     var body: some View {
         if isActive {
             ContentView()
+                .environment(\.managedObjectContext, dataStoreManager.viewContext)
         } else {
             VStack(spacing: 20) {
                 Text("Momentum")

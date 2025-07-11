@@ -1,17 +1,30 @@
 import CoreData
-import CloudKit
 
 class CoreDataStack {
-    static let shared = CoreDataStack()
     
-    private init() {}
+    private let containerName: String
+    private let storeDescription: String?
+    
+    init(containerName: String, storeDescription: String? = nil) {
+        self.containerName = containerName
+        self.storeDescription = storeDescription
+    }
+    
+    static let shared = CoreDataStack(containerName: "Momentum 3")
     
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentCloudKitContainer(name: "Momentum 3")
+        let container = NSPersistentContainer(name: containerName)
         
         // Get the default store description
         guard let description = container.persistentStoreDescriptions.first else {
             fatalError("Failed to retrieve persistent store description.")
+        }
+        
+        // Set custom store location if provided
+        if let storeName = storeDescription {
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let storeURL = documentsDirectory.appendingPathComponent("\(storeName).sqlite")
+            description.url = storeURL
         }
         
         // --- Enable Lightweight Migration --- 
@@ -19,37 +32,12 @@ class CoreDataStack {
         description.shouldMigrateStoreAutomatically = true
         // ----------------------------------
         
-        // Enable persistent history tracking for CloudKit sync
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        
-        // Configure for CloudKit - this enables remote change notifications
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-        
-        // Set CloudKit container options
-        description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-            containerIdentifier: "iCloud.AOTondra.Momentum"
-        )
-        
-        container.loadPersistentStores { (storeDescription, error) in // Variable name is fine here
-            if let error = error as NSError? { // Cast to NSError for more details
+        container.loadPersistentStores { (storeDescription, error) in
+            if let error = error as NSError? {
                 // Log detailed error information
                 print("Unresolved error loading persistent store: \(error), \(error.userInfo)")
-                
-                // Update sync manager with error
-                CloudKitSyncManager.shared.handleError(error)
-                
-                // Check if this is a CloudKit-specific error
-                if let ckError = error as? CKError {
-                    // Handle CloudKit errors gracefully
-                    print("CloudKit error during store load: \(ckError)")
-                    // The app should continue to work with local storage
-                } else {
-                    // Non-CloudKit Core Data errors are critical
-                    fatalError("Failed to load Core Data stack: \(error)")
-                }
-            } else {
-                // Store loaded successfully
-                CloudKitSyncManager.shared.checkCloudKitStatus()
+                // Non-CloudKit Core Data errors are critical
+                fatalError("Failed to load Core Data stack: \(error)")
             }
         }
         
@@ -108,61 +96,4 @@ class CoreDataStack {
         }
     }
     
-    // Check if iCloud is available
-    var isCloudKitAvailable: Bool {
-        if let token = FileManager.default.ubiquityIdentityToken {
-            print("iCloud is available with token: \(token)")
-            return true
-        } else {
-            print("iCloud is not available - user not signed in")
-            return false
-        }
-    }
-    
-    // Handle CloudKit sync errors
-    func handleCloudKitError(_ error: Error) {
-        // Delegate error handling to the sync manager
-        CloudKitSyncManager.shared.handleError(error)
-        
-        guard let ckError = error as? CKError else {
-            print("Non-CloudKit error: \(error)")
-            return
-        }
-        
-        switch ckError.code {
-        case .networkUnavailable:
-            print("Network unavailable - data will sync when connection restored")
-        case .networkFailure:
-            print("Network failure - data will sync when connection restored")
-        case .quotaExceeded:
-            print("iCloud storage quota exceeded")
-        case .notAuthenticated:
-            print("User not signed into iCloud")
-        case .permissionFailure:
-            print("iCloud permission denied")
-        case .accountTemporarilyUnavailable:
-            print("iCloud account temporarily unavailable")
-        default:
-            print("CloudKit error: \(ckError)")
-        }
-    }
-    
-    // Setup notification observer for remote changes
-    func setupRemoteChangeNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleRemoteChange(_:)),
-            name: .NSPersistentStoreRemoteChange,
-            object: persistentContainer.persistentStoreCoordinator
-        )
-    }
-    
-    @objc private func handleRemoteChange(_ notification: Notification) {
-        print("Remote CloudKit changes detected")
-        // The viewContext will automatically merge these changes due to
-        // automaticallyMergesChangesFromParent = true
-        
-        // Update sync manager
-        CloudKitSyncManager.shared.updateLastSyncDate()
-    }
 }

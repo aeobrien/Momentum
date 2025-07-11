@@ -13,12 +13,12 @@ struct SettingsView: View {
     
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var backupManager = iCloudBackupManager.shared
+    @StateObject private var dataStoreManager = DataStoreManager.shared
     
     @State private var showLogsView = false
     @State private var showResetConfirmation = false
     @State private var showExportSuccess = false
     @State private var showBackupRestoreView = false
-    @State private var showCloudKitDebug = false
     @State private var showRoutineExportSuccess = false
     @State private var showRoutineImportAlert = false
     @State private var importedRoutinesCount = 0
@@ -90,6 +90,62 @@ struct SettingsView: View {
                     }
                 }
                 
+                // MARK: Import Instructions
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Import Instructions")
+                            .font(.headline)
+                            .padding(.bottom, 4)
+                        
+                        Text("You can use the buttons above to import tasks or routines directly from your clipboard. The app accepts data in JSON format (see examples below) or copied spreadsheet tables from Excel, Numbers, or Google Sheets. This makes it easy to bulk add or edit your tasks and routines outside the app.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        
+                        Link("Download spreadsheet template", destination: URL(string: "https://google.com")!)
+                            .font(.footnote)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Task JSON Structure:")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            Text("""
+                            [{
+                              "taskName": "Breakfast",
+                              "minDuration": 25,
+                              "maxDuration": 25,
+                              "essentiality": 3,
+                              "repetitionInterval": 0,
+                              "uuid": "2FA3751C-AEBF-471C-8D53-90263258913F"
+                            }]
+                            """)
+                            .font(.system(.caption2, design: .monospaced))
+                            .padding(8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(6)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Routine JSON Structure:")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            Text("""
+                            [{
+                              "name": "Catch Up",
+                              "taskUUIDs": ["..."],
+                              "id": "9CA34E08-7BCB-4B5D-9EC0-5B147CAC062A"
+                            }]
+                            """)
+                            .font(.system(.caption2, design: .monospaced))
+                            .padding(8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(6)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                
                 // MARK: Diagnostics
                 Section(header: Text("Diagnostics")) {
                     Button { showLogsView = true } label: {
@@ -102,17 +158,26 @@ struct SettingsView: View {
                         }
                     }
                     
-                    #if DEBUG
-                    Button { showCloudKitDebug = true } label: {
+                }
+                
+                // MARK: Developer Options
+                Section(header: Text("Developer Options")) {
+                    Toggle(isOn: Binding(
+                        get: { dataStoreManager.isTestingModeEnabled },
+                        set: { _ in dataStoreManager.toggleTestingMode() }
+                    )) {
                         HStack {
-                            Image(systemName: "icloud.circle")
-                                .foregroundColor(.blue)
+                            Image(systemName: "testtube.2")
+                                .foregroundColor(.purple)
                                 .frame(width: 30)
-                            Text("CloudKit Debug")
-                            Spacer()
+                            VStack(alignment: .leading) {
+                                Text("Testing Mode")
+                                Text("Use a separate test database")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
-                    #endif
                 }
                 
                 // MARK: About
@@ -139,9 +204,6 @@ struct SettingsView: View {
         // MARK: Sheets
         .sheet(isPresented: $showLogsView)            { LogsView() }
         .sheet(isPresented: $showBackupRestoreView)   { BackupRestoreView() }
-        #if DEBUG
-        .sheet(isPresented: $showCloudKitDebug)       { CloudKitDebugView() }
-        #endif
         
         // MARK: Alerts
         .alert("Tasks Exported", isPresented: $showExportSuccess) {

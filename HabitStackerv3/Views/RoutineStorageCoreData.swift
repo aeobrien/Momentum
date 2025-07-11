@@ -3,15 +3,27 @@ import Foundation
 import OSLog
 
 final class RoutineStorageCoreData: RoutineStorageInterface {
-    private let context: NSManagedObjectContext
+    private var context: NSManagedObjectContext {
+        DataStoreManager.shared.viewContext
+    }
     private let logger: Logger
     private let activeRoutineKey = "activeRoutineID"
     
     static let shared = RoutineStorageCoreData()
     
     private init() {
-        self.context = CoreDataStack.shared.viewContext
         self.logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineStorageCoreData")
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDataStoreChange),
+            name: .dataStoreDidChange,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDataStoreChange() {
+        logger.info("Data store changed, context updated")
     }
     
     // MARK: - RoutineStorageInterface Methods

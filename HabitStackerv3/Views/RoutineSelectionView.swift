@@ -22,6 +22,7 @@ struct RoutineSelectionView: View {
     @State private var showRunFromSheet: Bool = false
     @State private var runFromStartIndex: Int = 0
     @State private var showTempRoutineEntry = false
+    @State private var infoMode = false
     
     @State private var runnerInstance: RoutineRunner? = nil
     
@@ -159,21 +160,29 @@ struct RoutineSelectionView: View {
     
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(spacing: 24) {
+            VStack(spacing: 0) {
+            Spacer()
+            
+            VStack(spacing: 20) {
+                // Combined routine and time section
+                HStack(spacing: 16) {
                     routinePickerSection
-                        .padding(.top)
-
                     timeSelectionSection
-
-                    if let routine = selectedRoutine {
-                        durationOptionsSection(routine: routine)
-                    }
-
-                    Spacer(minLength: 120)
                 }
-                .padding(.top, 16)
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(12)
+                .shadow(radius: 1)
+                .padding(.horizontal)
+
+                if let routine = selectedRoutine {
+                    durationOptionsSection(routine: routine)
+                }
             }
+            
+            Spacer()
+            
+            bottomButtonsSection
             
             if let runner = runnerInstance {
                 NavigationLink(
@@ -181,13 +190,20 @@ struct RoutineSelectionView: View {
                     isActive: $navigateToRunner
                 ) { EmptyView() }
             }
-            
-            bottomButtonsSection
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Select Routine")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .tabBar)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    infoMode.toggle()
+                }) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.blue)
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     showTempRoutineEntry = true
@@ -252,56 +268,98 @@ struct RoutineSelectionView: View {
         .onReceive(timer) { _ in
             updateTimeToNow()
         }
+        }
+        .grayscale(infoMode ? 1 : 0)
+        .disabled(infoMode)
+        
+        // Info overlay
+        if infoMode {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    infoMode = false
+                }
+            
+            VStack(spacing: 20) {
+                Text("Scheduling View")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Select a routine to run, and what time you need to be finished by. If the selected time is less than the duration of essential tasks in the future (ie. if essential tasks will take 20 minutes, it's 6pm and you select anything earlier than 6:20pm), it won't run. Use the preview button to preview, edit and re-arrange tasks that will be scheduled with the available time. Long press the run buttons to either start a routine part way through, or run a routine in a random order.")
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Button("Got it") {
+                    infoMode = false
+                }
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+            .padding(.horizontal, 40)
+        }
     }
     
     private var routinePickerSection: some View {
-        Picker("Select Routine", selection: $selectedRoutine) {
-            ForEach(cdRoutines) { cdRoutine in
-                HStack {
-                    Text(cdRoutine.name ?? "Unnamed Routine").font(.headline)
-                    Spacer()
-                    let durations = calculateDurations(for: cdRoutine)
-                    Text(formatDuration(durations.all))
-                        .font(.subheadline).foregroundColor(.secondary)
-                }
-                .tag(cdRoutine as CDRoutine?)
-            }
-        }
-        .pickerStyle(.menu)
-        .padding(.horizontal)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(8)
-        .padding(.horizontal)
-        .onChange(of: selectedRoutine) { newRoutine in
-            logger.info("Routine selection changed to: \(newRoutine?.name ?? "None")")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Routine")
+                .font(.caption)
+                .foregroundColor(.secondary)
             
-            // Update time to essential tasks duration for the new routine
-            if let routine = newRoutine {
-                let durations = calculateDurations(for: routine)
-                updateTimeForDuration(durations.essential)
-                logger.info("Updated time based on essential tasks duration: \(durations.essential) minutes")
+            Picker("Select Routine", selection: $selectedRoutine) {
+                ForEach(cdRoutines) { cdRoutine in
+                    Text(cdRoutine.name ?? "Unnamed Routine")
+                        .tag(cdRoutine as CDRoutine?)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(8)
+            .onChange(of: selectedRoutine) { newRoutine in
+                logger.info("Routine selection changed to: \(newRoutine?.name ?? "None")")
+                
+                // Update time to essential tasks duration for the new routine
+                if let routine = newRoutine {
+                    let durations = calculateDurations(for: routine)
+                    updateTimeForDuration(durations.essential)
+                    logger.info("Updated time based on essential tasks duration: \(durations.essential) minutes")
+                }
             }
         }
+        .frame(maxWidth: .infinity)
     }
     
     private var timeSelectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Available Until")
-                .font(.headline)
-                .padding(.horizontal)
+            Text("Finishing Time")
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             DatePicker("Select End Time",
                        selection: $selectedTime,
                        in: Date()...,
                        displayedComponents: [.hourAndMinute])
-                .datePickerStyle(WheelDatePickerStyle())
-                .frame(height: 100)
+                .datePickerStyle(.compact)
                 .labelsHidden()
-                .padding(.horizontal)
-                 .onChange(of: selectedTime) { newTime in
-                     logger.debug("Selected end time changed to: \(newTime)")
-                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
+                .onChange(of: selectedTime) { newTime in
+                    logger.debug("Selected end time changed to: \(newTime)")
+                }
         }
+        .frame(maxWidth: .infinity)
     }
     
     private func durationOptionsSection(routine: CDRoutine) -> some View {
@@ -309,111 +367,95 @@ struct RoutineSelectionView: View {
         let selectedLevel = determineSelectedDurationLevel(durations: durations)
         
         return VStack(spacing: 12) {
-            Text("Tap to Adjust End Time")
+            Text("Quick Duration")
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 4)
             
-            DurationOptionButton(title: "Essential Only", duration: formatDuration(durations.essential), color: .red, isSelected: selectedLevel == 1) {
-                updateTimeForDuration(durations.essential)
-                logger.info("Duration button tapped: Essential")
-            }
-            DurationOptionButton(title: "Core + Essential", duration: formatDuration(durations.coreAndEssential), color: .orange, isSelected: selectedLevel == 2) {
-                updateTimeForDuration(durations.coreAndEssential)
-                logger.info("Duration button tapped: Core + Essential")
-            }
-            DurationOptionButton(title: "All Tasks", duration: formatDuration(durations.all), color: .green, isSelected: selectedLevel >= 3) {
-                updateTimeForDuration(durations.all)
-                logger.info("Duration button tapped: All Tasks")
+            HStack(spacing: 8) {
+                DurationButton(title: "Essential", duration: durations.essential, color: .red, isSelected: selectedLevel == 1) {
+                    updateTimeForDuration(durations.essential)
+                    logger.info("Duration button tapped: Essential")
+                }
+                DurationButton(title: "Core", duration: durations.coreAndEssential, color: .orange, isSelected: selectedLevel == 2) {
+                    updateTimeForDuration(durations.coreAndEssential)
+                    logger.info("Duration button tapped: Core + Essential")
+                }
+                DurationButton(title: "All", duration: durations.all, color: .green, isSelected: selectedLevel >= 3) {
+                    updateTimeForDuration(durations.all)
+                    logger.info("Duration button tapped: All Tasks")
+                }
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.systemBackground))
         .cornerRadius(12)
+        .shadow(radius: 1)
         .padding(.horizontal)
     }
     
     private var bottomButtonsSection: some View {
-        VStack {
-            Spacer()
-            HStack(spacing: 10) {
-                let isDisabled = selectedRoutine == nil || isLoading || !canScheduleEssentialTasks
+        HStack(spacing: 12) {
+            let isDisabled = selectedRoutine == nil || isLoading || !canScheduleEssentialTasks
 
-                Button {
-                    viewScheduledRoutine()
-                } label: {
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .frame(height: 22)
-                    } else {
-                        Text("Preview")
-                            .fontWeight(.semibold)
-                    }
+            Button {
+                viewScheduledRoutine()
+            } label: {
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .frame(height: 22)
+                } else {
+                    Text("Preview")
+                        .fontWeight(.semibold)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isDisabled ? Color.gray.opacity(0.5) : Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(12)
-                .disabled(isDisabled)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(isDisabled ? Color.gray : Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(12)
+            .disabled(isDisabled)
 
-                Button {
-                    runRoutineDirectly()
-                } label: {
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .frame(height: 22)
-                    } else {
-                        Text("Run")
-                            .fontWeight(.semibold)
-                    }
+            Button {
+                runRoutineDirectly()
+            } label: {
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .frame(height: 22)
+                } else {
+                    Text("Run")
+                        .fontWeight(.semibold)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isDisabled ? Color.gray.opacity(0.5) : Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(12)
-                .disabled(isDisabled)
-                .contextMenu {
-                    Button(action: {
-                        showRunFromSheet = true
-                    }) {
-                        Label("Run from...", systemImage: "play.circle")
-                    }
-                    .disabled(selectedRoutine == nil)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(isDisabled ? Color.gray : Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(12)
+            .disabled(isDisabled)
+            .contextMenu {
+                Button(action: {
+                    showRunFromSheet = true
+                }) {
+                    Label("Run from...", systemImage: "play.circle")
                 }
-
-                Button {
+                .disabled(selectedRoutine == nil)
+                
+                Button(action: {
                     runRoutineRandomly()
-                } label: {
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .frame(height: 22)
-                    } else {
-                        Text("Random")
-                            .fontWeight(.semibold)
-                    }
+                }) {
+                    Label("Run Random", systemImage: "shuffle")
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isDisabled ? Color.gray.opacity(0.5) : Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(12)
                 .disabled(isDisabled)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 20)
-            .padding(.top, 10)
-            .background(
-                Color(.systemBackground)
-                    .edgesIgnoringSafeArea(.bottom)
-                    .shadow(color: .black.opacity(0.1), radius: 3, y: -3)
-            )
         }
-        .ignoresSafeArea(.keyboard)
+        .padding(.horizontal)
+        .padding(.vertical)
+        .background(
+            Color(.systemBackground)
+                .shadow(color: .black.opacity(0.05), radius: 2, y: -2)
+        )
     }
     
     private func runRoutineFromIndex(_ startIndex: Int) {
@@ -613,28 +655,39 @@ struct DurationInfo {
     let all: Int
 }
 
-struct DurationOptionButton: View {
+struct DurationButton: View {
     let title: String
-    let duration: String
+    let duration: Int
     let color: Color
     let isSelected: Bool
     let action: () -> Void
     
+    private func formatDuration(_ minutes: Int) -> String {
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        return remainingMinutes > 0 ? "\(hours)h \(remainingMinutes)m" : "\(hours)h"
+    }
+    
     var body: some View {
         Button(action: action) {
-            HStack {
+            VStack(spacing: 4) {
                 Text(title)
+                    .font(.caption)
                     .fontWeight(.medium)
-                Spacer()
-                Text(duration)
+                Text(formatDuration(duration))
+                    .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(isSelected ? color : .primary)
             }
-            .padding()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .background(color.opacity(isSelected ? 0.2 : 0.05))
-            .cornerRadius(8)
+            .foregroundColor(isSelected ? color : .primary)
+            .cornerRadius(10)
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 10)
                     .stroke(isSelected ? color : Color.gray.opacity(0.3), lineWidth: isSelected ? 2 : 1)
             )
         }

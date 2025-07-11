@@ -4,6 +4,8 @@ import SwiftUI
 @main
 struct MomentumApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var dataStoreManager = DataStoreManager.shared
+    
     init() {
         UINavigationBar.appearance().prefersLargeTitles = false
         
@@ -14,7 +16,9 @@ struct MomentumApp: App {
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
-                .environment(\.managedObjectContext, CoreDataStack.shared.viewContext)
+                .environment(\.managedObjectContext, dataStoreManager.viewContext)
+                .environmentObject(dataStoreManager)
+                .id(dataStoreManager.storeChangeID)
         }
     }
 
@@ -54,22 +58,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Perform automatic migration if needed (before Core Data initialization)
         AutomaticMigration.shared.performMigrationIfNeeded()
         
-        // Setup CloudKit remote change notifications
-        CoreDataStack.shared.setupRemoteChangeNotifications()
-        
-        // Initialize CloudKit preferences sync
-        _ = CloudKitPreferences.shared
-        
         // Initialize iCloud backup manager and schedule automatic backups
         _ = iCloudBackupManager.shared
         iCloudBackupManager.shared.scheduleAutomaticBackup()
-        
-        // Log iCloud availability status
-        if CoreDataStack.shared.isCloudKitAvailable {
-            print("iCloud is available - data will sync automatically")
-        } else {
-            print("iCloud is not available - app will work offline only")
-        }
         
         return true
     }
