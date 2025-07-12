@@ -20,6 +20,7 @@ struct RoutineListView: View {
     @ObservedObject var viewModel: RoutineViewModel
     @FetchRequest private var cdRoutines: FetchedResults<CDRoutine>
     @State private var showCreateRoutine = false
+    @State private var showTemplateOnboarding = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     @State private var searchText: String = ""
@@ -196,8 +197,18 @@ struct RoutineListView: View {
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button { // Add Button
-                    showCreateRoutine = true
+                Menu {
+                    Button(action: {
+                        showCreateRoutine = true
+                    }) {
+                        Label("Create Custom Routine", systemImage: "square.and.pencil")
+                    }
+                    
+                    Button(action: {
+                        showTemplateOnboarding = true
+                    }) {
+                        Label("Create from Template", systemImage: "doc.text")
+                    }
                 } label: {
                     Label("Add Routine", systemImage: "plus")
                 }
@@ -205,6 +216,9 @@ struct RoutineListView: View {
         }
         .sheet(isPresented: $showCreateRoutine) {
             CreateRoutineView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showTemplateOnboarding) {
+            RoutineTemplateOnboardingView()
         }
         .sheet(isPresented: $showShareSheet) { // Share Sheet for Export
             if let url = routineFileURLToShare { // Use the file URL
