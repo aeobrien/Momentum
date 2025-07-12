@@ -137,7 +137,7 @@ class RoutineBuilder {
     }
     
     /// Gets or creates a task, returning its UUID
-    func getOrCreateTask(from template: DefaultTaskTemplate, in context: NSManagedObjectContext) throws -> String {
+    func getOrCreateTask(from template: DefaultTaskTemplate) throws -> String {
         // Check if task already exists
         let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "taskName == %@", template.name)
@@ -163,7 +163,7 @@ class RoutineBuilder {
             shouldTrackAverageTime: true
         )
         
-        let result = taskStorage.createTask(task, in: context)
+        let result = taskStorage.createTask(task)
         switch result {
         case .success(let createdTask):
             return createdTask.uuid

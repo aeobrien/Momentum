@@ -31,6 +31,9 @@
 		DD70B5BB2E1D3C4D00673D79 /* RoutineCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */; };
 		DD70B5BC2E1D3C4D00673D79 /* RoutineSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */; };
 		DD70B69E2E213A7100673D79 /* DataStoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B69D2E213A7100673D79 /* DataStoreManager.swift */; };
+		DD70B6A42E231B5100673D79 /* RoutineTemplateOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */; };
+		DD70B6A72E231B6E00673D79 /* RoutineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */; };
+		DD70B6A82E231B6E00673D79 /* DefaultTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */; };
 		DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */; };
 		DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */; };
 		DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */; };
@@ -163,6 +166,9 @@
 		DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineCard.swift; sourceTree = "<group>"; };
 		DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSearchBar.swift; sourceTree = "<group>"; };
 		DD70B69D2E213A7100673D79 /* DataStoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStoreManager.swift; sourceTree = "<group>"; };
+		DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplateOnboardingView.swift; sourceTree = "<group>"; };
+		DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultTemplates.swift; sourceTree = "<group>"; };
+		DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineBuilder.swift; sourceTree = "<group>"; };
 		DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -407,6 +413,7 @@
 				DD70B69D2E213A7100673D79 /* DataStoreManager.swift */,
 				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
 				DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */,
+				DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */,
 				DDF228B32CC98DEA0014505A /* EditRoutineView.swift */,
 				DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */,
 				DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */,
@@ -423,6 +430,7 @@
 				DDF228A32CC96BCA0014505A /* PriorityCalculator.swift */,
 				DDF228C12CC9A06B0014505A /* ResultExtensions.swift */,
 				DDF228972CC96AD50014505A /* Routine.swift */,
+				DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */,
 				DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */,
 				DDF228AB2CC96C310014505A /* RoutineDetailView.swift */,
 				DDF2289D2CC96B640014505A /* RoutineError.swift */,
@@ -432,14 +440,15 @@
 				DDF228C32CCAD2920014505A /* RoutineRunner.swift */,
 				DDF228C82CCAE1300014505A /* RoutineRunnerDetailView.swift */,
 				DDF228C62CCADA910014505A /* RoutineRunnerView.swift */,
-				DDF228BD2CC99C750014505A /* RoutineSelectionView.swift */,
 				DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */,
+				DDF228BD2CC99C750014505A /* RoutineSelectionView.swift */,
 				DDF228B92CC99C520014505A /* RoutineSetup.swift */,
 				DD70B5B72E1D3C1D00673D79 /* RoutineSortMode.swift */,
 				DDF228A12CC96B830014505A /* RoutineStorage.swift */,
 				DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */,
 				DDF228B52CC98ED70014505A /* RoutineStorageInterface.swift */,
 				DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */,
+				DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */,
 				DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */,
 				DD5902B32CDD2347005F040A /* RoutineTestView.swift */,
 				DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */,
@@ -664,6 +673,7 @@
 				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
 				DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */,
 				DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */,
+				DD70B6A42E231B5100673D79 /* RoutineTemplateOnboardingView.swift in Sources */,
 				DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */,
 				DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */,
 				DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */,
@@ -693,6 +703,8 @@
 				DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */,
 				DDAE4BAF2E0C5A7E00C573DB /* AutomaticMigration.swift in Sources */,
 				DDF228AA2CC96C190014505A /* RoutineListView.swift in Sources */,
+				DD70B6A72E231B6E00673D79 /* RoutineBuilder.swift in Sources */,
+				DD70B6A82E231B6E00673D79 /* DefaultTemplates.swift in Sources */,
 				DDF228CF2CCD95E60014505A /* TaskCardView.swift in Sources */,
 				DDFCB83C2E11ADED0085F0AE /* SpendOverUnderView.swift in Sources */,
 				DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */,

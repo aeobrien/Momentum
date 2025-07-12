@@ -93,8 +93,7 @@ struct RoutineTemplateOnboardingView: View {
             let routine = try routineBuilder.createRoutine(
                 name: routineName,
                 selectedTemplates: selectedTemplates,
-                customEntries: validCustomTasks,
-                in: viewContext
+                customEntries: validCustomTasks
             )
             
             // Save context
