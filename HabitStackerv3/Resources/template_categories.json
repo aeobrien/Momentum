@@ -1,0 +1,47 @@
+    [
+      {
+        "categoryName": "Morning Essentials",
+        "tasks": [
+          "Open Curtains", "Make Bed", "Drink Water", "Meditation", "Breakfast",
+          "Brush Teeth", "Shower/Shave", "Get Dressed", "Review Calendar", "Set Alarms/Timers"
+        ]
+      },
+      {
+        "categoryName": "Evening Wind-Down",
+        "tasks": [
+          "Sleepy Tea", "Floss", "Mouthwash", "Skincare", "Put Phone on Charge",
+          "Put Watch on Charge", "Prepare Clothes for Morning", "Gratitude Journal",
+          "Review To-Do List", "Set Alarms/Timers"
+        ]
+      },
+      {
+        "categoryName": "Household Chores",
+        "tasks": [
+          "Laundry", "Vacuum/Sweep Floors", "Wipe Surfaces", "Clean Toilet", "Change Bedding",
+          "Tidy Kitchen", "Stack and Run Dishwasher", "Empty Dishwasher", "Meal Prep", "Clear Kitchen Table"
+        ]
+      },
+      {
+        "categoryName": "Personal & Mental Health",
+        "tasks": [
+          "Yoga", "HIIT", "Walk", "Exercise", "Physio",
+          "Take Meds", "Medication Check", "CBD Oil", "Epaderm", "Mindfulness/Breathing Exercise"
+        ]
+      },
+      {
+        "categoryName": "Organisation & Admin",
+        "tasks": [
+          "Digital Tidy", "Backup Phone/Data", "Sort Post/Mail", "Plan Day", "Review Calendar",
+          "Refill Meds", "Organise Freezer", "Organise Bathroom Unit",
+          "Check Weather/Dress Appropriately", "Check In With Family/Friends"
+        ]
+      },
+      {
+        "categoryName": "Self-Care & Extras",
+        "tasks": [
+          "Gratitude Journal", "Nails", "Serum", "Hair Product",
+          "Water Plants", "Water Bonsai", "Plant Maintenance",
+          "Clear Fridge", "Clear Out Car", "Sleepy Tea"
+        ]
+      }
+    ]

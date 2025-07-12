@@ -14,6 +14,7 @@ struct SettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var backupManager = iCloudBackupManager.shared
     @StateObject private var dataStoreManager = DataStoreManager.shared
+    @StateObject private var settingsManager = SettingsManager.shared
     
     @State private var showLogsView = false
     @State private var showResetConfirmation = false
@@ -88,6 +89,40 @@ struct SettingsView: View {
                             Spacer()
                         }
                     }
+                }
+                
+                // MARK: Scheduling
+                Section(header: Text("Scheduling")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Schedule Buffer Time")
+                                    .font(.body)
+                                
+                                HStack {
+                                    Text("\(settingsManager.scheduleBufferMinutes) minutes")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Stepper("", value: $settingsManager.scheduleBufferMinutes, in: 0...30, step: 5)
+                                .labelsHidden()
+                        }
+                        
+                        Text("This buffer time is automatically subtracted from your available time when scheduling routines. It helps ensure you finish earlier than expected and provides wiggle room if tasks run longer than planned.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 38)
+                    }
+                    .padding(.vertical, 4)
                 }
                 
                 // MARK: Import Instructions

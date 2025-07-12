@@ -159,7 +159,7 @@ struct RoutineSelectionView: View {
     }
     
     var body: some View {
-        ZStack {
+        return ZStack {
             VStack(spacing: 0) {
             Spacer()
             
@@ -190,19 +190,15 @@ struct RoutineSelectionView: View {
                     isActive: $navigateToRunner
                 ) { EmptyView() }
             }
-        }
+        } // End of VStack
+        } // End of ZStack
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Select Routine")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    infoMode.toggle()
-                }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
+                InfoButton(showInfo: $infoMode)
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
@@ -268,41 +264,11 @@ struct RoutineSelectionView: View {
         .onReceive(timer) { _ in
             updateTimeToNow()
         }
-        }
-        .grayscale(infoMode ? 1 : 0)
-        .disabled(infoMode)
-        
-        // Info overlay
-        if infoMode {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    infoMode = false
-                }
-            
-            VStack(spacing: 20) {
-                Text("Scheduling View")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("Select a routine to run, and what time you need to be finished by. If the selected time is less than the duration of essential tasks in the future (ie. if essential tasks will take 20 minutes, it's 6pm and you select anything earlier than 6:20pm), it won't run. Use the preview button to preview, edit and re-arrange tasks that will be scheduled with the available time. Long press the run buttons to either start a routine part way through, or run a routine in a random order.")
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Button("Got it") {
-                    infoMode = false
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 20)
-            .padding(.horizontal, 40)
-        }
+        .infoOverlay(
+            showInfo: $infoMode,
+            title: "Schedule",
+            description: "Select a routine and finish time. The app will schedule tasks based on available time. Use preview to adjust tasks. Long-press run buttons for more options."
+        )
     }
     
     private var routinePickerSection: some View {

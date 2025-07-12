@@ -121,11 +121,25 @@ struct RoutineListView: View {
             
             // Routines List
             if filteredAndSortedRoutines.isEmpty {
-                VStack(spacing: 12) {
-                    Text("No Routines Found")
+                VStack(spacing: 16) {
+                    Text("No Routines Yet!")
                         .font(.headline)
-                    Text(searchText.isEmpty ? "Add your first routine to get started" : "Try adjusting your search")
-                        .foregroundColor(.secondary)
+                        .fontWeight(.bold)
+                    
+                    if searchText.isEmpty {
+                        Button(action: {
+                            showTemplateOnboarding = true
+                        }) {
+                            Text("Tap here to create your first routine from a template.")
+                                .foregroundColor(.blue)
+                                .underline()
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        Text("Try adjusting your search")
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -150,51 +164,17 @@ struct RoutineListView: View {
                 .listStyle(PlainListStyle())
             }
         }
-        .grayscale(infoMode ? 1 : 0)
-        .disabled(infoMode)
-        
-        // Info overlay
-        if infoMode {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    infoMode = false
-                }
-            
-            VStack(spacing: 20) {
-                Text("Routines View")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("This page shows a list of all routines added to the app, along with how many tasks they contain, when they were last run, and their varying durations when all tasks of different priority tiers are run. Tap a routine to see more information about it, or to edit it.")
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Button("Got it") {
-                    infoMode = false
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 20)
-            .padding(.horizontal, 40)
         }
-        }
+        .infoOverlay(
+            showInfo: $infoMode,
+            title: "Routines",
+            description: "Manage your routines here. Each routine shows its task count, last run date, and duration. Tap a routine to view or edit it."
+        )
         .navigationTitle("Routines")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    infoMode.toggle()
-                } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
+                InfoButton(showInfo: $infoMode)
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {

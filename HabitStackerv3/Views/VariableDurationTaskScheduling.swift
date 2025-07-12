@@ -88,19 +88,21 @@ struct PrioritizedTask {
 
 class VariableDurationScheduler {
     private let logger = AppLogger.create(subsystem: "com.app.Scheduler", category: "VariableDuration")
+    private let settingsManager = SettingsManager.shared
     
     func schedule(tasks: [CDTask], availableTime: Int) -> (scheduled: [CDTask], durations: [String: Int]) {
         let requirements = calculateTimeRequirements(tasks: tasks, availableTime: availableTime)
-        if Int(requirements.essentialTime/60) > availableTime - 15 {
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
+        if Int(requirements.essentialTime/60) > availableTime - bufferMinutes {
             logger.error("""
                 Cannot schedule essential tasks:
                 Required: \(Int(requirements.essentialTime/60))m
-                Available after buffer: \(availableTime - 15)m
+                Available after buffer: \(availableTime - bufferMinutes)m
                 """)
             return ([], [:])
         }
 
-        var remainingTime = availableTime - 15  // Buffer
+        var remainingTime = availableTime - bufferMinutes  // Buffer
         var scheduledTasks: [PrioritizedTask] = []
         var durationMap: [String: Int] = [:]
         
@@ -187,8 +189,9 @@ class VariableDurationScheduler {
         
         // Just need to verify total essential task time fits within available time
         let totalEssentialTime = essentialTasks.reduce(0) { $0 + Int($1.minDuration) }
-        if totalEssentialTime > (availableTime - Int(requirements.minimumBuffer / 60)) {
-            return .essentialTasksWontFit(shortfall: totalEssentialTime - availableTime)
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
+        if totalEssentialTime > (availableTime - bufferMinutes) {
+            return .essentialTasksWontFit(shortfall: totalEssentialTime - (availableTime - bufferMinutes))
         }
         
         return .success(requirements)

@@ -184,50 +184,16 @@ struct ToDoView: View {
             }
             .listStyle(PlainListStyle())
         }
-        .grayscale(infoMode ? 1 : 0)
-        .disabled(infoMode)
-        
-        // Info overlay
-        if infoMode {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    infoMode = false
-                }
-            
-            VStack(spacing: 20) {
-                Text("To-Do View")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("This page shows all non session tasks which are currently due for completion, along with their repetition interval and their last completion date. Tap a task's checkbox to mark it as completed. Use the tabs menu to view tasks that aren't due for completion, or all tasks. The task's priority rating is indicated by the coloured dot on the right side of its entry.")
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Button("Got it") {
-                    infoMode = false
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 20)
-            .padding(.horizontal, 40)
         }
-        }
+        .infoOverlay(
+            showInfo: $infoMode,
+            title: "To-Do",
+            description: "Track tasks due for completion. Tap checkboxes to mark tasks complete. Use tabs to filter by due status. Priority is shown by colored dots."
+        )
         .navigationTitle("To Do")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(
-            leading: Button(action: {
-                infoMode.toggle()
-            }) {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.blue)
-            }
+            leading: InfoButton(showInfo: $infoMode)
         )
     }
     

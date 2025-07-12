@@ -247,7 +247,8 @@ final class RoutineStorage: RoutineStorageInterface {
         }
         // Additional validations as needed, e.g., tasks exist
         for uuid in routine.taskUUIDs {
-            if TaskStorage.shared.fetchTask(by: uuid) == nil {
+            // Check if task exists in Core Data storage
+            if TaskStorageCoreData.shared.fetchTask(by: uuid) == nil {
                 throw RoutineStorageError.invalidTaskUUID(uuid)
             }
         }

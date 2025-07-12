@@ -462,18 +462,30 @@ struct RoutineRunnerView: View {
                     // Info text overlay
                     if let element = highlightedElement {
                         GeometryReader { geometry in
-                            ZStack {
-                                Color.clear
+                            VStack(spacing: 0) {
+                                let position = infoPosition(for: element, in: geometry.size)
+                                let isAboveCenter = position.y < geometry.size.height / 2
+                                
+                                if !isAboveCenter {
+                                    Spacer()
+                                }
+                                
                                 Text(infoText(for: element))
                                     .foregroundColor(.white)
                                     .font(.caption)
                                     .multilineTextAlignment(.center)
-                                    .padding()
-                                    .background(Color.black.opacity(0.8))
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.85))
                                     .cornerRadius(12)
-                                    .frame(maxWidth: geometry.size.width * 0.8)
-                                    .position(infoPosition(for: element, in: geometry.size))
+                                    .frame(maxWidth: min(geometry.size.width * 0.85, 300))
+                                    .padding(.horizontal)
+                                    .padding(.vertical, getVerticalPadding(for: element, in: geometry.size))
+                                
+                                if isAboveCenter {
+                                    Spacer()
+                                }
                             }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
                 }
@@ -559,6 +571,11 @@ struct RoutineRunnerView: View {
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
+        .onDisappear {
+            // Stop the routine and clean up all timers when view disappears
+            runner.stopRoutine()
+            logger.info("RoutineRunnerView disappeared - stopped routine and cleaned up timers")
+        }
     }
     
     // Info mode helper functions
@@ -588,13 +605,23 @@ struct RoutineRunnerView: View {
         case "progress": return CGPoint(x: size.width / 2, y: 380)
         case "timer": return CGPoint(x: size.width / 2, y: 380)
         case "schedule": return CGPoint(x: size.width / 2, y: 520)
-        case "interrupt": return CGPoint(x: size.width * 0.125, y: size.height - 200)
-        case "delay": return CGPoint(x: size.width * 0.3125, y: size.height - 200)
-        case "minimal": return CGPoint(x: size.width * 0.5, y: size.height - 200)
-        case "skip": return CGPoint(x: size.width * 0.6875, y: size.height - 200)
-        case "background": return CGPoint(x: size.width * 0.875, y: size.height - 200)
+        case "interrupt", "delay", "minimal", "skip", "background": 
+            return CGPoint(x: size.width / 2, y: size.height - 200)
         case "complete": return CGPoint(x: size.width / 2, y: size.height - 120)
         default: return CGPoint(x: size.width / 2, y: size.height / 2)
+        }
+    }
+    
+    func getVerticalPadding(for element: String, in size: CGSize) -> CGFloat {
+        switch element {
+        case "routine": return 120
+        case "title": return 180
+        case "comingUp": return 240
+        case "progress", "timer": return 60
+        case "schedule": return 100
+        case "interrupt", "delay", "minimal", "skip", "background": return 60
+        case "complete": return 40
+        default: return 60
         }
     }
 }

@@ -35,15 +35,18 @@ struct RoutineTemplateOnboardingView: View {
                 case 3:
                     CustomTaskEntryView(
                         customTasks: $customTasks,
+                        selectedTemplateTasks: selectedTasks.filter { $0.isSelected }.map { $0.template },
                         onNext: moveToConfirmation,
                         onBack: { currentStep = 2 }
                     )
                 case 4:
-                    ConfirmationView(
+                    ReorderableConfirmationView(
                         routineName: routineName,
                         selectedTasks: selectedTasks.filter { $0.isSelected }.map { $0.template },
                         customTasks: customTasks.filter { !$0.name.isEmpty },
-                        onCreate: createRoutine,
+                        onConfirm: { orderedTasks in
+                            createRoutineWithOrder(orderedTasks)
+                        },
                         onBack: { currentStep = 3 }
                     )
                 default:
@@ -94,6 +97,35 @@ struct RoutineTemplateOnboardingView: View {
                 name: routineName,
                 selectedTemplates: selectedTemplates,
                 customEntries: validCustomTasks
+            )
+            
+            // Save context
+            try viewContext.save()
+            
+            dismiss()
+        } catch {
+            alertMessage = "Failed to create routine: \(error.localizedDescription)"
+            showAlert = true
+        }
+    }
+    
+    private func createRoutineWithOrder(_ orderedTasks: [ReorderableTaskItem]) {
+        // Separate template and custom tasks while preserving order
+        var selectedTemplates: [DefaultTaskTemplate] = []
+        var validCustomTasks: [RoutineBuilder.CustomTaskEntry] = []
+        
+        for task in orderedTasks {
+            if let template = task.originalTemplate {
+                selectedTemplates.append(template)
+            } else if let custom = task.originalCustomEntry {
+                validCustomTasks.append(custom)
+            }
+        }
+        
+        do {
+            let routine = try routineBuilder.createRoutineWithOrder(
+                name: routineName,
+                orderedTasks: orderedTasks
             )
             
             // Save context
@@ -240,7 +272,7 @@ struct TaskSelectionView: View {
             ScrollView {
                 VStack(spacing: 8) {
                     ForEach($selectedTasks.indices, id: \.self) { index in
-                        TaskSelectionRow(
+                        TemplateTaskSelectionRow(
                             task: selectedTasks[index].template,
                             isSelected: $selectedTasks[index].isSelected
                         )
@@ -274,7 +306,7 @@ struct TaskSelectionView: View {
     }
 }
 
-struct TaskSelectionRow: View {
+struct TemplateTaskSelectionRow: View {
     let task: DefaultTaskTemplate
     @Binding var isSelected: Bool
     
@@ -309,12 +341,12 @@ struct TaskSelectionRow: View {
                     
                     Spacer()
                     
-                    Text(task.suggestedPriority.displayName)
+                    Text(task.priority.displayName)
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(priorityColor(task.suggestedPriority).opacity(0.2))
-                        .foregroundColor(priorityColor(task.suggestedPriority))
+                        .background(priorityColor(task.priority).opacity(0.2))
+                        .foregroundColor(priorityColor(task.priority))
                         .cornerRadius(6)
                 }
             }
@@ -330,6 +362,7 @@ struct TaskSelectionRow: View {
 
 struct CustomTaskEntryView: View {
     @Binding var customTasks: [RoutineBuilder.CustomTaskEntry]
+    let selectedTemplateTasks: [DefaultTaskTemplate]
     let onNext: () -> Void
     let onBack: () -> Void
     
@@ -347,17 +380,47 @@ struct CustomTaskEntryView: View {
             .padding(.top)
             
             ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(customTasks.indices, id: \.self) { index in
-                        CustomTaskRow(task: $customTasks[index])
+                VStack(spacing: 16) {
+                    // Show selected template tasks
+                    if !selectedTemplateTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Tasks from template:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(selectedTemplateTasks) { task in
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                        .font(.caption)
+                                    Text(task.name)
+                                        .font(.subheadline)
+                                    Spacer()
+                                    Text("\(task.suggestedDuration) min")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.tertiarySystemGroupedBackground))
+                        .cornerRadius(10)
                     }
                     
-                    Button(action: addNewTask) {
-                        Label("Add Task", systemImage: "plus.circle.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
+                    // Custom tasks section
+                    VStack(spacing: 12) {
+                        ForEach(customTasks.indices, id: \.self) { index in
+                            CustomTaskRow(task: $customTasks[index])
+                        }
+                        
+                        Button(action: addNewTask) {
+                            Label("Add Task", systemImage: "plus.circle.fill")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
                     }
                 }
                 .padding()

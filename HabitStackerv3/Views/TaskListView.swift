@@ -9,6 +9,7 @@ struct TaskListView: View {
     @FetchRequest private var cdTasks: FetchedResults<CDTask>
     @State private var searchText: String = ""
     @State private var showAddTask = false
+    @State private var showTemplateOnboarding = false
     @State private var sortMode: SortMode = .nameAsc
     @State private var infoMode = false
     
@@ -89,11 +90,30 @@ struct TaskListView: View {
             
             // Tasks List
             if filteredAndSortedTasks.isEmpty {
-                VStack(spacing: 12) {
-                    Text("No Tasks Found")
+                VStack(spacing: 16) {
+                    Text("No tasks yet!")
                         .font(.headline)
-                    Text(searchText.isEmpty ? "Add your first task to get started" : "Try adjusting your search")
-                        .foregroundColor(.secondary)
+                        .fontWeight(.bold)
+                    
+                    if searchText.isEmpty {
+                        VStack(spacing: 4) {
+                            Text("Tap the + button in the top right to add your first task, or")
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            
+                            Button(action: {
+                                showTemplateOnboarding = true
+                            }) {
+                                Text("get started quicker by creating a routine from a template.")
+                                    .foregroundColor(.blue)
+                                    .underline()
+                            }
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        Text("Try adjusting your search")
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -118,50 +138,16 @@ struct TaskListView: View {
                 .listStyle(PlainListStyle())
             }
         }
-        .grayscale(infoMode ? 1 : 0)
-        .disabled(infoMode)
-        
-        // Info overlay
-        if infoMode {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    infoMode = false
-                }
-            
-            VStack(spacing: 20) {
-                Text("Tasks View")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Text("This page shows a list of all tasks added to the app along with their duration or duration range and their priority rating. Tap a task to see more information on it, or to edit any of its parameters. To create a new task, tap the + icon in the top right corner of the screen.")
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
-                Button("Got it") {
-                    infoMode = false
-                }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .shadow(radius: 20)
-            .padding(.horizontal, 40)
         }
-        }
+        .infoOverlay(
+            showInfo: $infoMode,
+            title: "Tasks",
+            description: "View and manage all your tasks. Each task shows its duration and priority. Tap a task to edit it, or use the + button to create a new one."
+        )
         .navigationTitle("Tasks")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(
-            leading: Button(action: {
-                infoMode.toggle()
-            }) {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.blue)
-            },
+            leading: InfoButton(showInfo: $infoMode),
             trailing: Button(action: {
                 logger.debug("Opening add task view")
                 showAddTask = true
@@ -173,6 +159,9 @@ struct TaskListView: View {
             AddTaskView { newTask in
                 createTask(from: newTask)
             }
+        }
+        .sheet(isPresented: $showTemplateOnboarding) {
+            RoutineTemplateOnboardingView()
         }
     }
     
