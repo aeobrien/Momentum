@@ -479,20 +479,51 @@ struct RoutineSelectionView: View {
             throw SchedulingError.routineLoadError
         }
 
-        let availableTime = selectedTime.timeIntervalSince(Date())
-        guard availableTime > 60 else {
+        let currentTime = Date()
+        let availableTime = selectedTime.timeIntervalSince(currentTime)
+        
+        logger.debug("=== GENERATE SCHEDULE DEBUG ===")
+        logger.debug("Current time: \(currentTime)")
+        logger.debug("Selected finishing time: \(selectedTime)")
+        logger.debug("Available time (seconds): \(availableTime)")
+        logger.debug("Available time (minutes): \(availableTime / 60)")
+        
+        // Allow a small tolerance for timing edge cases (2 minutes)
+        let timingTolerance: TimeInterval = 120 // 2 minutes in seconds
+        
+        guard availableTime > -timingTolerance else {
+            logger.error("FAIL: Available time check failed!")
+            logger.error("Available: \(availableTime)s, Required: > \(-timingTolerance)s")
             logger.warning("Schedule generation attempted with insufficient time (\(availableTime)s). End time: \(selectedTime)")
             throw SchedulingError.insufficientTime
         }
         
-        // Don't subtract buffer here - the scheduler should work with the full available time
-        // The buffer is already accounted for in how we calculate and display durations
-        let schedulingTime = availableTime
+        // Subtract buffer from available time for scheduling
+        let bufferSeconds = TimeInterval(settingsManager.scheduleBufferMinutes * 60)
+        let schedulingTime = availableTime - bufferSeconds
+        
+        logger.debug("Buffer (minutes): \(settingsManager.scheduleBufferMinutes)")
+        logger.debug("Buffer (seconds): \(bufferSeconds)")
+        logger.debug("Scheduling time after buffer: \(schedulingTime)s (\(schedulingTime / 60)m)")
+        
+        // Allow slight negative time with tolerance (user just selected this duration)
+        guard schedulingTime > -timingTolerance else {
+            logger.error("FAIL: Scheduling time check failed!")
+            logger.error("Scheduling time: \(schedulingTime)s, Required: > \(-timingTolerance)s")
+            logger.warning("No time available after buffer. Available: \(Int(availableTime/60))m, Buffer: \(settingsManager.scheduleBufferMinutes)m")
+            throw SchedulingError.insufficientTime
+        }
+        
+        // Ensure scheduler gets at least 0 seconds (not negative)
+        let actualSchedulingTime = max(0, schedulingTime)
+        
+        logger.debug("Actual scheduling time passed to scheduler: \(actualSchedulingTime)s (\(actualSchedulingTime / 60)m)")
+        logger.debug("=== END GENERATE SCHEDULE DEBUG ===")
 
-        logger.info("Starting schedule generation for '\(routine.name ?? "Unnamed")' with \(Int(schedulingTime / 60)) mins available.")
+        logger.info("Starting schedule generation for '\(routine.name ?? "Unnamed")' with \(Int(actualSchedulingTime / 60)) mins available (total: \(Int(availableTime / 60))m minus \(settingsManager.scheduleBufferMinutes)m buffer).")
         let scheduler = CoreDataTaskScheduler(context: viewContext)
 
-        let schedule = try scheduler.generateSchedule(for: routine, availableTime: schedulingTime)
+        let schedule = try scheduler.generateSchedule(for: routine, availableTime: actualSchedulingTime)
 
         guard !schedule.isEmpty else {
             logger.warning("Schedule generation for '\(routine.name ?? "Unnamed")' resulted in 0 tasks. Throwing schedulingFailure.")
@@ -594,28 +625,50 @@ struct RoutineSelectionView: View {
         showError = false
         scheduleForPreview = nil
         
-        // Calculate expected duration based on what was selected (not current time)
-        // This matches exactly what the duration buttons show
+        logger.debug("=== VIEW SCHEDULED ROUTINE DEBUG ===")
+        
+        // Calculate expected duration based on available time and what can be scheduled
+        // The scheduler will only use (availableTime - buffer) for scheduling
         if let routine = selectedRoutine {
             let durations = calculateDurations(for: routine)
             let bufferMinutes = settingsManager.scheduleBufferMinutes
-            
-            // Determine which tier was selected based on available time
             let availableMinutes = getAvailableTimeInMinutes()
+            let schedulingMinutes = availableMinutes - bufferMinutes
             
-            // Match the logic from determineSelectedDurationLevel
-            if availableMinutes >= durations.all + bufferMinutes {
-                expectedPreviewDuration = durations.all + bufferMinutes
-            } else if availableMinutes >= durations.coreAndEssential + bufferMinutes {
-                expectedPreviewDuration = durations.coreAndEssential + bufferMinutes
-            } else if availableMinutes >= durations.essential + bufferMinutes {
-                expectedPreviewDuration = durations.essential + bufferMinutes
+            logger.debug("Routine: \(routine.name ?? "Unknown")")
+            logger.debug("Durations - Essential: \(durations.essential)m, Core+Essential: \(durations.coreAndEssential)m, All: \(durations.all)m")
+            logger.debug("Buffer: \(bufferMinutes)m")
+            logger.debug("Available minutes: \(availableMinutes)m")
+            logger.debug("Scheduling minutes (available - buffer): \(schedulingMinutes)m")
+            
+            // Determine what will actually be scheduled based on time available for scheduling
+            // Apply same tolerance as in generateSchedule for consistency
+            let timingToleranceMinutes = 2
+            let expectedScheduledMinutes: Int
+            
+            if schedulingMinutes + timingToleranceMinutes >= durations.all {
+                expectedScheduledMinutes = durations.all
+                logger.debug("Expected tier: All tasks (\(durations.all)m)")
+            } else if schedulingMinutes + timingToleranceMinutes >= durations.coreAndEssential {
+                expectedScheduledMinutes = durations.coreAndEssential
+                logger.debug("Expected tier: Core+Essential (\(durations.coreAndEssential)m)")
+            } else if schedulingMinutes + timingToleranceMinutes >= durations.essential {
+                expectedScheduledMinutes = durations.essential
+                logger.debug("Expected tier: Essential only (\(durations.essential)m)")
             } else {
-                expectedPreviewDuration = availableMinutes // fallback
+                expectedScheduledMinutes = max(0, schedulingMinutes) // What can fit
+                logger.debug("Expected tier: Partial/None (only \(expectedScheduledMinutes)m can fit)")
             }
+            
+            // Preview should show scheduled time + buffer
+            expectedPreviewDuration = expectedScheduledMinutes + bufferMinutes
+            logger.debug("Expected preview duration: \(expectedPreviewDuration)m (\(expectedScheduledMinutes)m tasks + \(bufferMinutes)m buffer)")
         } else {
             expectedPreviewDuration = Int(selectedTime.timeIntervalSince(Date()) / 60)
+            logger.debug("No routine selected, using time difference: \(expectedPreviewDuration)m")
         }
+        
+        logger.debug("=== END VIEW SCHEDULED ROUTINE DEBUG ===")
 
         Task {
             do {
@@ -631,14 +684,28 @@ struct RoutineSelectionView: View {
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                     self.isLoading = false
-                    self.logger.error("SchedulingError during schedule preview generation: \(error.localizedDescription)")
+                    self.logger.error("SchedulingError during schedule preview generation: \(error)")
+                    self.logger.error("Error description: \(error.localizedDescription)")
+                    
+                    // Add specific debugging for each error type
+                    switch error {
+                    case .insufficientTime:
+                        self.logger.error("Error type: insufficientTime")
+                    case .routineLoadError:
+                        self.logger.error("Error type: routineLoadError")
+                    case .schedulingFailure:
+                        self.logger.error("Error type: schedulingFailure")
+                    default:
+                        self.logger.error("Error type: unknown")
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                     self.isLoading = false
-                    self.logger.error("Unexpected error during schedule preview generation: \(error.localizedDescription)")
+                    self.logger.error("Unexpected error during schedule preview generation: \(error)")
+                    self.logger.error("Error type: \(type(of: error))")
                 }
             }
         }

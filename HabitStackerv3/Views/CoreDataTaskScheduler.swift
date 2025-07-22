@@ -213,9 +213,21 @@ struct CoreDataTaskScheduler {
                 remainingTime -= essential.duration
                 logger.trace("- Added Essential: '\(task.taskName ?? "Unnamed")' (\(essential.duration/60)m). Remaining time: \(remainingTime / 60, format: .fixed(precision: 1))m")
             } else {
-                logger.error("Insufficient time for Essential task '\(task.taskName ?? "Unnamed")'. Required: \(essential.duration/60)m, Available: \(remainingTime/60)m")
-                // Throw error as essential tasks MUST be included if possible
-                throw SchedulingError.insufficientTime
+                // Allow a small tolerance for timing edge cases (1 minute)
+                let availableTime = remainingTime
+                let shortfall = essential.duration - remainingTime
+                let toleranceSeconds: TimeInterval = 60 // 1 minute tolerance
+                
+                if shortfall <= toleranceSeconds {
+                    // Within tolerance - schedule it anyway
+                    scheduledTaskIDs.insert(essential.id)
+                    remainingTime = 0 // Use up all remaining time
+                    logger.warning("Essential task '\(task.taskName ?? "Unnamed")' scheduled with minor shortfall. Required: \(essential.duration/60)m, Available: \(availableTime/60)m, Shortfall: \(shortfall/60)m")
+                } else {
+                    // Beyond tolerance - this is a real problem
+                    logger.error("Insufficient time for Essential task '\(task.taskName ?? "Unnamed")'. Required: \(essential.duration/60)m, Available: \(availableTime/60)m, Shortfall: \(shortfall/60)m")
+                    throw SchedulingError.insufficientTime
+                }
             }
         }
 
@@ -254,7 +266,20 @@ struct CoreDataTaskScheduler {
                 eligibleUnscheduledIDs.removeValue(forKey: taskID) // Remove using the key
                 logger.trace("- Added Core: '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m). Remaining time: \(remainingTime / 60, format: .fixed(precision: 1))m")
             } else {
-                logger.trace("- Skipped Core (Time): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m)")
+                // Check if we're within tolerance for this core task
+                let shortfall = duration - remainingTime
+                let toleranceSeconds: TimeInterval = 60 // 1 minute tolerance
+                
+                if shortfall <= toleranceSeconds && remainingTime > 0 {
+                    // Within tolerance - schedule it anyway
+                    scheduledTaskIDs.insert(taskID)
+                    let oldRemaining = remainingTime
+                    remainingTime = 0 // Use up all remaining time
+                    eligibleUnscheduledIDs.removeValue(forKey: taskID)
+                    logger.trace("- Added Core (tolerance): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m, Available: \(oldRemaining/60)m, Shortfall: \(shortfall/60)m)")
+                } else {
+                    logger.trace("- Skipped Core (Time): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m)")
+                }
                 // Don't break, continue checking other core tasks
             }
         }
@@ -293,7 +318,20 @@ struct CoreDataTaskScheduler {
                 eligibleUnscheduledIDs.removeValue(forKey: taskID) // Remove using the key
                 logger.trace("- Added Optional: '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m). Remaining time: \(remainingTime / 60, format: .fixed(precision: 1))m")
             } else {
-                logger.trace("- Skipped Optional (Time): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m)")
+                // Check if we're within tolerance for this optional task
+                let shortfall = duration - remainingTime
+                let toleranceSeconds: TimeInterval = 60 // 1 minute tolerance
+                
+                if shortfall <= toleranceSeconds && remainingTime > 0 {
+                    // Within tolerance - schedule it anyway
+                    scheduledTaskIDs.insert(taskID)
+                    let oldRemaining = remainingTime
+                    remainingTime = 0 // Use up all remaining time
+                    eligibleUnscheduledIDs.removeValue(forKey: taskID)
+                    logger.trace("- Added Optional (tolerance): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m, Available: \(oldRemaining/60)m, Shortfall: \(shortfall/60)m)")
+                } else {
+                    logger.trace("- Skipped Optional (Time): '\(task.taskName ?? "Unnamed")' (Score: \(score, format: .fixed(precision: 2)), Dur: \(duration/60)m)")
+                }
                 // Don't break, continue checking other optional tasks
             }
         }

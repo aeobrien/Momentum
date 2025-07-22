@@ -92,16 +92,17 @@ class VariableDurationScheduler {
     
     func schedule(tasks: [CDTask], availableTime: Int) -> (scheduled: [CDTask], durations: [String: Int]) {
         let requirements = calculateTimeRequirements(tasks: tasks, availableTime: availableTime)
-        if Int(requirements.essentialTime/60) > availableTime {
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
+        if Int(requirements.essentialTime/60) > availableTime - bufferMinutes {
             logger.error("""
                 Cannot schedule essential tasks:
                 Required: \(Int(requirements.essentialTime/60))m
-                Available: \(availableTime)m
+                Available after buffer: \(availableTime - bufferMinutes)m
                 """)
             return ([], [:])
         }
 
-        var remainingTime = availableTime  // Don't subtract buffer here
+        var remainingTime = availableTime - bufferMinutes  // Buffer
         var scheduledTasks: [PrioritizedTask] = []
         var durationMap: [String: Int] = [:]
         
@@ -109,7 +110,7 @@ class VariableDurationScheduler {
             Starting schedule:
             Essential: \(Int(requirements.essentialTime/60))m
             Core: \(Int(requirements.coreTime/60))m
-            Available: \(availableTime)m
+            Available: \(availableTime)m (\(remainingTime)m after buffer)
             """)
         
         let prioritizedTasks = createPrioritizedTasks(from: tasks)
@@ -188,8 +189,9 @@ class VariableDurationScheduler {
         
         // Just need to verify total essential task time fits within available time
         let totalEssentialTime = essentialTasks.reduce(0) { $0 + Int($1.minDuration) }
-        if totalEssentialTime > availableTime {
-            return .essentialTasksWontFit(shortfall: totalEssentialTime - availableTime)
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
+        if totalEssentialTime > (availableTime - bufferMinutes) {
+            return .essentialTasksWontFit(shortfall: totalEssentialTime - (availableTime - bufferMinutes))
         }
         
         return .success(requirements)
