@@ -4,37 +4,34 @@ import Combine
 
 final class DataStoreManager: ObservableObject {
     static let shared = DataStoreManager()
+    private static var hasInitialized = false
     
     @Published private(set) var isTestingModeEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isTestingModeEnabled, forKey: testingModeKey)
             if oldValue != isTestingModeEnabled {
-                print("[ToggleStore] isTestingModeEnabled: \(isTestingModeEnabled)")
+                print("[DataStoreManager] isTestingModeEnabled: \(isTestingModeEnabled)")
                 switchDataStore()
             }
         }
     }
     
-    @Published private(set) var currentStack: CoreDataStack
     @Published private(set) var storeChangeID = UUID()
     
-    private let personalStack: CoreDataStack
-    private let testingStack: CoreDataStack
     private let testingModeKey = "isTestingModeEnabled"
     
     private init() {
+        // Ensure singleton is only initialized once
+        if DataStoreManager.hasInitialized {
+            fatalError("[DataStoreManager] ERROR: Attempting to create multiple instances of DataStoreManager singleton!")
+        }
+        DataStoreManager.hasInitialized = true
+        
         let savedTestingMode = UserDefaults.standard.bool(forKey: testingModeKey)
         self.isTestingModeEnabled = savedTestingMode
         
-        self.personalStack = CoreDataStack(containerName: "Momentum 3", storeDescription: nil)
-        self.testingStack = CoreDataStack(
-            containerName: "Momentum 3",
-            storeDescription: "MomentumTesting"
-        )
-        
-        self.currentStack = savedTestingMode ? testingStack : personalStack
-        
-        print("[CoreData] Loaded \(savedTestingMode ? "testing" : "personal") dataset container")
+        // Use the shared CoreDataStack instance instead of creating new ones
+        print("[DataStoreManager] Initialized with \(savedTestingMode ? "testing" : "personal") mode")
     }
     
     func toggleTestingMode() {
@@ -43,38 +40,38 @@ final class DataStoreManager: ObservableObject {
     
     private func switchDataStore() {
         // Save any pending changes in the current context
-        currentStack.saveContext()
+        CoreDataStack.shared.saveContext()
         
         // Reset the current context to clear any cached objects
-        currentStack.viewContext.reset()
-        
-        // Switch to the new stack
-        currentStack = isTestingModeEnabled ? testingStack : personalStack
+        CoreDataStack.shared.viewContext.reset()
         
         // Generate new ID to force view recreation
         storeChangeID = UUID()
         
-        print("[CoreData] Switched to \(isTestingModeEnabled ? "testing" : "personal") dataset container")
-        print("[Injection] Updated environment with new persistent store")
+        print("[CoreData] Switched to \(isTestingModeEnabled ? "testing" : "personal") mode")
+        print("[Injection] Updated environment with persistent store")
         
         // Post notification for any listeners
         NotificationCenter.default.post(name: .dataStoreDidChange, object: nil)
+        
+        // Important: The app needs to be restarted for the store change to take effect
+        print("[CoreData] NOTE: App restart required for store change to take full effect")
     }
     
     var viewContext: NSManagedObjectContext {
-        currentStack.viewContext
+        CoreDataStack.shared.viewContext
     }
     
     func newBackgroundContext() -> NSManagedObjectContext {
-        currentStack.newBackgroundContext()
+        CoreDataStack.shared.newBackgroundContext()
     }
     
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void) {
-        currentStack.performBackgroundTask(block)
+        CoreDataStack.shared.performBackgroundTask(block)
     }
     
     func saveContext() {
-        currentStack.saveContext()
+        CoreDataStack.shared.saveContext()
     }
 }
 

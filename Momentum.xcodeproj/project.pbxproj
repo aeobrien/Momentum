@@ -68,6 +68,7 @@
 		DDE14FA42E2ABFC500AB9088 /* template_routines.json in Resources */ = {isa = PBXBuildFile; fileRef = DDE14FA12E2ABFC500AB9088 /* template_routines.json */; };
 		DDE14FA52E2ABFC500AB9088 /* template_tasks.json in Resources */ = {isa = PBXBuildFile; fileRef = DDE14FA22E2ABFC500AB9088 /* template_tasks.json */; };
 		DDE14FA72E2ACFAF00AB9088 /* template_categories.json in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FA62E2ACFAA00AB9088 /* template_categories.json */; };
+		DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FB32E300FD800AB9088 /* SettingsManager.swift */; };
 		DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */; };
 		DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */; };
 		DDF227F22CC957B50014505A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F12CC957B50014505A /* Assets.xcassets */; };
@@ -206,6 +207,7 @@
 		DDE14FA12E2ABFC500AB9088 /* template_routines.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_routines.json; sourceTree = "<group>"; };
 		DDE14FA22E2ABFC500AB9088 /* template_tasks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_tasks.json; sourceTree = "<group>"; };
 		DDE14FA62E2ACFAA00AB9088 /* template_categories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_categories.json; sourceTree = "<group>"; };
+		DDE14FB32E300FD800AB9088 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
 		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
 		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -475,6 +477,7 @@
 				DDF228BF2CC99E200014505A /* SchedulingError.swift */,
 				DD4222C62CDCCF7B008B839C /* SearchBar.swift */,
 				982602432B884C5290157ADB /* SettingsView.swift */,
+				DDE14FB32E300FD800AB9088 /* SettingsManager.swift */,
 				DDF228BB2CC99C630014505A /* SetupLogger.swift */,
 				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
 				DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */,
@@ -737,6 +740,7 @@
 				DDE14FA72E2ACFAF00AB9088 /* template_categories.json in Sources */,
 				DDF228B22CC97E500014505A /* MultipleSelectionRow.swift in Sources */,
 				DDF228C92CCAE1300014505A /* RoutineRunnerDetailView.swift in Sources */,
+				DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */,
 				DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */,
 				DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */,
 				DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */,

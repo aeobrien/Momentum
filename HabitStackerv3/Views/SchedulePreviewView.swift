@@ -9,6 +9,7 @@ struct SchedulePreviewView: View {
     @Environment(\.dismiss) private var dismiss // To close the modal sheet
     // Access Core Data context directly. Ensure this is the correct context.
     @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject private var settingsManager = SettingsManager.shared
 
     private let logger = AppLogger.create(subsystem: "com.app.SchedulePreviewView", category: "UI")
 
@@ -183,7 +184,15 @@ struct SchedulePreviewView: View {
     private var formattedTotalDuration: String {
         // Using ScheduledTask property 'allocatedDuration' (TimeInterval)
         let totalSeconds = currentSchedule.reduce(0) { $0 + $1.allocatedDuration }
-        return formatDuration(Int(totalSeconds / 60)) // Convert total seconds to minutes for formatting
+        let totalMinutes = Int(totalSeconds / 60)
+        let bufferMinutes = SettingsManager.shared.scheduleBufferMinutes
+        
+        // Show duration with buffer
+        if bufferMinutes > 0 {
+            return "\(formatDuration(totalMinutes)) + \(bufferMinutes)m buffer = \(formatDuration(totalMinutes + bufferMinutes))"
+        } else {
+            return formatDuration(totalMinutes)
+        }
     }
 
     // MARK: - Actions

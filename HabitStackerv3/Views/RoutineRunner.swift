@@ -200,8 +200,10 @@ class RoutineRunner: ObservableObject {
         self.totalRoutineDuration = schedule.reduce(0) { $0 + $1.allocatedDuration }
         logger.info("Total calculated routine duration: \(self.totalRoutineDuration / 60, format: .fixed(precision: 1)) minutes.")
         
-        // Set originalFinishingTime to be the start time plus the total duration
-        self.originalFinishingTime = originalFinishingTime.addingTimeInterval(self.totalRoutineDuration)
+        // Add buffer to the finishing time (the passed-in originalFinishingTime already includes the tasks duration)
+        let bufferSeconds = TimeInterval(SettingsManager.shared.scheduleBufferMinutes * 60)
+        self.originalFinishingTime = originalFinishingTime.addingTimeInterval(bufferSeconds)
+        logger.info("Added buffer of \(SettingsManager.shared.scheduleBufferMinutes) minutes to finishing time.")
 
         logger.info("RoutineRunner initialized for routine: \(routine.name ?? "Unnamed Routine") with \(schedule.count) scheduled tasks.")
         

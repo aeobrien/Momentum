@@ -376,19 +376,27 @@ struct RoutineRunnerView: View {
                             HStack(spacing: 40) {
                                 // Delay (hourglass) - left
                                 Button(action: {
-                                    logger.info("Delay button tapped in minimal mode.")
-                                    runner.delayCurrentTask()
+                                    if infoMode {
+                                        highlightedElement = "delay"
+                                    } else {
+                                        logger.info("Delay button tapped in minimal mode.")
+                                        runner.delayCurrentTask()
+                                    }
                                 }) {
                                     Image(systemName: "hourglass")
                                         .foregroundColor(.purple)
                                         .font(.title2)
                                 }
-                                .disabled(runner.isRoutineComplete || !runner.canDelayCurrentTask)
+                                .disabled(!infoMode && (runner.isRoutineComplete || !runner.canDelayCurrentTask))
                                 
                                 // Expand to full view (plus) - center
                                 Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        minimalMode = false
+                                    if infoMode {
+                                        highlightedElement = "minimal"
+                                    } else {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            minimalMode = false
+                                        }
                                     }
                                 }) {
                                     Image(systemName: "plus")
@@ -398,14 +406,18 @@ struct RoutineRunnerView: View {
                                 
                                 // Skip - right
                                 Button(action: {
-                                    logger.info("Skip button tapped in minimal mode.")
-                                    runner.skipCurrentTask()
+                                    if infoMode {
+                                        highlightedElement = "skip"
+                                    } else {
+                                        logger.info("Skip button tapped in minimal mode.")
+                                        runner.skipCurrentTask()
+                                    }
                                 }) {
                                     Image(systemName: "forward.fill")
                                         .foregroundColor(.yellow)
                                         .font(.title2)
                                 }
-                                .disabled(runner.isRoutineComplete)
+                                .disabled(!infoMode && runner.isRoutineComplete)
                             }
                             .padding(.vertical, 20)
                         }
@@ -451,10 +463,13 @@ struct RoutineRunnerView: View {
                         VStack {
                             Spacer()
                             Text("Tap anywhere for more information")
+                                .font(.footnote)
+                                .fontWeight(.medium)
                                 .foregroundColor(.white)
-                                .padding()
-                                .background(Color.black.opacity(0.7))
-                                .cornerRadius(12)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(Color.blue)
+                                .cornerRadius(8)
                                 .padding(.bottom, 80)
                         }
                     }
@@ -470,14 +485,24 @@ struct RoutineRunnerView: View {
                                     Spacer()
                                 }
                                 
-                                Text(infoText(for: element))
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                                    .multilineTextAlignment(.center)
-                                    .padding(12)
-                                    .background(Color.black.opacity(0.85))
-                                    .cornerRadius(12)
-                                    .frame(maxWidth: min(geometry.size.width * 0.85, 300))
+                                VStack(spacing: 12) {
+                                    Text(infoTitle(for: element))
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text(infoText(for: element))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color(.systemBackground))
+                                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                                )
+                                .frame(maxWidth: min(geometry.size.width * 0.85, 320))
                                     .padding(.horizontal)
                                     .padding(.vertical, getVerticalPadding(for: element, in: geometry.size))
                                 
@@ -579,6 +604,24 @@ struct RoutineRunnerView: View {
     }
     
     // Info mode helper functions
+    func infoTitle(for element: String) -> String {
+        switch element {
+        case "routine": return "Routine Info"
+        case "title": return "Current Task"
+        case "comingUp": return "Next Task"
+        case "timer": return "Task Timer"
+        case "progress": return "Progress Rings"
+        case "schedule": return "Schedule Status"
+        case "skip": return "Skip Task"
+        case "delay": return "Delay Task"
+        case "minimal": return "Minimal View"
+        case "interrupt": return "Interruption"
+        case "background": return "Background Task"
+        case "complete": return "Complete Task"
+        default: return ""
+        }
+    }
+    
     func infoText(for element: String) -> String {
         switch element {
         case "routine": return "Shows the routine name and current task number."

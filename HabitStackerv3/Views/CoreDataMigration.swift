@@ -36,8 +36,11 @@ class CoreDataMigration {
             return
         }
         
-        // Create old container using the same model as the new container
-        let oldContainer = NSPersistentContainer(name: "Momentum 3")
+        // Use the existing Core Data model from the shared stack
+        let model = CoreDataStack.shared.persistentContainer.managedObjectModel
+        
+        // Create old container using the existing model
+        let oldContainer = NSPersistentContainer(name: "Momentum 3", managedObjectModel: model)
         
         // Configure old container to use the old store URL
         let oldStoreDescription = NSPersistentStoreDescription(url: oldStoreURL)

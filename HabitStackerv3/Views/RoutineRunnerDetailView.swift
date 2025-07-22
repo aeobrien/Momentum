@@ -67,30 +67,39 @@ struct RoutineRunnerDetailView: View {
             }
             .padding(.bottom, 5)
 
-            List {
-                ForEach(Array(runner.scheduledTasks.enumerated()), id: \.element.task.objectID) { index, scheduledTask in
-                    HStack {
-                        Image(systemName: taskStatusIcon(index: index))
-                            .foregroundColor(taskStatusColor(index: index))
-                            .frame(width: 25, alignment: .center) // Align icons
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(Array(runner.scheduledTasks.enumerated()), id: \.element.task.objectID) { index, scheduledTask in
+                        HStack {
+                            Image(systemName: taskStatusIcon(index: index))
+                                .foregroundColor(taskStatusColor(index: index))
+                                .frame(width: 25, alignment: .center) // Align icons
 
-                        Text(scheduledTask.task.taskName ?? "Unnamed Task")
-                            .foregroundColor(index <= runner.currentTaskIndex ? .secondary : .primary) // Dim completed/current tasks
+                            Text(scheduledTask.task.taskName ?? "Unnamed Task")
+                                .foregroundColor(index <= runner.currentTaskIndex ? .secondary : .primary) // Dim completed/current tasks
 
-                        Spacer()
+                            Spacer()
 
-                        // Display the ACTUAL allocated duration for this run
-                        Text("\(Int(scheduledTask.allocatedDuration / 60)) min")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            // Display the ACTUAL allocated duration for this run
+                            Text("\(Int(scheduledTask.allocatedDuration / 60)) min")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .id(index) // Add ID for ScrollViewReader
+                        .deleteDisabled(index <= runner.currentTaskIndex) // Disable delete for completed/current tasks
+                        .moveDisabled(index <= runner.currentTaskIndex) // Disable move for completed/current tasks
                     }
-                    .deleteDisabled(index <= runner.currentTaskIndex) // Disable delete for completed/current tasks
-                    .moveDisabled(index <= runner.currentTaskIndex) // Disable move for completed/current tasks
+                    .onMove(perform: moveTask)
                 }
-                .onMove(perform: moveTask)
+                .listStyle(PlainListStyle())
+                .environment(\.editMode, $editMode) // Apply edit mode
+                .onAppear {
+                    // Scroll to current task when view appears
+                    withAnimation {
+                        proxy.scrollTo(runner.currentTaskIndex, anchor: .center)
+                    }
+                }
             }
-            .listStyle(PlainListStyle())
-            .environment(\.editMode, $editMode) // Apply edit mode
 
             Spacer()
         }

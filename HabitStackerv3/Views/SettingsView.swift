@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var showRoutineExportSuccess = false
     @State private var showRoutineImportAlert = false
     @State private var importedRoutinesCount = 0
+    @State private var showRestartAlert = false
     
     private let logger = AppLogger.create(subsystem: "com.app.SettingsView", category: "UI")
     
@@ -199,7 +200,10 @@ struct SettingsView: View {
                 Section(header: Text("Developer Options")) {
                     Toggle(isOn: Binding(
                         get: { dataStoreManager.isTestingModeEnabled },
-                        set: { _ in dataStoreManager.toggleTestingMode() }
+                        set: { _ in 
+                            dataStoreManager.toggleTestingMode()
+                            showRestartAlert = true
+                        }
                     )) {
                         HStack {
                             Image(systemName: "testtube.2")
@@ -261,6 +265,11 @@ struct SettingsView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("\(importedRoutinesCount) new routine(s) have been imported successfully")
+        }
+        .alert("Restart Required", isPresented: $showRestartAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Please restart the app for the testing mode change to take effect. This ensures your data is properly separated.")
         }
     }
     

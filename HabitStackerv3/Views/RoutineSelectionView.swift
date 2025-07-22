@@ -5,6 +5,7 @@ import OSLog
 struct RoutineSelectionView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var viewModel: RoutineViewModel
+    @ObservedObject private var settingsManager = SettingsManager.shared
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \CDRoutine.name, ascending: true)],
@@ -97,7 +98,7 @@ struct RoutineSelectionView: View {
     }
     
     private func updateTimeForDuration(_ minutes: Int) {
-        let bufferMinutes = 2
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
         let totalMinutesToAdd = minutes + bufferMinutes
         let newTime = Calendar.current.date(byAdding: .minute, value: totalMinutesToAdd, to: Date()) ?? Date()
         selectedTime = newTime
@@ -106,19 +107,21 @@ struct RoutineSelectionView: View {
     
     private func getAvailableTimeInMinutes() -> Int {
         let interval = selectedTime.timeIntervalSince(Date())
-        let minutes = Int(interval / 60)
+        let minutes = Int(round(interval / 60)) // Round to nearest minute to avoid edge cases
         logger.debug("Calculated available time: \(minutes) minutes until \(selectedTime)")
-        return minutes
+        return max(0, minutes) // Ensure non-negative
     }
     
     private func determineSelectedDurationLevel(durations: DurationInfo) -> Int {
         let availableMinutes = getAvailableTimeInMinutes()
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
+        let availableWithBuffer = availableMinutes - bufferMinutes
         
-        if availableMinutes > durations.all {
+        if availableWithBuffer >= durations.all {
             return 3 // All tasks
-        } else if availableMinutes > durations.coreAndEssential {
+        } else if availableWithBuffer >= durations.coreAndEssential {
             return 2 // Core + Essential
-        } else if availableMinutes > durations.essential {
+        } else if availableWithBuffer >= durations.essential {
             return 1 // Essential only
         }
         return 0 // Not enough time for any
@@ -251,14 +254,10 @@ struct RoutineSelectionView: View {
                 logger.info("Selected default routine: \(selectedRoutine?.name ?? "None")")
             }
             
-            // Set default time to essential tasks duration
-            if let routine = selectedRoutine {
-                let durations = calculateDurations(for: routine)
-                updateTimeForDuration(durations.essential)
-                logger.info("Set default time based on essential tasks duration: \(durations.essential) minutes")
-            } else if selectedTime <= Date() {
-                selectedTime = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date()
-                logger.info("No routine selected, initialized selectedTime to 5 minutes in the future.")
+            // Set default time to 1 hour from now if not already set
+            if selectedTime <= Date() {
+                selectedTime = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+                logger.info("Set default time to 1 hour from now")
             }
         }
         .onReceive(timer) { _ in
@@ -292,13 +291,6 @@ struct RoutineSelectionView: View {
             .cornerRadius(8)
             .onChange(of: selectedRoutine) { newRoutine in
                 logger.info("Routine selection changed to: \(newRoutine?.name ?? "None")")
-                
-                // Update time to essential tasks duration for the new routine
-                if let routine = newRoutine {
-                    let durations = calculateDurations(for: routine)
-                    updateTimeForDuration(durations.essential)
-                    logger.info("Updated time based on essential tasks duration: \(durations.essential) minutes")
-                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -331,22 +323,31 @@ struct RoutineSelectionView: View {
     private func durationOptionsSection(routine: CDRoutine) -> some View {
         let durations = calculateDurations(for: routine)
         let selectedLevel = determineSelectedDurationLevel(durations: durations)
+        let bufferMinutes = settingsManager.scheduleBufferMinutes
         
         return VStack(spacing: 12) {
-            Text("Quick Duration")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack {
+                Text("Quick Duration")
+                    .font(.headline)
+                Spacer()
+                if bufferMinutes > 0 {
+                    Text("(+\(bufferMinutes)m buffer)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 8) {
-                DurationButton(title: "Essential", duration: durations.essential, color: .red, isSelected: selectedLevel == 1) {
+                DurationButton(title: "Essential", duration: durations.essential + bufferMinutes, color: .red, isSelected: selectedLevel == 1) {
                     updateTimeForDuration(durations.essential)
                     logger.info("Duration button tapped: Essential")
                 }
-                DurationButton(title: "Core", duration: durations.coreAndEssential, color: .orange, isSelected: selectedLevel == 2) {
+                DurationButton(title: "Core", duration: durations.coreAndEssential + bufferMinutes, color: .orange, isSelected: selectedLevel == 2) {
                     updateTimeForDuration(durations.coreAndEssential)
                     logger.info("Duration button tapped: Core + Essential")
                 }
-                DurationButton(title: "All", duration: durations.all, color: .green, isSelected: selectedLevel >= 3) {
+                DurationButton(title: "All", duration: durations.all + bufferMinutes, color: .green, isSelected: selectedLevel >= 3) {
                     updateTimeForDuration(durations.all)
                     logger.info("Duration button tapped: All Tasks")
                 }
