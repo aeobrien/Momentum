@@ -124,6 +124,8 @@ struct RoutineRunnerView: View {
                                 if runner.backgroundTasks.isEmpty {
                                     Text("\(runner.routine.name ?? "Routine") \(runner.currentTaskIndex + 1)/\(runner.scheduledTasks.count)")
                                         .font(.headline)
+                                        .foregroundColor(infoMode && highlightedElement == "routine" ? .blue : .primary)
+                                        .saturation(elementSaturation(for: "routine"))
                                         .onTapGesture { 
                                             if infoMode { 
                                                 highlightedElement = "routine" 
@@ -156,13 +158,14 @@ struct RoutineRunnerView: View {
                         // Current task name
                         Text(runner.currentTaskName)
                             .font(.system(size: minimalMode ? 42 : 34, weight: .bold))
-                            .foregroundColor(runner.isOverrun ? .red : .primary)
+                            .foregroundColor(infoMode && highlightedElement == "title" ? .blue : (runner.isOverrun ? .red : .primary))
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
                             .minimumScaleFactor(0.8)
                             .padding(.horizontal)
                             .frame(minHeight: 40, maxHeight: minimalMode ? 120 : 100)
                             .padding(.top, minimalMode ? 20 : 0)
+                            .saturation(infoMode && highlightedElement != "title" ? 0 : 1)
                             .onTapGesture { 
                                 if infoMode { 
                                     highlightedElement = "title" 
@@ -177,15 +180,16 @@ struct RoutineRunnerView: View {
                                 if let nextTaskName = runner.nextTaskName {
                                     Text("Coming Up: \(nextTaskName)")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(infoMode && highlightedElement == "comingUp" ? .blue : .secondary)
                                         .lineLimit(1)
                                         .padding(.horizontal)
                                 } else {
                                     Text("Coming Up: Last task")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(infoMode && highlightedElement == "comingUp" ? .blue : .secondary)
                                 }
                             }
+                            .saturation(elementSaturation(for: "comingUp"))
                             .onTapGesture { 
                                 if infoMode { 
                                     highlightedElement = "comingUp" 
@@ -203,6 +207,7 @@ struct RoutineRunnerView: View {
                                 size: 280,
                                 innerProgressColor: runner.isOverrun ? .red : .blue
                             )
+                            .saturation(elementSaturation(for: "progress"))
                             .onTapGesture { 
                                 if infoMode { 
                                     highlightedElement = "progress" 
@@ -214,6 +219,7 @@ struct RoutineRunnerView: View {
                                 Text(runner.remainingTimeString)
                                     .font(.system(size: 64, weight: .light).monospacedDigit())
                                     .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
+                                    .saturation(elementSaturation(for: "timer"))
                                 
                                 // Pause icon overlay when paused
                                 if !runner.isRunning && !runner.isRoutineComplete {
@@ -279,6 +285,7 @@ struct RoutineRunnerView: View {
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .saturation(elementSaturation(for: "schedule"))
                             .disabled(!runner.canSpendTime && !infoMode)
                             .padding(.top, 10)
                         }
@@ -306,6 +313,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.red)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "interrupt"))
                                 .disabled((runner.isRoutineComplete || runner.isHandlingInterruption) && !infoMode)
                                 
                                 // Delay (hourglass) - second from left
@@ -321,6 +329,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.purple)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "delay"))
                                 .disabled((runner.isRoutineComplete || !runner.canDelayCurrentTask) && !infoMode)
                                 
                                 // Toggle minimal mode (minus) - center
@@ -334,9 +343,10 @@ struct RoutineRunnerView: View {
                                     }
                                 }) {
                                     Image(systemName: "minus")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(infoMode && highlightedElement == "minimal" ? .blue : .gray)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "minimal"))
                                 
                                 // Skip - second from right
                                 Button(action: {
@@ -351,6 +361,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.yellow)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "skip"))
                                 .disabled(runner.isRoutineComplete && !infoMode)
                                 
                                 // Continue in Background - far right
@@ -368,6 +379,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.blue)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "background"))
                                 .disabled(!runner.canMoveToBackground && !infoMode)
                             }
                             .padding(.vertical, 20)
@@ -387,6 +399,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.purple)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "delay"))
                                 .disabled(!infoMode && (runner.isRoutineComplete || !runner.canDelayCurrentTask))
                                 
                                 // Expand to full view (plus) - center
@@ -400,9 +413,10 @@ struct RoutineRunnerView: View {
                                     }
                                 }) {
                                     Image(systemName: "plus")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(infoMode && highlightedElement == "minimal" ? .blue : .gray)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "minimal"))
                                 
                                 // Skip - right
                                 Button(action: {
@@ -417,6 +431,7 @@ struct RoutineRunnerView: View {
                                         .foregroundColor(.yellow)
                                         .font(.title2)
                                 }
+                                .saturation(elementSaturation(for: "skip"))
                                 .disabled(!infoMode && runner.isRoutineComplete)
                             }
                             .padding(.vertical, 20)
@@ -429,6 +444,7 @@ struct RoutineRunnerView: View {
                                 runner.markTaskComplete()
                             }
                             .disabled(runner.isRoutineComplete)
+                            .saturation(elementSaturation(for: "complete"))
                             .padding(.horizontal)
                             .onTapGesture {
                                 if infoMode {
@@ -440,7 +456,6 @@ struct RoutineRunnerView: View {
                         // Bottom spacing
                         Spacer().frame(height: 20)
                     }
-                    .saturation(infoMode ? 0 : 1)
                     .background(Color(.systemGray6))
                     .onAppear {
                         // Start the timer automatically when view appears
@@ -503,6 +518,9 @@ struct RoutineRunnerView: View {
                                         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                                 )
                                 .frame(maxWidth: min(geometry.size.width * 0.85, 320))
+                                .onTapGesture {
+                                    highlightedElement = nil
+                                }
                                     .padding(.horizontal)
                                     .padding(.vertical, getVerticalPadding(for: element, in: geometry.size))
                                 
@@ -604,6 +622,11 @@ struct RoutineRunnerView: View {
     }
     
     // Info mode helper functions
+    private func elementSaturation(for element: String) -> Double {
+        if !infoMode { return 1.0 }
+        return highlightedElement == element ? 1.0 : 0.0
+    }
+    
     func infoTitle(for element: String) -> String {
         switch element {
         case "routine": return "Routine Info"
@@ -656,14 +679,21 @@ struct RoutineRunnerView: View {
     }
     
     func getVerticalPadding(for element: String, in size: CGSize) -> CGFloat {
+        let position = infoPosition(for: element, in: size)
+        let isBottomElement = position.y > size.height * 0.7
+        
         switch element {
         case "routine": return 120
         case "title": return 180
         case "comingUp": return 240
         case "progress", "timer": return 60
         case "schedule": return 100
-        case "interrupt", "delay", "minimal", "skip", "background": return 60
-        case "complete": return 40
+        case "interrupt", "delay", "minimal", "skip", "background": 
+            // For bottom buttons, show info above them
+            return isBottomElement ? 180 : 60
+        case "complete": 
+            // Show above the slide to complete
+            return 120
         default: return 60
         }
     }

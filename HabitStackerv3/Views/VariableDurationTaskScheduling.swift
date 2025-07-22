@@ -92,17 +92,16 @@ class VariableDurationScheduler {
     
     func schedule(tasks: [CDTask], availableTime: Int) -> (scheduled: [CDTask], durations: [String: Int]) {
         let requirements = calculateTimeRequirements(tasks: tasks, availableTime: availableTime)
-        let bufferMinutes = settingsManager.scheduleBufferMinutes
-        if Int(requirements.essentialTime/60) > availableTime - bufferMinutes {
+        if Int(requirements.essentialTime/60) > availableTime {
             logger.error("""
                 Cannot schedule essential tasks:
                 Required: \(Int(requirements.essentialTime/60))m
-                Available after buffer: \(availableTime - bufferMinutes)m
+                Available: \(availableTime)m
                 """)
             return ([], [:])
         }
 
-        var remainingTime = availableTime - bufferMinutes  // Buffer
+        var remainingTime = availableTime  // Don't subtract buffer here
         var scheduledTasks: [PrioritizedTask] = []
         var durationMap: [String: Int] = [:]
         
@@ -110,7 +109,7 @@ class VariableDurationScheduler {
             Starting schedule:
             Essential: \(Int(requirements.essentialTime/60))m
             Core: \(Int(requirements.coreTime/60))m
-            Available: \(availableTime)m (\(remainingTime)m after buffer)
+            Available: \(availableTime)m
             """)
         
         let prioritizedTasks = createPrioritizedTasks(from: tasks)
@@ -189,9 +188,8 @@ class VariableDurationScheduler {
         
         // Just need to verify total essential task time fits within available time
         let totalEssentialTime = essentialTasks.reduce(0) { $0 + Int($1.minDuration) }
-        let bufferMinutes = settingsManager.scheduleBufferMinutes
-        if totalEssentialTime > (availableTime - bufferMinutes) {
-            return .essentialTasksWontFit(shortfall: totalEssentialTime - (availableTime - bufferMinutes))
+        if totalEssentialTime > availableTime {
+            return .essentialTasksWontFit(shortfall: totalEssentialTime - availableTime)
         }
         
         return .success(requirements)

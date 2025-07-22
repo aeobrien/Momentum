@@ -20,6 +20,7 @@ struct RoutineSelectionView: View {
     @State private var navigateToRunner: Bool = false
     @State private var showSchedulePreviewModal: Bool = false
     @State private var scheduleForPreview: [ScheduledTask]? = nil
+    @State private var expectedPreviewDuration: Int? = nil
     @State private var showRunFromSheet: Bool = false
     @State private var runFromStartIndex: Int = 0
     @State private var showTempRoutineEntry = false
@@ -55,9 +56,10 @@ struct RoutineSelectionView: View {
         let coreEssentialTimeSeconds = scheduler.estimateScheduleDuration(for: routine, includingLevel: 2)
         let allTimeSeconds = scheduler.estimateScheduleDuration(for: routine, includingLevel: 1)
 
-        let essentialMinutes = Int(round(essentialTimeSeconds / 60))
-        let coreEssentialMinutes = Int(round(coreEssentialTimeSeconds / 60))
-        let allMinutes = Int(round(allTimeSeconds / 60))
+        // Use floor instead of round to avoid showing durations that might not fit
+        let essentialMinutes = Int(essentialTimeSeconds / 60)
+        let coreEssentialMinutes = Int(coreEssentialTimeSeconds / 60)
+        let allMinutes = Int(allTimeSeconds / 60)
 
         logger.debug("Scheduler Estimated Durations for '\(routine.name ?? "")': E=\(essentialMinutes)m, C+E=\(coreEssentialMinutes)m, All=\(allMinutes)m")
 
@@ -114,14 +116,13 @@ struct RoutineSelectionView: View {
     
     private func determineSelectedDurationLevel(durations: DurationInfo) -> Int {
         let availableMinutes = getAvailableTimeInMinutes()
-        let bufferMinutes = settingsManager.scheduleBufferMinutes
-        let availableWithBuffer = availableMinutes - bufferMinutes
         
-        if availableWithBuffer >= durations.all {
+        // Check against durations that already include buffer
+        if availableMinutes >= durations.all + settingsManager.scheduleBufferMinutes {
             return 3 // All tasks
-        } else if availableWithBuffer >= durations.coreAndEssential {
+        } else if availableMinutes >= durations.coreAndEssential + settingsManager.scheduleBufferMinutes {
             return 2 // Core + Essential
-        } else if availableWithBuffer >= durations.essential {
+        } else if availableMinutes >= durations.essential + settingsManager.scheduleBufferMinutes {
             return 1 // Essential only
         }
         return 0 // Not enough time for any
@@ -217,6 +218,7 @@ struct RoutineSelectionView: View {
                     initialSchedule: schedule,
                     routine: routine,
                     originalFinishingTime: selectedTime,
+                    expectedDurationMinutes: expectedPreviewDuration,
                     runnerInstance: $runnerInstance,
                     navigateToRunner: $navigateToRunner
                 )
@@ -331,7 +333,7 @@ struct RoutineSelectionView: View {
                     .font(.headline)
                 Spacer()
                 if bufferMinutes > 0 {
-                    Text("(+\(bufferMinutes)m buffer)")
+                    Text("(includes \(bufferMinutes)m buffer)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -482,11 +484,15 @@ struct RoutineSelectionView: View {
             logger.warning("Schedule generation attempted with insufficient time (\(availableTime)s). End time: \(selectedTime)")
             throw SchedulingError.insufficientTime
         }
+        
+        // Don't subtract buffer here - the scheduler should work with the full available time
+        // The buffer is already accounted for in how we calculate and display durations
+        let schedulingTime = availableTime
 
-        logger.info("Starting schedule generation for '\(routine.name ?? "Unnamed")' with \(Int(availableTime / 60)) mins available.")
+        logger.info("Starting schedule generation for '\(routine.name ?? "Unnamed")' with \(Int(schedulingTime / 60)) mins available.")
         let scheduler = CoreDataTaskScheduler(context: viewContext)
 
-        let schedule = try scheduler.generateSchedule(for: routine, availableTime: availableTime)
+        let schedule = try scheduler.generateSchedule(for: routine, availableTime: schedulingTime)
 
         guard !schedule.isEmpty else {
             logger.warning("Schedule generation for '\(routine.name ?? "Unnamed")' resulted in 0 tasks. Throwing schedulingFailure.")
@@ -587,6 +593,29 @@ struct RoutineSelectionView: View {
         errorMessage = ""
         showError = false
         scheduleForPreview = nil
+        
+        // Calculate expected duration based on what was selected (not current time)
+        // This matches exactly what the duration buttons show
+        if let routine = selectedRoutine {
+            let durations = calculateDurations(for: routine)
+            let bufferMinutes = settingsManager.scheduleBufferMinutes
+            
+            // Determine which tier was selected based on available time
+            let availableMinutes = getAvailableTimeInMinutes()
+            
+            // Match the logic from determineSelectedDurationLevel
+            if availableMinutes >= durations.all + bufferMinutes {
+                expectedPreviewDuration = durations.all + bufferMinutes
+            } else if availableMinutes >= durations.coreAndEssential + bufferMinutes {
+                expectedPreviewDuration = durations.coreAndEssential + bufferMinutes
+            } else if availableMinutes >= durations.essential + bufferMinutes {
+                expectedPreviewDuration = durations.essential + bufferMinutes
+            } else {
+                expectedPreviewDuration = availableMinutes // fallback
+            }
+        } else {
+            expectedPreviewDuration = Int(selectedTime.timeIntervalSince(Date()) / 60)
+        }
 
         Task {
             do {
