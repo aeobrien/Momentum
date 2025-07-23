@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import Combine
+import OSLog
 
 // Temporary task model that doesn't rely on Core Data
 struct TempTask {
@@ -37,13 +39,18 @@ class TempRoutineRunner: ObservableObject {
     
     private(set) var tasks: [TempTask]
     private(set) var currentTaskIndex: Int = -1
-    private var timer: Timer?
+    private var timer: AnyCancellable?
     private var remainingTime: TimeInterval = 0
     private var currentTaskDuration: TimeInterval = 0
     private var scheduleOffset: TimeInterval = 0
     private var startTime: Date? = nil
     private var lastOffsetUpdateTime: Date? = nil
     private var interruptedTaskState: (taskIndex: Int, remainingTime: TimeInterval)?
+    private var backgroundEnterTime: Date? = nil
+    private var remainingTimeOnPause: TimeInterval? = nil
+    private var timeToCountDownAtStart: TimeInterval = 0
+    
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "TempRoutineRunner")
     
     var progressFraction: Double {
         guard totalRoutineDuration > 0 else { return 0.0 }
@@ -93,6 +100,7 @@ class TempRoutineRunner: ObservableObject {
         remainingTime = currentTaskDuration
         isOverrun = false
         taskProgressFraction = 0.0 // Reset task progress
+        remainingTimeOnPause = nil // Clear any stored pause time from previous task
         
         updateRemainingTimeDisplay()
         updateCanMoveToBackground()
@@ -129,22 +137,54 @@ class TempRoutineRunner: ObservableObject {
     
     private func startTimer() {
         isRunning = true
+        
+        // Check if we're resuming from a pause (including background)
+        if let pausedTime = remainingTimeOnPause {
+            // Resuming from pause
+            timeToCountDownAtStart = pausedTime
+            remainingTimeOnPause = nil
+            logger.debug("Starting timer from paused time: \(pausedTime)s")
+        } else {
+            // Starting fresh (use full duration or current remaining time)
+            timeToCountDownAtStart = isOverrun ? 0 : remainingTime
+            logger.debug("Starting timer fresh: \(self.timeToCountDownAtStart)s")
+        }
+        
         startTime = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        
+        // Setup the Combine timer to fire every second
+        timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+            guard let self = self, self.isRunning else { return }
+            
+            let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
+            let timeRemaining = self.timeToCountDownAtStart - elapsedTime
+            
+            self.remainingTime = timeRemaining
             self.timerTick()
         }
     }
     
-    private func pauseTimer() {
+    private func pauseTimer(isBackgrounding: Bool = false) {
         isRunning = false
-        timer?.invalidate()
+        timer?.cancel()
         timer = nil
+        
+        // Store the remaining time when pausing
+        if !isOverrun {
+            remainingTimeOnPause = remainingTime
+            logger.debug("Paused with remaining time: \(self.remainingTime)s")
+        } else if isBackgrounding {
+            // Even when overrun, store the negative remaining time for background
+            remainingTimeOnPause = remainingTime
+            logger.debug("Paused during overrun with time: \(self.remainingTime)s")
+        }
+        
         startTime = nil
         lastOffsetUpdateTime = nil
     }
     
     private func timerTick() {
-        remainingTime -= 1
+        // remainingTime is already updated by the timer closure
         
         if remainingTime <= 0 && !isOverrun {
             isOverrun = true
@@ -411,9 +451,95 @@ class TempRoutineRunner: ObservableObject {
     }
     
     deinit {
-        timer?.invalidate()
+        timer?.cancel()
         for i in backgroundTasks.indices {
             backgroundTasks[i].timer?.invalidate()
+        }
+    }
+    
+    // MARK: - Background Handling
+    
+    func observeScenePhase(_ newPhase: ScenePhase) {
+        logger.debug("Observing scene phase change to: \(String(describing: newPhase))")
+        if isRoutineComplete {
+            logger.debug("Scene phase changed, but routine is complete. No action needed.")
+            return
+        }
+        
+        switch newPhase {
+        case .active:
+            // App came to foreground
+            logger.info("App became active.")
+            // Check if we have a background entry time recorded
+            if let backgroundEnterTime = backgroundEnterTime {
+                // Calculate time spent in background
+                let timeInBackground = Date().timeIntervalSince(backgroundEnterTime)
+                logger.info("App was in background for \(timeInBackground) seconds.")
+                self.backgroundEnterTime = nil // Clear the background entry time
+                
+                // If the timer was running when backgrounded
+                if remainingTimeOnPause != nil {
+                    // Adjust remaining time based on time spent in background
+                    let newRemainingTime = (remainingTimeOnPause ?? currentTaskDuration) - timeInBackground
+                    logger.debug("Adjusted remaining time from \(self.remainingTimeOnPause ?? -1)s to \(newRemainingTime)s")
+                    
+                    if newRemainingTime > 0 {
+                        // Time remaining, resume timer from adjusted time
+                        remainingTimeOnPause = newRemainingTime
+                        startTimer() // Will use remainingTimeOnPause
+                        logger.info("Resuming timer after background.")
+                    } else {
+                        // Time ran out while in background
+                        logger.info("Time expired while in background.")
+                        // Mark overrun
+                        isOverrun = true
+                        
+                        let overrunDuration = abs(newRemainingTime)
+                        logger.info("Overrun by \(overrunDuration) seconds.")
+                        
+                        // Adjust schedule offset for the overrun
+                        scheduleOffset += overrunDuration
+                        updateScheduleOffsetString()
+                        updateEstimatedFinishingTimeString()
+                        
+                        // Update display to show current overrun time
+                        remainingTime = -overrunDuration
+                        updateRemainingTimeDisplay()
+                        
+                        // Update task progress fraction
+                        if currentTaskDuration > 0 {
+                            let totalElapsed = currentTaskDuration + overrunDuration
+                            taskProgressFraction = min(max(totalElapsed / currentTaskDuration, 0.0), 1.0)
+                        }
+                        
+                        // Start timer in overrun mode
+                        remainingTimeOnPause = -overrunDuration
+                        startTimer()
+                    }
+                }
+            }
+            
+        case .inactive:
+            logger.info("App became inactive.")
+            // Usually happens briefly during app switching
+            
+        case .background:
+            logger.info("App entered background.")
+            if isRunning {
+                // Record the time we entered the background
+                backgroundEnterTime = Date()
+                logger.debug("Recorded background enter time")
+                // Pause the timer, indicating it's due to backgrounding
+                pauseTimer(isBackgrounding: true)
+            } else {
+                // If timer wasn't running, still record background time
+                backgroundEnterTime = Date()
+                logger.debug("App entered background while timer was paused")
+            }
+            
+        @unknown default:
+            logger.warning("Unknown scene phase encountered")
+            break
         }
     }
 }

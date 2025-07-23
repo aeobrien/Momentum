@@ -22,7 +22,9 @@ struct RoutineSelectionView: View {
     @State private var scheduleForPreview: [ScheduledTask]? = nil
     @State private var expectedPreviewDuration: Int? = nil
     @State private var showRunFromSheet: Bool = false
-    @State private var runFromStartIndex: Int = 0
+    @State private var runFromStartIndex: Int = -1
+    @State private var runFromTask: CDTask? = nil
+    @State private var scheduleForRunFrom: [ScheduledTask]? = nil
     @State private var showTempRoutineEntry = false
     @State private var infoMode = false
     
@@ -235,18 +237,25 @@ struct RoutineSelectionView: View {
             )
         }
         .sheet(isPresented: $showRunFromSheet) {
-            if let routine = selectedRoutine {
-                RunFromSelectionView(routine: routine, selectedStartIndex: $runFromStartIndex)
+            if let routine = selectedRoutine, let schedule = scheduleForRunFrom {
+                RunFromSelectionView(routine: routine, scheduledTasks: schedule, selectedStartIndex: $runFromStartIndex)
+                    .onDisappear {
+                        // When sheet dismisses, check if a task was selected
+                        if runFromStartIndex >= 0 {
+                            // Run from the selected index in the scheduled tasks
+                            runRoutineFromScheduledIndex(runFromStartIndex)
+                            runFromStartIndex = -1 // Reset for next use
+                        }
+                    }
             }
         }
         .sheet(isPresented: $showTempRoutineEntry) {
             TempRoutineEntryView()
         }
-        .onChange(of: runFromStartIndex) { newIndex in
-            if newIndex > 0 {
-                // User selected a start point, run from that index
-                runRoutineFromIndex(newIndex)
-                runFromStartIndex = 0 // Reset for next use
+        .onChange(of: scheduleForRunFrom) { schedule in
+            if schedule != nil {
+                // Schedule is ready, show the sheet
+                showRunFromSheet = true
             }
         }
         .onAppear {
@@ -405,7 +414,7 @@ struct RoutineSelectionView: View {
             .disabled(isDisabled)
             .contextMenu {
                 Button(action: {
-                    showRunFromSheet = true
+                    prepareRunFromSelection()
                 }) {
                     Label("Run from...", systemImage: "play.circle")
                 }
@@ -427,51 +436,77 @@ struct RoutineSelectionView: View {
         )
     }
     
-    private func runRoutineFromIndex(_ startIndex: Int) {
-        logger.info("'Run from index \(startIndex)' selected.")
+    private func prepareRunFromSelection() {
+        logger.info("Preparing 'Run from' selection.")
         isLoading = true
         errorMessage = ""
         showError = false
-        runnerInstance = nil
-
+        scheduleForRunFrom = nil
+        
         Task {
             do {
-                var schedule = try await generateSchedule()
-                guard let routine = selectedRoutine else {
-                    logger.error("Defensive check failed: Routine became unselected after schedule generation.")
-                    throw SchedulingError.routineLoadError
-                }
-                
-                // Remove tasks before the start index
-                if startIndex > 0 && startIndex < schedule.count {
-                    schedule = Array(schedule.dropFirst(startIndex))
-                    logger.info("Starting routine from task \(startIndex + 1), removed \(startIndex) previous tasks")
-                }
-
+                let schedule = try await generateSchedule()
                 DispatchQueue.main.async {
-                    let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule, originalFinishingTime: self.selectedTime)
-                    self.runnerInstance = newRunner
+                    self.scheduleForRunFrom = schedule
                     self.isLoading = false
-                    self.navigateToRunner = true
-                    logger.info("Navigating to RoutineRunner starting from task \(startIndex + 1).")
+                    logger.info("Generated schedule with \(schedule.count) tasks for 'run from' selection")
                 }
             } catch let error as SchedulingError {
                 DispatchQueue.main.async {
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                     self.isLoading = false
-                    self.logger.error("SchedulingError during run from index: \(error.localizedDescription)")
+                    self.logger.error("SchedulingError during run from preparation: \(error.localizedDescription)")
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.errorMessage = error.localizedDescription
                     self.showError = true
                     self.isLoading = false
-                    self.logger.error("Unexpected error during run from index: \(error.localizedDescription)")
+                    self.logger.error("Unexpected error during run from preparation: \(error.localizedDescription)")
                 }
             }
         }
     }
+    
+    private func runRoutineFromScheduledIndex(_ startIndex: Int) {
+        logger.info("'Run from scheduled index \(startIndex)' selected.")
+        isLoading = true
+        errorMessage = ""
+        showError = false
+        runnerInstance = nil
+        
+        guard let schedule = scheduleForRunFrom else {
+            logger.error("Missing schedule for run from index")
+            isLoading = false
+            return
+        }
+        
+        guard let routine = selectedRoutine else {
+            logger.error("Missing routine for run from index")
+            isLoading = false
+            return
+        }
+        
+        // Remove tasks before the start index
+        var adjustedSchedule = schedule
+        if startIndex > 0 && startIndex < schedule.count {
+            adjustedSchedule = Array(schedule.dropFirst(startIndex))
+            logger.info("Starting routine from scheduled task \(startIndex + 1), removed \(startIndex) previous tasks")
+        }
+        
+        // Clear the schedule after using it
+        scheduleForRunFrom = nil
+        
+        DispatchQueue.main.async {
+            let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: adjustedSchedule, originalFinishingTime: self.selectedTime)
+            self.runnerInstance = newRunner
+            self.isLoading = false
+            self.navigateToRunner = true
+            logger.info("Navigating to RoutineRunner from scheduled index \(startIndex).")
+        }
+    }
+    
     
     private func generateSchedule() async throws -> [ScheduledTask] {
         guard let routine = selectedRoutine else {

@@ -430,7 +430,7 @@ struct TempRoutineRunnerView: View {
                 }
                 .onChange(of: scenePhase) { newPhase in
                     logger.debug("Scene phase changed to: \(String(describing: newPhase))")
-                    // Scene phase handling not implemented in temp runner
+                    runner.observeScenePhase(newPhase)
                 }
             } else {
                 // Routine complete view

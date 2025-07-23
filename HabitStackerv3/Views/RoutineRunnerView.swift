@@ -614,11 +614,7 @@ struct RoutineRunnerView: View {
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
-        .onDisappear {
-            // Stop the routine and clean up all timers when view disappears
-            runner.stopRoutine()
-            logger.info("RoutineRunnerView disappeared - stopped routine and cleaned up timers")
-        }
+        // Removed onDisappear to allow routine to continue when switching views
     }
     
     // Info mode helper functions
