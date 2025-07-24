@@ -193,12 +193,7 @@ struct SchedulePreviewView: View {
 
     // MARK: - Computed Properties
     private var formattedTotalDuration: String {
-        // If expected duration is provided, use that
-        if let expectedMinutes = expectedDurationMinutes {
-            return formatDuration(expectedMinutes)
-        }
-        
-        // Otherwise calculate from scheduled tasks
+        // Always calculate from current scheduled tasks to reflect removals
         let totalSeconds = currentSchedule.reduce(0) { $0 + $1.allocatedDuration }
         let totalMinutes = Int(totalSeconds / 60)
         let bufferMinutes = SettingsManager.shared.scheduleBufferMinutes

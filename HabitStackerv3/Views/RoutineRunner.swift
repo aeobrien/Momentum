@@ -60,6 +60,8 @@ class RoutineRunner: ObservableObject {
     @Published var backgroundTasks: [BackgroundTaskState] = []
     /// Indicates if the current task can be moved to background
     @Published var canMoveToBackground: Bool = false
+    /// Tracks indices of completed or skipped tasks
+    @Published var completedTaskIndices: Set<Int> = []
 
     // MARK: - Progress Properties (Published for UI)
     /// The total allocated time for all tasks in the routine (in seconds).
@@ -541,6 +543,10 @@ class RoutineRunner: ObservableObject {
         // Add the duration of the task *just completed* to the sum
         // CAPTURE the index BEFORE the async block
         let indexForDurationCalculation = self.currentTaskIndex
+        
+        // Mark this task as completed
+        completedTaskIndices.insert(currentTaskIndex)
+        
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             // Use the captured index here
@@ -640,6 +646,10 @@ class RoutineRunner: ObservableObject {
         // Treat skipped task's duration as 'completed' for progress calculation
         // CAPTURE the index BEFORE the async block
         let indexForDurationCalculation = self.currentTaskIndex
+        
+        // Mark this task as completed/skipped
+        completedTaskIndices.insert(currentTaskIndex)
+        
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             // Use the captured index here
@@ -1232,13 +1242,33 @@ class RoutineRunner: ObservableObject {
     
     /// Updates the next task name if needed after adding tasks
     private func updateNextTaskName() {
-        let nextIndex = currentTaskIndex + 1
-        if nextIndex < scheduledTasks.count {
-            self.nextTaskName = scheduledTasks[nextIndex].task.taskName
-            logger.debug("Updated next task name: \(self.nextTaskName ?? "None")")
-        } else {
-            self.nextTaskName = nil
+        // Find the next task that is not completed/skipped and not currently in the background
+        var nextIndex = currentTaskIndex + 1
+        
+        while nextIndex < scheduledTasks.count {
+            let task = scheduledTasks[nextIndex].task
+            
+            // Check if this task has been completed or skipped in this session
+            let isCompleted = completedTaskIndices.contains(nextIndex)
+            
+            // Check if this task is currently running in the background
+            let isInBackground = backgroundTasks.contains { backgroundTask in
+                backgroundTask.taskIndex == nextIndex
+            }
+            
+            if !isCompleted && !isInBackground {
+                // Found the next task that's not completed and not in background
+                self.nextTaskName = task.taskName
+                logger.debug("Updated next task name: \(self.nextTaskName ?? "None")")
+                return
+            }
+            
+            nextIndex += 1
         }
+        
+        // No more uncompleted non-background tasks
+        self.nextTaskName = nil
+        logger.debug("No next task available (all remaining tasks are completed, in background, or none left)")
     }
 
     // MARK: - Public Control Methods
@@ -1446,12 +1476,16 @@ class RoutineRunner: ObservableObject {
             updateCompletedDuration()
         }
         
+        // Mark this task as completed
+        completedTaskIndices.insert(task.taskIndex)
+        
         // Remove from background tasks
         backgroundTasks.remove(at: index)
         
         // Update displays
         updateScheduleOffsetString()
         updateEstimatedFinishingTimeString()
+        updateNextTaskName()
         
         // Save context
         saveContext()
@@ -1514,6 +1548,9 @@ class RoutineRunner: ObservableObject {
             
             // Start the timer
             startTimer()
+            
+            // Update the next task name to reflect any completed tasks
+            updateNextTaskName()
             
             logger.info("Activated background task at its original position \(taskPosition)")
         } else {

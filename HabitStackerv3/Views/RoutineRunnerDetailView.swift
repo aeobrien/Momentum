@@ -76,7 +76,7 @@ struct RoutineRunnerDetailView: View {
                                 .frame(width: 25, alignment: .center) // Align icons
 
                             Text(scheduledTask.task.taskName ?? "Unnamed Task")
-                                .foregroundColor(index <= runner.currentTaskIndex ? .secondary : .primary) // Dim completed/current tasks
+                                .foregroundColor(runner.completedTaskIndices.contains(index) ? .secondary : .primary) // Dim completed tasks
 
                             Spacer()
 
@@ -86,8 +86,8 @@ struct RoutineRunnerDetailView: View {
                                 .foregroundColor(.secondary)
                         }
                         .id(index) // Add ID for ScrollViewReader
-                        .deleteDisabled(index <= runner.currentTaskIndex) // Disable delete for completed/current tasks
-                        .moveDisabled(index <= runner.currentTaskIndex) // Disable move for completed/current tasks
+                        .deleteDisabled(runner.completedTaskIndices.contains(index) || index == runner.currentTaskIndex) // Disable delete for completed/current tasks
+                        .moveDisabled(runner.completedTaskIndices.contains(index) || index == runner.currentTaskIndex) // Disable move for completed/current tasks
                     }
                     .onMove(perform: moveTask)
                 }
@@ -110,7 +110,7 @@ struct RoutineRunnerDetailView: View {
 
     // Helper to get task status icon
     private func taskStatusIcon(index: Int) -> String {
-        if runner.isRoutineComplete || index < runner.currentTaskIndex {
+        if runner.isRoutineComplete || runner.completedTaskIndices.contains(index) {
             return "checkmark.circle.fill"
         } else if index == runner.currentTaskIndex {
             return runner.isRunning ? "play.circle.fill" : "pause.circle.fill"
@@ -121,7 +121,7 @@ struct RoutineRunnerDetailView: View {
 
     // Helper to get task status color
     private func taskStatusColor(index: Int) -> Color {
-        if runner.isRoutineComplete || index < runner.currentTaskIndex {
+        if runner.isRoutineComplete || runner.completedTaskIndices.contains(index) {
             return .green
         } else if index == runner.currentTaskIndex {
             return runner.isRunning ? .blue : .orange
