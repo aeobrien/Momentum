@@ -1,6 +1,7 @@
 import SwiftUI
 import WidgetKit
 import ActivityKit
+import UserNotifications
 
 /// HabitStackerv3App is the main entry point for the Task Storage System application
 @main
@@ -36,24 +37,43 @@ struct MomentumApp: App {
     }
     
     private func endAllLiveActivities() {
+        // Cancel all pending notifications
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        print("🔵 END ALL ACTIVITIES: Cancelled all pending notifications")
+        
         if #available(iOS 16.1, *) {
             let activities = Activity<RoutineActivityAttributes>.activities
             print("🔵 END ALL ACTIVITIES: Found \(activities.count) active activities")
             
-            // Use a semaphore to make this synchronous
-            let semaphore = DispatchSemaphore(value: 0)
-            
-            Task {
+            if !activities.isEmpty {
+                // Create a dispatch group for synchronization
+                let group = DispatchGroup()
+                
+                // End each activity synchronously on the main thread
                 for activity in activities {
+                    group.enter()
                     print("🔵 END ALL ACTIVITIES: Ending activity \(activity.id)")
-                    await activity.end(nil, dismissalPolicy: .immediate)
+                    
+                    // Use async but wait on main thread
+                    Task { @MainActor in
+                        await activity.end(nil, dismissalPolicy: .immediate)
+                        print("🟢 END ALL ACTIVITIES: Ended activity \(activity.id)")
+                        group.leave()
+                    }
                 }
-                print("🟢 END ALL ACTIVITIES: Finished ending all activities")
-                semaphore.signal()
+                
+                // Block until all activities are ended (with timeout)
+                let result = group.wait(timeout: .now() + 3.0)
+                
+                if result == .success {
+                    print("🟢 END ALL ACTIVITIES: Successfully ended all activities")
+                } else {
+                    print("🔴 END ALL ACTIVITIES: Timeout while ending activities")
+                }
+                
+                // Force a small delay to ensure the system processes the end requests
+                Thread.sleep(forTimeInterval: 0.5)
             }
-            
-            // Wait for completion (with timeout)
-            _ = semaphore.wait(timeout: .now() + 2.0)
         }
     }
 
@@ -97,7 +117,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ = iCloudBackupManager.shared
         iCloudBackupManager.shared.scheduleAutomaticBackup()
         
-        // Setup Live Activities
+        // Setup Live Activities (this also cleans up stale ones)
         if #available(iOS 16.1, *) {
             LiveActivityManager.shared.setupLiveActivities()
         }
@@ -122,15 +142,35 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     func applicationWillTerminate(_ application: UIApplication) {
         print("🔵 APP TERMINATE: applicationWillTerminate called")
+        
+        // Cancel all notifications immediately
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
         // End all Live Activities when app is terminated
         if #available(iOS 16.1, *) {
-            print("🔵 APP TERMINATE: Found \(Activity<RoutineActivityAttributes>.activities.count) active activities")
-            Task {
-                for activity in Activity<RoutineActivityAttributes>.activities {
-                    print("🔵 APP TERMINATE: Ending activity \(activity.id)")
-                    await activity.end(nil, dismissalPolicy: .immediate)
+            let activities = Activity<RoutineActivityAttributes>.activities
+            print("🔵 APP TERMINATE: Found \(activities.count) active activities")
+            
+            if !activities.isEmpty {
+                // Try synchronous approach with RunLoop
+                let runLoop = RunLoop.current
+                var completed = false
+                
+                Task { @MainActor in
+                    for activity in activities {
+                        print("🔵 APP TERMINATE: Force ending activity \(activity.id)")
+                        await activity.end(nil, dismissalPolicy: .immediate)
+                    }
+                    completed = true
                 }
-                print("🟢 APP TERMINATE: Finished ending all activities")
+                
+                // Run the loop until completed or timeout
+                let timeoutDate = Date(timeIntervalSinceNow: 2.0)
+                while !completed && runLoop.run(mode: .default, before: timeoutDate) {
+                    // Keep running until completed or timeout
+                }
+                
+                print("🟢 APP TERMINATE: Activity cleanup completed")
             }
         }
     }

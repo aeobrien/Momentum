@@ -2272,7 +2272,9 @@ class RoutineRunner: ObservableObject {
         }
         
         do {
-            let activityContent = ActivityContent(state: state, staleDate: nil)
+            // Set a stale date for 30 minutes from now - iOS will auto-remove stale activities
+            let staleDate = Date().addingTimeInterval(30 * 60)
+            let activityContent = ActivityContent(state: state, staleDate: staleDate)
             
             currentActivity = try Activity.request(
                 attributes: attributes,
@@ -2366,21 +2368,34 @@ class RoutineRunner: ObservableObject {
         
         // Check if there are any orphaned activities
         logger.info("🔵 END LIVE ACTIVITY: Checking for orphaned activities...")
-        logger.info("🔵 ORPHAN CHECK - Active activities count: \(Activity<RoutineActivityAttributes>.activities.count)")
+        let orphanActivities = Activity<RoutineActivityAttributes>.activities
+        logger.info("🔵 ORPHAN CHECK - Active activities count: \(orphanActivities.count)")
         
-        Task { @MainActor [weak self] in
-            for orphanActivity in Activity<RoutineActivityAttributes>.activities {
-                self?.logger.warning("🟡 FOUND ORPHAN ACTIVITY: ID=\(orphanActivity.id), State=\(String(describing: orphanActivity.activityState))")
-                await orphanActivity.end(nil, dismissalPolicy: .immediate)
-                self?.logger.info("🟢 ENDED ORPHAN ACTIVITY: \(orphanActivity.id)")
+        if !orphanActivities.isEmpty {
+            let semaphore = DispatchSemaphore(value: 0)
+            
+            Task { @MainActor [weak self] in
+                for orphanActivity in orphanActivities {
+                    self?.logger.warning("🟡 FOUND ORPHAN ACTIVITY: ID=\(orphanActivity.id), State=\(String(describing: orphanActivity.activityState))")
+                    await orphanActivity.end(nil, dismissalPolicy: .immediate)
+                    self?.logger.info("🟢 ENDED ORPHAN ACTIVITY: \(orphanActivity.id)")
+                }
+                self?.currentActivity = nil
+                self?.currentActivityID = nil
+                semaphore.signal()
             }
-            self?.currentActivity = nil
-            self?.currentActivityID = nil
+            
+            // Wait for completion
+            _ = semaphore.wait(timeout: .now() + 2.0)
+            logger.info("🟢 END LIVE ACTIVITY: Orphan cleanup completed")
         }
     }
     
     private func endSpecificActivity(_ activity: Activity<RoutineActivityAttributes>) {
         logger.info("🔵 END LIVE ACTIVITY: Ending activity ID: \(activity.id), state: \(String(describing: activity.activityState))")
+        
+        // Make it synchronous for immediate cleanup
+        let semaphore = DispatchSemaphore(value: 0)
         
         Task { @MainActor [weak self] in
             await activity.end(nil, dismissalPolicy: .immediate)
@@ -2395,7 +2410,13 @@ class RoutineRunner: ObservableObject {
             for remainingActivity in Activity<RoutineActivityAttributes>.activities {
                 self?.logger.warning("🟡 REMAINING ACTIVITY AFTER END: ID=\(remainingActivity.id), State=\(String(describing: remainingActivity.activityState))")
             }
+            
+            semaphore.signal()
         }
+        
+        // Wait for completion (with timeout)
+        _ = semaphore.wait(timeout: .now() + 1.0)
+        logger.info("🟢 END LIVE ACTIVITY: Synchronous end completed")
     }
 }
 
