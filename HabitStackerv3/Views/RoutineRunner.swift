@@ -7,6 +7,7 @@ import UIKit
 import SwiftUI
 import OSLog
 import CoreData
+import ActivityKit
 
 // MARK: - Background Task State
 /// Represents a task running in the background with its own timer state
@@ -149,7 +150,19 @@ class RoutineRunner: ObservableObject {
     
     /// Stores the task to return to after completing a background task that was brought to foreground
     private var returnToTaskState: (index: Int, remainingTime: TimeInterval)?
-
+    
+    // MARK: - Background Notification Properties
+    
+    /// Timer for scheduling periodic background notifications
+    private var backgroundNotificationTimer: AnyCancellable?
+    /// Tracks if background notifications are currently scheduled
+    private var backgroundNotificationsScheduled: Bool = false
+    
+    // MARK: - Live Activity Properties
+    
+    /// Current Live Activity for the routine
+    private var currentActivity: Activity<RoutineActivityAttributes>?
+    private var currentActivityID: String?
 
     // MARK: - Schedule Offset Properties
 
@@ -380,6 +393,8 @@ class RoutineRunner: ObservableObject {
             updateRemainingTimeDisplay(savedState.remainingTime)
             
             startTimer()
+            // Update Live Activity for the new task
+            updateLiveActivity()
             return
         }
         
@@ -389,6 +404,8 @@ class RoutineRunner: ObservableObject {
             self.currentTaskIndex = nextIndex
             self.configureTask(at: self.currentTaskIndex)
             self.startTimer()
+            // Update Live Activity for the new task
+            updateLiveActivity()
         } else {
             // Check if there are background tasks still running
             if !backgroundTasks.isEmpty {
@@ -422,6 +439,10 @@ class RoutineRunner: ObservableObject {
         }
         timer?.cancel()
         timer = nil
+        
+        // End Live Activity
+        endLiveActivity()
+        
         // Keep the final schedule offset string displayed
          self.updateRoutineMetadata()
 
@@ -807,6 +828,14 @@ class RoutineRunner: ObservableObject {
              self.isRunning = true
          }
 
+        // Start Live Activity if this is the first task
+        if currentActivity == nil {
+            logger.info("🔵 START TIMER: No current activity, starting new Live Activity")
+            startLiveActivity()
+        } else {
+            logger.info("🔵 START TIMER: Activity already exists, updating instead")
+            updateLiveActivity()
+        }
 
         // Setup the Combine timer to fire every second
         timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
@@ -820,6 +849,11 @@ class RoutineRunner: ObservableObject {
             
             // Update estimated finishing time on each timer tick for accuracy
             self.updateEstimatedFinishingTimeString()
+            
+            // Update Live Activity periodically (every 5 seconds to reduce updates)
+            if Int(elapsedTime) % 5 == 0 {
+                self.updateLiveActivity()
+            }
             
             // Update task progress fraction
             if self.currentTaskDuration > 0 {
@@ -1552,6 +1586,9 @@ class RoutineRunner: ObservableObject {
             // Update the next task name to reflect any completed tasks
             updateNextTaskName()
             
+            // Update Live Activity for the switched task
+            updateLiveActivity()
+            
             logger.info("Activated background task at its original position \(taskPosition)")
         } else {
             logger.error("Could not find background task in scheduled tasks - it may have been removed")
@@ -1589,13 +1626,17 @@ class RoutineRunner: ObservableObject {
 
      // MARK: - Deinitialization
      deinit {
-         logger.info("RoutineRunner deinitialized.")
+         logger.info("🔵 DEINIT: RoutineRunner deinitialized for routine '\(self.routine.name ?? "Unknown")'")
          timer?.cancel()
          
          // Cancel all background timers
          for i in backgroundTasks.indices {
              backgroundTasks[i].timer?.cancel()
          }
+         
+         logger.info("🔵 DEINIT: Ending Live Activity from deinit")
+         // End Live Activity when RoutineRunner is deallocated
+         endLiveActivity()
      }
 
     // MARK: - Scene Phase Handling
@@ -1615,6 +1656,8 @@ class RoutineRunner: ObservableObject {
         case .active:
             // App came to foreground
             logger.info("App became active.")
+            // Cancel any scheduled background notifications
+            cancelBackgroundNotifications()
             // Check if we have a background entry time recorded (only set when actually going to background)
             if let backgroundEnterTime = backgroundEnterTime {
                 // Calculate time spent in background
@@ -1633,6 +1676,9 @@ class RoutineRunner: ObservableObject {
                         remainingTimeOnPause = newRemainingTime
                         startTimer() // Will use remainingTimeOnPause
                         logger.info("Resuming timer after background.")
+                        logger.info("🔵 SCENE PHASE: Updating Live Activity after returning from background")
+                        // Update Live Activity when returning to foreground
+                        updateLiveActivity()
                     } else {
                         // Time ran out while in background
                         logger.info("Time expired while in background.")
@@ -1741,18 +1787,24 @@ class RoutineRunner: ObservableObject {
 
         case .background:
             // App entered background
-            logger.info("App entered background. Pausing timer and recording entry time.")
+            logger.info("🔵 SCENE PHASE: App entered BACKGROUND. isRunning=\(self.isRunning)")
             if isRunning {
                 // Record the time we entered the background
                 backgroundEnterTime = Date()
-                logger.debug("Recorded background enter time: \(self.backgroundEnterTime!)")
+                logger.debug("🔵 SCENE PHASE: Recorded background enter time: \(self.backgroundEnterTime!)")
                 // Pause the timer, indicating it's due to backgrounding
                 pauseTimer(isBackgrounding: true)
+                // Schedule background notifications
+                scheduleBackgroundNotifications()
+                
+                logger.info("🔵 SCENE PHASE: Updating Live Activity for background state")
+                // Update Live Activity instead of ending it
+                updateLiveActivity()
             } else {
                  // If timer wasn't running (already paused), still record background time
                  // in case it gets terminated. Handle this on foregrounding.
                  backgroundEnterTime = Date()
-                 logger.debug("App entered background while timer was paused. Recorded background enter time: \(self.backgroundEnterTime!)")
+                 logger.debug("🔵 SCENE PHASE: App entered background while timer was paused. Recorded background enter time: \(self.backgroundEnterTime!)")
             }
 
         @unknown default:
@@ -2107,6 +2159,242 @@ class RoutineRunner: ObservableObject {
         // Update the published suggestions
         DispatchQueue.main.async {
             self.durationSuggestions = suggestions
+        }
+    }
+    
+    // MARK: - Background Notifications
+    
+    /// Requests notification authorization if not already granted
+    private func requestNotificationAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                self.logger.info("Notification authorization granted")
+            } else if let error = error {
+                self.logger.error("Failed to get notification authorization: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// Schedules periodic background notifications when the app is backgrounded during a routine
+    private func scheduleBackgroundNotifications() {
+        guard isRunning, currentTaskIndex >= 0, currentTaskIndex < scheduledTasks.count else {
+            logger.info("Not scheduling background notifications - routine not running")
+            return
+        }
+        
+        // Request authorization if needed
+        requestNotificationAuthorization()
+        
+        // Clear any existing scheduled notifications
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        let currentTaskName = scheduledTasks[currentTaskIndex].task.taskName ?? "Unnamed Task"
+        let interval = TimeInterval(SettingsManager.shared.backgroundNotificationIntervalSeconds)
+        
+        // Schedule up to 10 notifications (iOS limit is 64 pending notifications)
+        for i in 1...10 {
+            let content = UNMutableNotificationContent()
+            content.title = "Routine Reminder"
+            content.body = "Current task: \(currentTaskName)"
+            content.sound = .default
+            
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: interval * Double(i),
+                repeats: false
+            )
+            
+            let request = UNNotificationRequest(
+                identifier: "routine-background-\(i)",
+                content: content,
+                trigger: trigger
+            )
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    self.logger.error("Failed to schedule notification: \(error.localizedDescription)")
+                }
+            }
+        }
+        
+        backgroundNotificationsScheduled = true
+        logger.info("Scheduled \(10) background notifications at \(interval)s intervals")
+    }
+    
+    /// Cancels all scheduled background notifications
+    private func cancelBackgroundNotifications() {
+        guard backgroundNotificationsScheduled else { return }
+        
+        var identifiers: [String] = []
+        for i in 1...10 {
+            identifiers.append("routine-background-\(i)")
+        }
+        
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        backgroundNotificationsScheduled = false
+        logger.info("Cancelled background notifications")
+    }
+    
+    // MARK: - Live Activity Management
+    
+    /// Starts a Live Activity for the current routine
+    private func startLiveActivity() {
+        logger.info("🔵 START LIVE ACTIVITY: Checking if can start...")
+        
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            logger.warning("🟡 START LIVE ACTIVITY: Activities not enabled in system settings")
+            return
+        }
+        
+        guard currentTaskIndex >= 0, currentTaskIndex < scheduledTasks.count else {
+            logger.warning("🟡 START LIVE ACTIVITY: No active task (index: \(self.currentTaskIndex), count: \(self.scheduledTasks.count))")
+            return
+        }
+        
+        // Check if we already have an activity
+        if let existingActivity = currentActivity {
+            logger.info("🟡 START LIVE ACTIVITY: Already have activity with ID: \(existingActivity.id), state: \(String(describing: existingActivity.activityState))")
+            updateLiveActivity()
+            return
+        }
+        
+        let attributes = RoutineActivityAttributes(
+            routineName: routine.name ?? "Routine"
+        )
+        
+        let state = createActivityContentState()
+        
+        logger.info("🔵 START LIVE ACTIVITY: Creating with task: '\(state.taskName)', endTime: \(state.taskEndTime), isOverrun: \(state.isOverrun)")
+        
+        // Log all existing activities before creating new one
+        logger.info("🔵 BEFORE START - Active activities count: \(Activity<RoutineActivityAttributes>.activities.count)")
+        for activity in Activity<RoutineActivityAttributes>.activities {
+            logger.info("🔵 EXISTING ACTIVITY: ID=\(activity.id), State=\(String(describing: activity.activityState))")
+        }
+        
+        do {
+            let activityContent = ActivityContent(state: state, staleDate: nil)
+            
+            currentActivity = try Activity.request(
+                attributes: attributes,
+                content: activityContent,
+                pushType: nil
+            )
+            currentActivityID = currentActivity?.id
+            logger.info("🟢 START LIVE ACTIVITY: Successfully started with ID: \(self.currentActivity?.id ?? "nil")")
+            
+            // Log all activities after creating
+            logger.info("🔵 AFTER START - Active activities count: \(Activity<RoutineActivityAttributes>.activities.count)")
+        } catch {
+            logger.error("🔴 START LIVE ACTIVITY: Failed to start - \(error.localizedDescription)")
+        }
+    }
+    
+    /// Updates the Live Activity with current state
+    private func updateLiveActivity() {
+        logger.info("🔵 UPDATE LIVE ACTIVITY: Attempting update...")
+        
+        guard let activity = currentActivity else {
+            logger.warning("🟡 UPDATE LIVE ACTIVITY: No current activity to update")
+            return
+        }
+        
+        logger.info("🔵 UPDATE LIVE ACTIVITY: Updating activity ID: \(activity.id), state: \(String(describing: activity.activityState))")
+        
+        Task {
+            let state = createActivityContentState()
+            logger.info("🔵 UPDATE LIVE ACTIVITY: New state - task: '\(state.taskName)', endTime: \(state.taskEndTime)")
+            await activity.update(using: state)
+            logger.info("🟢 UPDATE LIVE ACTIVITY: Successfully updated activity \(activity.id)")
+        }
+    }
+    
+    /// Creates the content state for the Live Activity
+    private func createActivityContentState() -> RoutineActivityAttributes.ContentState {
+        let currentTask = currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count
+            ? scheduledTasks[currentTaskIndex].task
+            : nil
+        
+        let taskName = currentTask?.taskName ?? "No Task"
+        
+        // Calculate task end time based on remaining time
+        let endTime: Date
+        if let startTime = startTime {
+            // Timer is running or was running
+            // Calculate when the task should have ended
+            endTime = startTime.addingTimeInterval(timeToCountDownAtStart)
+        } else if let remainingTime = remainingTimeOnPause {
+            // Timer is paused
+            endTime = Date().addingTimeInterval(remainingTime)
+        } else {
+            // Timer hasn't started, use full duration
+            endTime = Date().addingTimeInterval(currentTaskDuration)
+        }
+        
+        return RoutineActivityAttributes.ContentState(
+            taskName: taskName,
+            remainingTime: currentTaskDuration,
+            isOverrun: isOverrun,
+            taskEndTime: endTime,
+            scheduleOffsetString: scheduleOffsetString
+        )
+    }
+    
+    /// Ends the current Live Activity
+    func endLiveActivity() {
+        logger.info("🔵 END LIVE ACTIVITY: Attempting to end activity...")
+        
+        // First try the stored reference
+        if let activity = currentActivity {
+            logger.info("🔵 END LIVE ACTIVITY: Found activity via currentActivity reference")
+            endSpecificActivity(activity)
+            return
+        }
+        
+        // If no current activity reference, try to find by ID
+        if let activityID = currentActivityID {
+            logger.info("🔵 END LIVE ACTIVITY: Looking for activity by ID: \(activityID)")
+            for activity in Activity<RoutineActivityAttributes>.activities {
+                if activity.id == activityID {
+                    logger.info("🟢 END LIVE ACTIVITY: Found activity by ID match")
+                    endSpecificActivity(activity)
+                    return
+                }
+            }
+        }
+        
+        logger.warning("🟡 END LIVE ACTIVITY: No current activity to end")
+        
+        // Check if there are any orphaned activities
+        logger.info("🔵 END LIVE ACTIVITY: Checking for orphaned activities...")
+        logger.info("🔵 ORPHAN CHECK - Active activities count: \(Activity<RoutineActivityAttributes>.activities.count)")
+        
+        Task { @MainActor [weak self] in
+            for orphanActivity in Activity<RoutineActivityAttributes>.activities {
+                self?.logger.warning("🟡 FOUND ORPHAN ACTIVITY: ID=\(orphanActivity.id), State=\(String(describing: orphanActivity.activityState))")
+                await orphanActivity.end(nil, dismissalPolicy: .immediate)
+                self?.logger.info("🟢 ENDED ORPHAN ACTIVITY: \(orphanActivity.id)")
+            }
+            self?.currentActivity = nil
+            self?.currentActivityID = nil
+        }
+    }
+    
+    private func endSpecificActivity(_ activity: Activity<RoutineActivityAttributes>) {
+        logger.info("🔵 END LIVE ACTIVITY: Ending activity ID: \(activity.id), state: \(String(describing: activity.activityState))")
+        
+        Task { @MainActor [weak self] in
+            await activity.end(nil, dismissalPolicy: .immediate)
+            self?.logger.info("🟢 END LIVE ACTIVITY: Successfully ended activity \(activity.id)")
+            
+            self?.currentActivity = nil
+            self?.currentActivityID = nil
+            self?.logger.info("🟢 END LIVE ACTIVITY: Cleared currentActivity reference and ID")
+            
+            // Double-check all activities are gone
+            self?.logger.info("🔵 AFTER END - Active activities count: \(Activity<RoutineActivityAttributes>.activities.count)")
+            for remainingActivity in Activity<RoutineActivityAttributes>.activities {
+                self?.logger.warning("🟡 REMAINING ACTIVITY AFTER END: ID=\(remainingActivity.id), State=\(String(describing: remainingActivity.activityState))")
+            }
         }
     }
 }

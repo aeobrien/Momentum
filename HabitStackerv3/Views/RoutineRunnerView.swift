@@ -556,6 +556,11 @@ struct RoutineRunnerView: View {
                 .onAppear {
                     // Remove duration suggestions handling for now
                 }
+                .onDisappear {
+                    logger.info("🔵 VIEW DISAPPEAR: RoutineRunnerView is disappearing")
+                    // End Live Activity when leaving the view
+                    runner.endLiveActivity()
+                }
             } else {
                 // Routine complete view
                 VStack(spacing: 30) {

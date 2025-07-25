@@ -124,6 +124,40 @@ struct SettingsView: View {
                             .padding(.leading, 38)
                     }
                     .padding(.vertical, 4)
+                    
+                    Divider()
+                    
+                    // Background Notification Interval
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "bell.badge")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Background Reminder Interval")
+                                    .font(.body)
+                                
+                                HStack {
+                                    Text("\(settingsManager.backgroundNotificationIntervalSeconds) seconds")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Stepper("", value: $settingsManager.backgroundNotificationIntervalSeconds, in: 30...300, step: 30)
+                                .labelsHidden()
+                        }
+                        
+                        Text("When running a routine and the app is in the background, you'll receive periodic reminders at this interval to help you stay on track.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 38)
+                    }
+                    .padding(.vertical, 4)
                 }
                 
                 // MARK: Import Instructions

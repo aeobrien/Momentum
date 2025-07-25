@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -69,6 +69,16 @@
 		DDE14FA52E2ABFC500AB9088 /* template_tasks.json in Resources */ = {isa = PBXBuildFile; fileRef = DDE14FA22E2ABFC500AB9088 /* template_tasks.json */; };
 		DDE14FA72E2ACFAF00AB9088 /* template_categories.json in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FA62E2ACFAA00AB9088 /* template_categories.json */; };
 		DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FB32E300FD800AB9088 /* SettingsManager.swift */; };
+		DDE150502E3246AA00AB9088 /* RoutineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */; };
+		DDE150522E3246AA00AB9088 /* RoutineLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */; };
+		DDE1505A2E32536700AB9088 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE150592E32536700AB9088 /* WidgetKit.framework */; };
+		DDE1505C2E32536700AB9088 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE1505B2E32536700AB9088 /* SwiftUI.framework */; };
+		DDE1506D2E32536900AB9088 /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DDE150742E32538900AB9088 /* RoutineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */; };
+		DDE150762E32543D00AB9088 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE150752E32543D00AB9088 /* LiveActivityManager.swift */; };
+		DDE150792E32576300AB9088 /* RoutineLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */; };
+		DDE1507F2E32873200AB9088 /* OverrunAwareTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */; };
+		DDE150802E32873200AB9088 /* OverrunAwareTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */; };
 		DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */; };
 		DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */; };
 		DDF227F22CC957B50014505A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F12CC957B50014505A /* Assets.xcassets */; };
@@ -129,6 +139,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		DDE1506B2E32536900AB9088 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DDF227E22CC957B20014505A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DDE150562E32536700AB9088;
+			remoteInfo = MomentumWidgetExtension;
+		};
 		DDF227FB2CC957B50014505A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DDF227E22CC957B20014505A /* Project object */;
@@ -144,6 +161,20 @@
 			remoteInfo = HabitStackerv3;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DDE150722E32536900AB9088 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DDE1506D2E32536900AB9088 /* MomentumWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4FAB675999AA484797121287 /* BackupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupDetailView.swift; sourceTree = "<group>"; };
@@ -208,6 +239,14 @@
 		DDE14FA22E2ABFC500AB9088 /* template_tasks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_tasks.json; sourceTree = "<group>"; };
 		DDE14FA62E2ACFAA00AB9088 /* template_categories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_categories.json; sourceTree = "<group>"; };
 		DDE14FB32E300FD800AB9088 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
+		DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineActivityAttributes.swift; sourceTree = "<group>"; };
+		DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineLiveActivityView.swift; sourceTree = "<group>"; };
+		DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDE150592E32536700AB9088 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DDE1505B2E32536700AB9088 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		DDE150752E32543D00AB9088 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineLiveActivity.swift; sourceTree = "<group>"; };
+		DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverrunAwareTimer.swift; sourceTree = "<group>"; };
 		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
 		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
 		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -270,7 +309,30 @@
 		F746B448122346998D7F6199 /* BackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRestoreView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DDE1506E2E32536900AB9088 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DDE150562E32536700AB9088 /* MomentumWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DDE1505D2E32536700AB9088 /* MomentumWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (DDE1506E2E32536900AB9088 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MomentumWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		DDE150542E32536700AB9088 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDE1505C2E32536700AB9088 /* SwiftUI.framework in Frameworks */,
+				DDE1505A2E32536700AB9088 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DDF227E72CC957B30014505A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -306,13 +368,6 @@
 			path = Views/Components;
 			sourceTree = "<group>";
 		};
-		DDE14FA02E2ABFA800AB9088 /* New Group */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "New Group";
-			sourceTree = "<group>";
-		};
 		DDE14FA32E2ABFC500AB9088 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -323,6 +378,27 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		DDE1504F2E3246AA00AB9088 /* LiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */,
+				DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */,
+				DDE150752E32543D00AB9088 /* LiveActivityManager.swift */,
+				DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */,
+				DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */,
+			);
+			path = LiveActivity;
+			sourceTree = "<group>";
+		};
+		DDE150582E32536700AB9088 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DDE150592E32536700AB9088 /* WidgetKit.framework */,
+				DDE1505B2E32536700AB9088 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		DDF227E12CC957B20014505A = {
 			isa = PBXGroup;
 			children = (
@@ -330,6 +406,8 @@
 				DDF227EC2CC957B30014505A /* HabitStackerv3 */,
 				DDF227FD2CC957B50014505A /* HabitStackerv3Tests */,
 				DDF228072CC957B50014505A /* HabitStackerv3UITests */,
+				DDE1505D2E32536700AB9088 /* MomentumWidget */,
+				DDE150582E32536700AB9088 /* Frameworks */,
 				DDF227EB2CC957B30014505A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -340,6 +418,7 @@
 				DDF227EA2CC957B30014505A /* Momentum.app */,
 				DDF227FA2CC957B50014505A /* MomentumTests.xctest */,
 				DDF228042CC957B50014505A /* MomentumUITests.xctest */,
+				DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -347,7 +426,7 @@
 		DDF227EC2CC957B30014505A /* HabitStackerv3 */ = {
 			isa = PBXGroup;
 			children = (
-				DDE14FA02E2ABFA800AB9088 /* New Group */,
+				DDE1504F2E3246AA00AB9088 /* LiveActivity */,
 				DDE14F9E2E2AAEB000AB9088 /* Components */,
 				DDF228262CC9591E0014505A /* Logging+Extensions.swift */,
 				DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */,
@@ -429,7 +508,6 @@
 				DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */,
 				DDF228182CC958890014505A /* CustomTask.swift */,
 				DD70B69D2E213A7100673D79 /* DataStoreManager.swift */,
-				DD70B69E2E213A7200673D79 /* SettingsManager.swift */,
 				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
 				DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */,
 				DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */,
@@ -467,8 +545,8 @@
 				DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */,
 				DDF228B52CC98ED70014505A /* RoutineStorageInterface.swift */,
 				DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */,
-				DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */,
 				DD70B6A92E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift */,
+				DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */,
 				DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */,
 				DD5902B32CDD2347005F040A /* RoutineTestView.swift */,
 				DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */,
@@ -476,8 +554,9 @@
 				DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */,
 				DDF228BF2CC99E200014505A /* SchedulingError.swift */,
 				DD4222C62CDCCF7B008B839C /* SearchBar.swift */,
-				982602432B884C5290157ADB /* SettingsView.swift */,
+				DD70B69E2E213A7200673D79 /* SettingsManager.swift */,
 				DDE14FB32E300FD800AB9088 /* SettingsManager.swift */,
+				982602432B884C5290157ADB /* SettingsView.swift */,
 				DDF228BB2CC99C630014505A /* SetupLogger.swift */,
 				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
 				DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */,
@@ -517,6 +596,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		DDE150562E32536700AB9088 /* MomentumWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DDE1506F2E32536900AB9088 /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */;
+			buildPhases = (
+				DDE150532E32536700AB9088 /* Sources */,
+				DDE150542E32536700AB9088 /* Frameworks */,
+				DDE150552E32536700AB9088 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DDE1505D2E32536700AB9088 /* MomentumWidget */,
+			);
+			name = MomentumWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MomentumWidgetExtension;
+			productReference = DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		DDF227E92CC957B30014505A /* Momentum */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DDF2280E2CC957B50014505A /* Build configuration list for PBXNativeTarget "Momentum" */;
@@ -524,10 +625,12 @@
 				DDF227E62CC957B30014505A /* Sources */,
 				DDF227E72CC957B30014505A /* Frameworks */,
 				DDF227E82CC957B30014505A /* Resources */,
+				DDE150722E32536900AB9088 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DDE1506C2E32536900AB9088 /* PBXTargetDependency */,
 			);
 			name = Momentum;
 			packageProductDependencies = (
@@ -581,9 +684,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1540;
 				TargetAttributes = {
+					DDE150562E32536700AB9088 = {
+						CreatedOnToolsVersion = 16.3;
+					};
 					DDF227E92CC957B30014505A = {
 						CreatedOnToolsVersion = 15.4;
 					};
@@ -617,11 +723,19 @@
 				DDF227E92CC957B30014505A /* Momentum */,
 				DDF227F92CC957B50014505A /* MomentumTests */,
 				DDF228032CC957B50014505A /* MomentumUITests */,
+				DDE150562E32536700AB9088 /* MomentumWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		DDE150552E32536700AB9088 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DDF227E82CC957B30014505A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -650,6 +764,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		DDE150532E32536700AB9088 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDE150802E32873200AB9088 /* OverrunAwareTimer.swift in Sources */,
+				DDE150742E32538900AB9088 /* RoutineActivityAttributes.swift in Sources */,
+				DDE150792E32576300AB9088 /* RoutineLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DDF227E62CC957B30014505A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -696,6 +820,7 @@
 				DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */,
 				DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */,
 				DDF2288E2CC95DF60014505A /* TaskInstance.swift in Sources */,
+				DDE1507F2E32873200AB9088 /* OverrunAwareTimer.swift in Sources */,
 				DDF2288F2CC95DF60014505A /* ContentView.swift in Sources */,
 				DDF228CD2CCD8E440014505A /* RoutineTaskCard.swift in Sources */,
 				DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */,
@@ -743,6 +868,7 @@
 				DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */,
 				DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */,
 				DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */,
+				DDE150762E32543D00AB9088 /* LiveActivityManager.swift in Sources */,
 				DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */,
 				DDAE4BAB2E0C196200C573DB /* DebugMigrationView.swift in Sources */,
 				DDF228A62CC96BDF0014505A /* TaskSelectionProcess.swift in Sources */,
@@ -750,6 +876,8 @@
 				DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */,
 				DD9480022CDC17730014A929 /* CDTask+Extensions.swift in Sources */,
 				DDAE4BAD2E0C52DF00C573DB /* SimpleMigration.swift in Sources */,
+				DDE150502E3246AA00AB9088 /* RoutineActivityAttributes.swift in Sources */,
+				DDE150522E3246AA00AB9088 /* RoutineLiveActivityView.swift in Sources */,
 				DDF228932CC95DF60014505A /* PerformanceMonitor.swift in Sources */,
 				DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */,
 				DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */,
@@ -787,6 +915,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		DDE1506C2E32536900AB9088 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DDE150562E32536700AB9088 /* MomentumWidgetExtension */;
+			targetProxy = DDE1506B2E32536900AB9088 /* PBXContainerItemProxy */;
+		};
 		DDF227FC2CC957B50014505A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DDF227E92CC957B30014505A /* Momentum */;
@@ -800,6 +933,62 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		DDE150702E32536900AB9088 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DDE150712E32536900AB9088 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		DDF2280C2CC957B50014505A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1062,6 +1251,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		DDE1506F2E32536900AB9088 /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDE150702E32536900AB9088 /* Debug */,
+				DDE150712E32536900AB9088 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		DDF227E52CC957B30014505A /* Build configuration list for PBXProject "Momentum" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
