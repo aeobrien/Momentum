@@ -2,6 +2,150 @@ import SwiftUI
 import SwiftSoup
 import UniformTypeIdentifiers
 
+// Wrapper class to hold checklist items as a reference type
+class ChecklistItemsWrapper: ObservableObject {
+    @Published var items: [ChecklistItem]
+    private let id = UUID()
+    
+    init(items: [ChecklistItem] = []) {
+        self.items = items
+        print("[ChecklistItemsWrapper \(id)] initialized with \(items.count) items")
+    }
+}
+
+// Separate view for checklist management to maintain state
+struct ChecklistItemsView: View {
+    @ObservedObject var itemsWrapper: ChecklistItemsWrapper
+    @State private var newChecklistItemText: String = ""
+    @State private var editingChecklistItem: ChecklistItem?
+    @FocusState private var isTextFieldFocused: Bool
+    private let viewId = UUID()
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Checklist Items")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            // Add new item
+            HStack {
+                TextField("Add new item", text: $newChecklistItemText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .focused($isTextFieldFocused)
+                    .onSubmit {
+                        addChecklistItem()
+                    }
+                
+                Button(action: addChecklistItem) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.blue)
+                }
+                .disabled(newChecklistItemText.isEmpty)
+            }
+            
+            // List of items
+            if !itemsWrapper.items.isEmpty {
+                ForEach(itemsWrapper.items, id: \.id) { item in
+                    HStack {
+                        Image(systemName: "line.horizontal.3")
+                            .foregroundColor(.gray)
+                        
+                        if editingChecklistItem?.id == item.id {
+                            TextField("Item", text: Binding(
+                                get: { item.title },
+                                set: { newTitle in
+                                    if let index = itemsWrapper.items.firstIndex(where: { $0.id == item.id }) {
+                                        itemsWrapper.items[index].title = newTitle
+                                    }
+                                }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            Button("Done") {
+                                editingChecklistItem = nil
+                            }
+                            .foregroundColor(.blue)
+                        } else {
+                            Text(item.title)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Button(action: { editingChecklistItem = item }) {
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Button(action: { removeChecklistItem(item) }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onMove(perform: moveChecklistItem)
+            } else {
+                Text("No items added yet")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+                    .padding(.vertical, 8)
+            }
+        }
+        .onAppear {
+            print("[ChecklistItemsView \(viewId)] appeared - Checklist items count: \(itemsWrapper.items.count)")
+            for (i, item) in itemsWrapper.items.enumerated() {
+                print("  Item \(i): \(item.title)")
+            }
+        }
+    }
+    
+    private func addChecklistItem() {
+        guard !newChecklistItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
+        let newItem = ChecklistItem(
+            id: UUID(),
+            title: newChecklistItemText.trimmingCharacters(in: .whitespacesAndNewlines),
+            isCompleted: false,
+            order: itemsWrapper.items.count
+        )
+        
+        // Debug logging before
+        print("[ChecklistItemsView \(viewId)] Before adding - Current items: \(itemsWrapper.items.count)")
+        print("WRAPPER PTR:", Unmanaged.passUnretained(itemsWrapper).toOpaque())
+        for (i, item) in itemsWrapper.items.enumerated() {
+            print("  \(i): \(item.title)")
+        }
+        
+        itemsWrapper.items.append(newItem)
+        newChecklistItemText = ""
+        
+        // Debug logging after
+        print("[ChecklistItemsView \(viewId)] After adding - Total items: \(itemsWrapper.items.count)")
+        for (i, item) in itemsWrapper.items.enumerated() {
+            print("  \(i): \(item.title)")
+        }
+        
+        // Keep focus on the text field
+        isTextFieldFocused = true
+    }
+    
+    private func removeChecklistItem(_ item: ChecklistItem) {
+        itemsWrapper.items.removeAll { $0.id == item.id }
+        // Reorder remaining items
+        for (index, _) in itemsWrapper.items.enumerated() {
+            itemsWrapper.items[index].order = index
+        }
+    }
+    
+    private func moveChecklistItem(from source: IndexSet, to destination: Int) {
+        itemsWrapper.items.move(fromOffsets: source, toOffset: destination)
+        // Update order values
+        for (index, _) in itemsWrapper.items.enumerated() {
+            itemsWrapper.items[index].order = index
+        }
+    }
+}
+
 /// Enum representing the essentiality levels
 enum Essentiality: String, CaseIterable, Identifiable {
     case essential = "Essential"
@@ -102,10 +246,17 @@ struct AddTaskView: View {
     // Average Time Tracking Property
     @State private var shouldTrackAverageTime: Bool // New state for average time tracking toggle
     
+    // Checklist Properties
+    @State private var isChecklistTask: Bool
+    @StateObject private var checklistItemsWrapper: ChecklistItemsWrapper
+    
     // UI State
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var showJSONPreview: Bool = false // For clipboard import
+    
+    // Debug
+    private let viewId: UUID
     @State private var jsonPreviewContent: String = "" // For clipboard import
     
     // Info popover states
@@ -126,6 +277,8 @@ struct AddTaskView: View {
         let repetitionInterval: Int? // Stored as Int (seconds) in CustomTask
         let isSessionTask: Bool? // Added for JSON import
         let shouldTrackAverageTime: Bool? // Added for JSON import
+        let isChecklistTask: Bool?
+        let checklistItems: [ChecklistItem]?
         let uuid: String?
         let lastCompleted: String?
         let order: Int?
@@ -135,12 +288,21 @@ struct AddTaskView: View {
     init(task: CustomTask? = nil, onSave: @escaping (CustomTask) -> Void) {
         self.existingTask = task
         self.onSave = onSave
+        self.viewId = UUID()
+        
+        print("[AddTaskView \(self.viewId)] init called - Task: \(task?.taskName ?? "New Task")")
         
         // Initialize state properties
         _uuid = State(initialValue: task?.uuid ?? UUID().uuidString)
         _taskName = State(initialValue: task?.taskName ?? "")
         _isSessionTask = State(initialValue: task?.isSessionTask ?? false)
         _shouldTrackAverageTime = State(initialValue: task?.shouldTrackAverageTime ?? true)
+        _isChecklistTask = State(initialValue: task?.isChecklistTask ?? false)
+        let initialChecklistItems = task?.checklistItems ?? []
+        print("[AddTaskView \(self.viewId)] Initializing with \(initialChecklistItems.count) checklist items")
+        
+        // Initialize the StateObject with the initial items
+        _checklistItemsWrapper = StateObject(wrappedValue: ChecklistItemsWrapper(items: initialChecklistItems))
         
         // Set essentiality
         let essentiality: Essentiality
@@ -277,6 +439,24 @@ struct AddTaskView: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
+                        
+                        // Checklist Task Toggle
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Checklist Task", isOn: $isChecklistTask.animation())
+                            Text("Transform this task into a checklist with multiple items to complete.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // Checklist Items (shown when checklist is enabled)
+                        if isChecklistTask {
+                            Divider().padding(.vertical, 4)
+                            
+                            ChecklistItemsView(itemsWrapper: checklistItemsWrapper)
+                                .padding(.vertical, 4)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                        }
                     }
                     
                     // --- Section 2: Duration ---
@@ -402,7 +582,14 @@ struct AddTaskView: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
-            .sheet(isPresented: $showJSONPreview) {
+            .onAppear {
+                print("[AddTaskView \(viewId)] appeared - Checklist items count: \(checklistItemsWrapper.items.count)")
+                print("WRAPPER PTR:", Unmanaged.passUnretained(checklistItemsWrapper).toOpaque())
+                for (i, item) in checklistItemsWrapper.items.enumerated() {
+                    print("  Item \(i): \(item.title)")
+                }
+            }
+        .sheet(isPresented: $showJSONPreview) {
                 NavigationView {
                     ScrollView {
                         VStack(alignment: .leading) {
@@ -551,6 +738,8 @@ struct AddTaskView: View {
                             repetitionInterval: Int(getValue("repetitionInterval")) ?? nil,
                             isSessionTask: getValue("isSessionTask") == "true" ? true : nil,
                             shouldTrackAverageTime: getValue("shouldTrackAverageTime") == "true" ? true : (getValue("shouldTrackAverageTime") == "false" ? false : nil),
+                            isChecklistTask: getValue("isChecklistTask") == "true" ? true : nil,
+                            checklistItems: nil, // CSV import doesn't support checklist items
                             uuid: getValue("uuid"),
                             lastCompleted: getValue("lastCompleted"),
                             order: Int(getValue("order")) ?? nil
@@ -600,7 +789,9 @@ struct AddTaskView: View {
             repetitionInterval: input.repetitionInterval,
             order: input.order,
             isSessionTask: input.isSessionTask ?? false,
-            shouldTrackAverageTime: input.shouldTrackAverageTime ?? true
+            shouldTrackAverageTime: input.shouldTrackAverageTime ?? true,
+            isChecklistTask: input.isChecklistTask ?? false,
+            checklistItems: input.checklistItems
         )
         
         // Validate required fields
@@ -702,6 +893,7 @@ struct AddTaskView: View {
         }
         
         // --- Create/Update Task Object ---
+        let finalChecklistItems = isChecklistTask ? checklistItemsWrapper.items : []
         let taskToSave = CustomTask(
             uuid: uuid, // Use the existing UUID or the newly generated one
             taskName: taskName,
@@ -712,14 +904,23 @@ struct AddTaskView: View {
             repetitionInterval: finalRepetitionInterval,
             order: existingTask?.order, // Preserve existing order on edit
             isSessionTask: isSessionTask,
-            shouldTrackAverageTime: shouldTrackAverageTime
+            shouldTrackAverageTime: shouldTrackAverageTime,
+            isChecklistTask: isChecklistTask,
+            checklistItems: finalChecklistItems
         )
         
         // --- Call the onSave closure ---
+        print("[AddTaskView \(viewId)] Saving task '\(taskName)' with \(finalChecklistItems.count) checklist items")
+        for (index, item) in finalChecklistItems.enumerated() {
+            print("  Item \(index): \(item.title) (id: \(item.id))")
+        }
         onSave(taskToSave)
         
         // --- Dismiss only if adding a NEW task ---
         if existingTask == nil { // Check if we are in add mode
+            presentationMode.wrappedValue.dismiss()
+        } else {
+            // For edit mode, force dismiss the sheet
             presentationMode.wrappedValue.dismiss()
         }
         // If existingTask is not nil, we are editing via a sheet,

@@ -24,6 +24,8 @@ struct BackupTask: Codable {
     let maxDuration: Int32
     let repetitionInterval: Int32
     let shouldTrackAverageTime: Bool
+    let isChecklistTask: Bool
+    let checklistItems: [ChecklistItem]?
 }
 
 struct BackupRoutine: Codable {

@@ -11,7 +11,13 @@ extension CDTask {
             minDuration: Int(self.minDuration),
             maxDuration: Int(self.maxDuration),
             lastCompleted: lastCompleted.map { ISO8601DateFormatter.shared.string(from: $0) },
-            repetitionInterval: Int(self.repetitionInterval)
+            repetitionInterval: Int(self.repetitionInterval),
+            order: nil,
+            isSessionTask: self.isSessionTask,
+            shouldTrackAverageTime: self.shouldTrackAverageTime,
+            averageCompletionTime: self.averageCompletionTime,
+            isChecklistTask: self.isChecklistTask,
+            checklistItems: self.checklistItems as? [ChecklistItem]
         )
     }
     
@@ -37,6 +43,10 @@ extension CDTask {
             self.lastCompleted = ISO8601DateFormatter.shared.date(from: lastCompletedStr)
         }
         self.repetitionInterval = Int32(task.repetitionInterval ?? 0)
+        self.isSessionTask = task.isSessionTask
+        self.shouldTrackAverageTime = task.shouldTrackAverageTime
+        self.isChecklistTask = task.isChecklistTask
+        self.checklistItems = task.checklistItems as NSObject?
         
         // Verify the stored UUID
         logger.debug("Stored UUID: \(self.uuid?.uuidString ?? "nil")")

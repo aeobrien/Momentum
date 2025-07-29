@@ -26,6 +26,8 @@ extension CDTask {
     @NSManaged public var taskName: String?
     @NSManaged public var uuid: UUID?
     @NSManaged public var shouldTrackAverageTime: Bool
+    @NSManaged public var isChecklistTask: Bool
+    @NSManaged public var checklistItems: NSObject?
     @NSManaged public var routineRelations: NSSet?
     @NSManaged public var completionTimes: NSSet?
 

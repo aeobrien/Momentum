@@ -186,7 +186,32 @@ struct SettingsView: View {
                               "maxDuration": 25,
                               "essentiality": 3,
                               "repetitionInterval": 0,
-                              "uuid": "2FA3751C-AEBF-471C-8D53-90263258913F"
+                              "uuid": "2FA3751C-AEBF-471C-8D53-90263258913F",
+                              "isChecklistTask": false,
+                              "checklistItems": []
+                            },
+                            {
+                              "taskName": "Morning Routine",
+                              "minDuration": 15,
+                              "maxDuration": 20,
+                              "essentiality": 3,
+                              "repetitionInterval": 0,
+                              "uuid": "3BA4862D-CFCG-582D-9E64-A1374369A04G",
+                              "isChecklistTask": true,
+                              "checklistItems": [
+                                {
+                                  "id": "550E8400-E29B-41D4-A716-446655440001",
+                                  "title": "Brush teeth",
+                                  "isCompleted": false,
+                                  "order": 0
+                                },
+                                {
+                                  "id": "550E8400-E29B-41D4-A716-446655440002",
+                                  "title": "Make bed",
+                                  "isCompleted": false,
+                                  "order": 1
+                                }
+                              ]
                             }]
                             """)
                             .font(.system(.caption2, design: .monospaced))

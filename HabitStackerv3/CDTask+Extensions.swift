@@ -15,7 +15,9 @@ extension CDTask {
             repetitionInterval: Int(self.repetitionInterval),
             isSessionTask: self.isSessionTask,
             shouldTrackAverageTime: self.shouldTrackAverageTime,
-            averageCompletionTime: self.averageCompletionTime
+            averageCompletionTime: self.averageCompletionTime,
+            isChecklistTask: self.isChecklistTask,
+            checklistItems: self.checklistItems as? [ChecklistItem]
         )
     }
     
@@ -45,6 +47,17 @@ extension CDTask {
         
         self.isSessionTask = task.isSessionTask
         self.shouldTrackAverageTime = task.shouldTrackAverageTime
+        self.isChecklistTask = task.isChecklistTask
+        
+        // Debug checklist items
+        if let checklistItems = task.checklistItems {
+            logger.debug("Setting \(checklistItems.count, privacy: .public) checklist items for task '\(task.taskName, privacy: .public)'")
+            for (index, item) in checklistItems.enumerated() {
+                logger.debug("  Checklist item \(index, privacy: .public): \(item.title, privacy: .public)")
+            }
+        }
+        
+        self.checklistItems = task.checklistItems as NSObject?
         
         // Verify the stored UUID
         logger.debug("Stored UUID: \(self.uuid?.uuidString ?? "nil", privacy: .public)")

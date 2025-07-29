@@ -14,6 +14,9 @@ struct MomentumApp: App {
         
         // Set portrait orientation lock
         AppDelegate.orientationLock = .portrait
+        
+        // Register custom value transformer for ChecklistItem
+        ChecklistItemTransformer.register()
     }
     
     var body: some Scene {

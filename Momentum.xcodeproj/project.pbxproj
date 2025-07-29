@@ -49,6 +49,9 @@
 		DD9480042CDC178B0014A929 /* CDRoutine+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */; };
 		DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */; };
 		DD9480082CDC18CE0014A929 /* RoutineStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */; };
+		DDA018482E378145006EEA49 /* ChecklistTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA018472E378145006EEA49 /* ChecklistTaskView.swift */; };
+		DDA0184A2E3787BE006EEA49 /* ChecklistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA018492E3787BE006EEA49 /* ChecklistItem.swift */; };
+		DDA0184C2E37BBE2006EEA49 /* ChecklistItemTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */; };
 		DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */; };
 		DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */; };
 		DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B962E0B080400C573DB /* TempTaskList.swift */; };
@@ -218,6 +221,9 @@
 		DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+Extensions.swift"; sourceTree = "<group>"; };
 		DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorageCoreData.swift; sourceTree = "<group>"; };
 		DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStorageCoreData.swift; sourceTree = "<group>"; };
+		DDA018472E378145006EEA49 /* ChecklistTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistTaskView.swift; sourceTree = "<group>"; };
+		DDA018492E3787BE006EEA49 /* ChecklistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistItem.swift; sourceTree = "<group>"; };
+		DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistItemTransformer.swift; sourceTree = "<group>"; };
 		DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineEntryView.swift; sourceTree = "<group>"; };
 		DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineTimeAllocationView.swift; sourceTree = "<group>"; };
 		DDAE4B962E0B080400C573DB /* TempTaskList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTaskList.swift; sourceTree = "<group>"; };
@@ -479,6 +485,8 @@
 		DDF228172CC958720014505A /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				DDA018492E3787BE006EEA49 /* ChecklistItem.swift */,
+				DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -500,6 +508,7 @@
 				CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */,
 				4FAB675999AA484797121287 /* BackupDetailView.swift */,
 				F746B448122346998D7F6199 /* BackupRestoreView.swift */,
+				DDA018472E378145006EEA49 /* ChecklistTaskView.swift */,
 				DD70B5B52E1C50D800673D79 /* CircularProgressView.swift */,
 				DDF2282E2CC959690014505A /* ContentView.swift */,
 				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
@@ -805,6 +814,7 @@
 				DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */,
 				DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */,
 				DDF228D62CCEBFDA0014505A /* LogRecord.swift in Sources */,
+				DDA0184A2E3787BE006EEA49 /* ChecklistItem.swift in Sources */,
 				DDF228BA2CC99C520014505A /* RoutineSetup.swift in Sources */,
 				DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */,
 				DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */,
@@ -813,6 +823,7 @@
 				DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */,
 				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
 				DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */,
+				DDA018482E378145006EEA49 /* ChecklistTaskView.swift in Sources */,
 				DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */,
 				DD70B6A42E231B5100673D79 /* RoutineTemplateOnboardingView.swift in Sources */,
 				DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */,
@@ -833,6 +844,7 @@
 				DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */,
 				DD70B57F2E1C297400673D79 /* BackgroundTaskViews.swift in Sources */,
 				DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */,
+				DDA0184C2E37BBE2006EEA49 /* ChecklistItemTransformer.swift in Sources */,
 				DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */,
 				DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */,
 				DD947FFF2CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift in Sources */,

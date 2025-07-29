@@ -25,6 +25,8 @@
         <attribute name="taskName" optional="YES" attributeType="String"/>
         <attribute name="uuid" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="shouldTrackAverageTime" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="isChecklistTask" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="checklistItems" optional="YES" attributeType="Transformable" valueTransformerName="ChecklistItemTransformer" customClassName="NSObject"/>
         <relationship name="completionTimes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CDTaskCompletionTime" inverseName="task" inverseEntity="CDTaskCompletionTime"/>
         <relationship name="routineRelations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDRoutineTask" inverseName="task" inverseEntity="CDRoutineTask"/>
     </entity>

@@ -44,6 +44,12 @@ struct CustomTask: Identifiable, Codable, Equatable {
     /// Average completion time in seconds, calculated from stored completion times
     var averageCompletionTime: TimeInterval?
     
+    /// Indicates if the task is a checklist task
+    var isChecklistTask: Bool
+    
+    /// Array of checklist items for checklist tasks
+    var checklistItems: [ChecklistItem]?
+    
     /// Initializes a new CustomTask
     ///
     /// - Parameters:
@@ -58,6 +64,8 @@ struct CustomTask: Identifiable, Codable, Equatable {
     ///   - isSessionTask: Indicates if the task is session-specific (defaults to false)
     ///   - shouldTrackAverageTime: Whether to track average completion times (defaults to true)
     ///   - averageCompletionTime: Average completion time in seconds
+    ///   - isChecklistTask: Indicates if the task is a checklist task (defaults to false)
+    ///   - checklistItems: Array of checklist items for checklist tasks
     init(uuid: String = UUID().uuidString,
          taskName: String,
          essentiality: Int? = nil,
@@ -68,7 +76,9 @@ struct CustomTask: Identifiable, Codable, Equatable {
          order: Int? = nil,
          isSessionTask: Bool = false,
          shouldTrackAverageTime: Bool = true,
-         averageCompletionTime: TimeInterval? = nil) {
+         averageCompletionTime: TimeInterval? = nil,
+         isChecklistTask: Bool = false,
+         checklistItems: [ChecklistItem]? = nil) {
         self.uuid = uuid
         self.taskName = taskName
         self.essentiality = essentiality
@@ -80,5 +90,7 @@ struct CustomTask: Identifiable, Codable, Equatable {
         self.isSessionTask = isSessionTask
         self.shouldTrackAverageTime = shouldTrackAverageTime
         self.averageCompletionTime = averageCompletionTime
+        self.isChecklistTask = isChecklistTask
+        self.checklistItems = checklistItems
     }
 }

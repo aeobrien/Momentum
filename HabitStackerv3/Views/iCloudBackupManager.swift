@@ -126,7 +126,9 @@ class iCloudBackupManager: ObservableObject {
                     minDuration: task.minDuration,
                     maxDuration: task.maxDuration,
                     repetitionInterval: task.repetitionInterval,
-                    shouldTrackAverageTime: task.shouldTrackAverageTime
+                    shouldTrackAverageTime: task.shouldTrackAverageTime,
+                    isChecklistTask: task.isChecklistTask,
+                    checklistItems: task.checklistItems as? [ChecklistItem]
                 )
             }
             
@@ -265,6 +267,8 @@ class iCloudBackupManager: ObservableObject {
                 task.maxDuration = backupTask.maxDuration
                 task.repetitionInterval = backupTask.repetitionInterval
                 task.shouldTrackAverageTime = backupTask.shouldTrackAverageTime
+                task.isChecklistTask = backupTask.isChecklistTask
+                task.checklistItems = backupTask.checklistItems as NSObject?
                 taskMapping[backupTask.uuid] = task
             }
             

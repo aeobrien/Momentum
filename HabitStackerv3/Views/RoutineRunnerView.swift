@@ -18,6 +18,19 @@ struct RoutineRunnerView: View {
     
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineRunnerView")
     
+    // Computed property to get current task
+    private var currentTask: CDTask? {
+        guard runner.currentTaskIndex >= 0 && runner.currentTaskIndex < runner.scheduledTasks.count else {
+            return nil
+        }
+        return runner.scheduledTasks[runner.currentTaskIndex].task
+    }
+    
+    // Check if current task is a checklist task
+    private var isChecklistTask: Bool {
+        return currentTask?.isChecklistTask ?? false
+    }
+    
     // Helper function for schedule color
     private func scheduleColor() -> Color {
         if runner.scheduleOffsetString.contains("ahead") {
@@ -155,24 +168,32 @@ struct RoutineRunnerView: View {
                             .padding(.top, 12)
                         }
                         
-                        // Current task name
-                        Text(runner.currentTaskName)
-                            .font(.system(size: minimalMode ? 42 : 34, weight: .bold))
-                            .foregroundColor(infoMode && highlightedElement == "title" ? .blue : (runner.isOverrun ? .red : .primary))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(3)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal)
-                            .frame(minHeight: 40, maxHeight: minimalMode ? 120 : 100)
-                            .padding(.top, minimalMode ? 20 : 0)
-                            .saturation(infoMode && highlightedElement != "title" ? 0 : 1)
-                            .onTapGesture { 
-                                if infoMode { 
-                                    highlightedElement = "title" 
-                                } else {
-                                    showTaskList = true
+                        // Show either checklist view or regular task view
+                        if isChecklistTask && !minimalMode {
+                            // Checklist task view
+                            ChecklistTaskView(runner: runner)
+                                .frame(maxHeight: 400)
+                                .padding(.horizontal)
+                        } else {
+                            // Regular task name display
+                            Text(runner.currentTaskName)
+                                .font(.system(size: minimalMode ? 42 : 34, weight: .bold))
+                                .foregroundColor(infoMode && highlightedElement == "title" ? .blue : (runner.isOverrun ? .red : .primary))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                                .minimumScaleFactor(0.8)
+                                .padding(.horizontal)
+                                .frame(minHeight: 40, maxHeight: minimalMode ? 120 : 100)
+                                .padding(.top, minimalMode ? 20 : 0)
+                                .saturation(infoMode && highlightedElement != "title" ? 0 : 1)
+                                .onTapGesture { 
+                                    if infoMode { 
+                                        highlightedElement = "title" 
+                                    } else {
+                                        showTaskList = true
+                                    }
                                 }
-                            }
+                        }
                         
                         // Next task preview (hide in minimal mode)
                         if !minimalMode {
@@ -199,52 +220,54 @@ struct RoutineRunnerView: View {
                             }
                         }
                         
-                        // Circular progress and timer
-                        ZStack {
-                            ConcentricProgressView(
-                                outerProgress: runner.progressFraction,
-                                innerProgress: runner.taskProgressFraction,
-                                size: 280,
-                                innerProgressColor: runner.isOverrun ? .red : .blue
-                            )
-                            .saturation(elementSaturation(for: "progress"))
-                            .onTapGesture { 
-                                if infoMode { 
-                                    highlightedElement = "progress" 
-                                }
-                            }
-                            
-                            // Timer display - tap to pause/play
+                        // Circular progress and timer (hide for checklist tasks in non-minimal mode)
+                        if !isChecklistTask || minimalMode {
                             ZStack {
-                                Text(runner.remainingTimeString)
-                                    .font(.system(size: 64, weight: .light).monospacedDigit())
-                                    .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
-                                    .saturation(elementSaturation(for: "timer"))
-                                
-                                // Pause icon overlay when paused
-                                if !runner.isRunning && !runner.isRoutineComplete {
-                                    Image(systemName: "pause.circle.fill")
-                                        .font(.system(size: 140))
-                                        .foregroundColor(.black)
-                                        .opacity(0.8)
+                                ConcentricProgressView(
+                                    outerProgress: runner.progressFraction,
+                                    innerProgress: runner.taskProgressFraction,
+                                    size: 280,
+                                    innerProgressColor: runner.isOverrun ? .red : .blue
+                                )
+                                .saturation(elementSaturation(for: "progress"))
+                                .onTapGesture { 
+                                    if infoMode { 
+                                        highlightedElement = "progress" 
+                                    }
                                 }
-                            }
-                            .onTapGesture { 
-                                if infoMode { 
-                                    highlightedElement = "timer" 
-                                } else {
-                                    // Toggle pause/play
-                                    if runner.isRunning {
-                                        logger.info("Timer tapped - pausing")
-                                        runner.pauseTimer()
+                                
+                                // Timer display - tap to pause/play
+                                ZStack {
+                                    Text(runner.remainingTimeString)
+                                        .font(.system(size: 64, weight: .light).monospacedDigit())
+                                        .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
+                                        .saturation(elementSaturation(for: "timer"))
+                                    
+                                    // Pause icon overlay when paused
+                                    if !runner.isRunning && !runner.isRoutineComplete {
+                                        Image(systemName: "pause.circle.fill")
+                                            .font(.system(size: 140))
+                                            .foregroundColor(.black)
+                                            .opacity(0.8)
+                                    }
+                                }
+                                .onTapGesture { 
+                                    if infoMode { 
+                                        highlightedElement = "timer" 
                                     } else {
-                                        logger.info("Timer tapped - resuming")
-                                        runner.startTimer()
+                                        // Toggle pause/play
+                                        if runner.isRunning {
+                                            logger.info("Timer tapped - pausing")
+                                            runner.pauseTimer()
+                                        } else {
+                                            logger.info("Timer tapped - resuming")
+                                            runner.startTimer()
+                                        }
                                     }
                                 }
                             }
+                            .padding(.top, minimalMode ? 60 : 30)
                         }
-                        .padding(.top, minimalMode ? 60 : 30)
                         
                         // Add flexible spacer in minimal mode to push content down
                         if minimalMode {

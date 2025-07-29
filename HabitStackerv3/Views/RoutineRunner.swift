@@ -137,6 +137,8 @@ class RoutineRunner: ObservableObject {
     private var timeToCountDownAtStart: TimeInterval = 0
     /// Timestamp of the last time the schedule offset was updated due to overrun.
     private var lastOffsetUpdateTime: Date? = nil
+    /// The exact time when the entire routine run started
+    private let runStart: Date
     
     // MARK: - Interruption Properties
     /// Stores the interrupted task and its remaining time
@@ -176,6 +178,81 @@ class RoutineRunner: ObservableObject {
     /// The estimated finishing time based on the original time plus/minus the schedule offset.
     @Published var estimatedFinishingTimeString: String = ""
 
+    // MARK: - Metrics
+    
+    private struct Metrics {
+        let wallElapsed: TimeInterval
+        let expectedTotal: TimeInterval
+        let expectedRemaining: TimeInterval
+        let ahead: TimeInterval
+        let projectedFinish: Date
+    }
+    
+    private func computeMetrics(now: Date = Date()) -> Metrics {
+        let wallElapsed = now.timeIntervalSince(runStart)
+        let expectedTotal = totalRoutineDuration
+
+        // Expected remaining "budget" across:
+        // - the current foreground task
+        // - all background tasks
+        // - all future tasks
+        // (tasks you marked completed/skipped contribute 0)
+        var expectedRemaining: TimeInterval = 0
+
+        // 1) Current foreground task (if any)
+        if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
+            let remaining = currentForegroundRemaining(now: now)
+            expectedRemaining += max(0, remaining)
+        }
+
+        // 2) Background tasks
+        for bg in backgroundTasks {
+            expectedRemaining += max(0, bg.remainingTime)
+        }
+
+        // 3) Future tasks
+        if currentTaskIndex >= 0 {
+            for i in (currentTaskIndex + 1)..<scheduledTasks.count {
+                // If you treat skipped tasks as "completed", make sure they're in completedTaskIndices
+                if !completedTaskIndices.contains(i) &&
+                   !backgroundTasks.contains(where: { $0.taskIndex == i }) {
+                    expectedRemaining += scheduledTasks[i].allocatedDuration
+                }
+            }
+        }
+
+        let ahead = expectedTotal - (wallElapsed + expectedRemaining)
+        let projectedFinish = now.addingTimeInterval(expectedRemaining)
+
+        return Metrics(
+            wallElapsed: wallElapsed,
+            expectedTotal: expectedTotal,
+            expectedRemaining: expectedRemaining,
+            ahead: ahead,
+            projectedFinish: projectedFinish
+        )
+    }
+
+    // Helper pulled out of your existing logic
+    private func currentForegroundRemaining(now: Date) -> TimeInterval {
+        var currentRemaining = currentTaskDuration
+        if let pauseTime = remainingTimeOnPause {
+            currentRemaining = pauseTime
+        } else if let start = startTime, isRunning {
+            let elapsed = now.timeIntervalSince(start)
+            currentRemaining = timeToCountDownAtStart - elapsed
+        }
+        return currentRemaining
+    }
+    
+    private func recomputeOffsets(now: Date = Date()) {
+        let m = computeMetrics(now: now)
+        // Keep your sign convention: negative = ahead
+        self.scheduleOffset = -m.ahead
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString(usingRemaining: m.expectedRemaining)
+    }
+
     // MARK: - Logging
 
     /// Logger for detailed debug and informational messages within the view model.
@@ -210,6 +287,7 @@ class RoutineRunner: ObservableObject {
         self.context = context
         self.scheduledTasks = schedule
         self.routine = routine // Use the passed-in routine
+        self.runStart = Date() // Initialize run start time
         
         // Calculate total duration first
         self.totalRoutineDuration = schedule.reduce(0) { $0 + $1.allocatedDuration }
@@ -533,11 +611,10 @@ class RoutineRunner: ObservableObject {
         }
 
         let deviation = actualDuration - expectedDuration
-        self.scheduleOffset += deviation
-        logger.info("Task '\(completedTaskName, privacy: .public)' completed. Duration: \(actualDuration, format: .fixed(precision: 1))s (Expected: \(expectedDuration, format: .fixed(precision: 1))s). Deviation: \(deviation, format: .fixed(precision: 1))s. New total offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
+        logger.info("Task '\(completedTaskName, privacy: .public)' completed. Duration: \(actualDuration, format: .fixed(precision: 1))s (Expected: \(expectedDuration, format: .fixed(precision: 1))s). Deviation: \(deviation, format: .fixed(precision: 1))s.")
 
-        self.updateScheduleOffsetString()
-        self.updateEstimatedFinishingTimeString()
+        // Recompute offsets instead of manual update
+        self.recomputeOffsets()
         
         // NOW we can clear the timing state
         self.startTime = nil
@@ -607,10 +684,8 @@ class RoutineRunner: ObservableObject {
             let timeSaved = 180 - timeElapsed
             
             // Update schedule offset
-            self.scheduleOffset -= timeSaved
+            self.recomputeOffsets()
             logger.info("Interruption skipped. Time saved: \(timeSaved)s")
-            updateScheduleOffsetString()
-            updateEstimatedFinishingTimeString()
             
             // Stop timer
             timer?.cancel()
@@ -643,11 +718,8 @@ class RoutineRunner: ObservableObject {
         let timeSaved = expectedDuration - timeElapsed
         
         // Update schedule offset - negative means ahead of schedule
-        self.scheduleOffset -= timeSaved
-        logger.info("Task '\(skippedTaskName, privacy: .public)' skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s. New total offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
-        
-        self.updateScheduleOffsetString()
-        self.updateEstimatedFinishingTimeString()
+        self.recomputeOffsets()
+        logger.info("Task '\(skippedTaskName, privacy: .public)' skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s.")
 
         // Stop timer and reset state
         timer?.cancel()
@@ -899,11 +971,9 @@ class RoutineRunner: ObservableObject {
                     let timeSinceLastUpdate = fireDate.timeIntervalSince(lastUpdate)
                     // Update offset continuously during overrun
                     // Note: timeSinceLastUpdate might be slightly more or less than 1.0s
-                    self.scheduleOffset += timeSinceLastUpdate // Add the *actual* elapsed time during overrun
-                    self.updateScheduleOffsetString()
-                    self.updateEstimatedFinishingTimeString()
+                    self.recomputeOffsets(now: fireDate)
                     self.lastOffsetUpdateTime = fireDate // Update for the next calculation
-                    self.logger.trace("Overrun: Added \(timeSinceLastUpdate, format: .fixed(precision: 1))s to offset. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
+                    self.logger.trace("Overrun: Updated offsets at \(fireDate)")
                 } else {
                     // Log if lastOffsetUpdateTime was unexpectedly nil during overrun
                     self.logger.error("lastOffsetUpdateTime was nil during overrun calculation.")
@@ -1028,34 +1098,44 @@ class RoutineRunner: ObservableObject {
     }
     
     /// Updates the `estimatedFinishingTimeString` published property based on current time and remaining tasks.
-    private func updateEstimatedFinishingTimeString() {
-        var totalRemainingTime: TimeInterval = 0
+    private func updateEstimatedFinishingTimeString(usingRemaining remaining: TimeInterval? = nil) {
+        let totalRemainingTime: TimeInterval
         
-        // Add remaining time for current task
-        if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
-            // Calculate current task remaining time
-            var currentRemaining: TimeInterval = currentTaskDuration
-            if let pauseTime = remainingTimeOnPause {
-                currentRemaining = pauseTime
-            } else if let start = startTime, isRunning {
-                let elapsed = Date().timeIntervalSince(start)
-                currentRemaining = timeToCountDownAtStart - elapsed
+        if let remaining = remaining {
+            // Use the provided remaining time
+            totalRemainingTime = remaining
+        } else {
+            // Calculate remaining time manually (old logic)
+            var calculatedRemaining: TimeInterval = 0
+            
+            // Add remaining time for current task
+            if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
+                // Calculate current task remaining time
+                var currentRemaining: TimeInterval = currentTaskDuration
+                if let pauseTime = remainingTimeOnPause {
+                    currentRemaining = pauseTime
+                } else if let start = startTime, isRunning {
+                    let elapsed = Date().timeIntervalSince(start)
+                    currentRemaining = timeToCountDownAtStart - elapsed
+                }
+                // Only add positive remaining time (if overrun, don't add negative time)
+                calculatedRemaining += max(0, currentRemaining)
             }
-            // Only add positive remaining time (if overrun, don't add negative time)
-            totalRemainingTime += max(0, currentRemaining)
-        }
-        
-        // Add all future tasks in the schedule
-        if currentTaskIndex >= 0 {
-            for i in (currentTaskIndex + 1)..<scheduledTasks.count {
-                totalRemainingTime += scheduledTasks[i].allocatedDuration
+            
+            // Add all future tasks in the schedule
+            if currentTaskIndex >= 0 {
+                for i in (currentTaskIndex + 1)..<scheduledTasks.count {
+                    calculatedRemaining += scheduledTasks[i].allocatedDuration
+                }
             }
-        }
-        
-        // Add remaining time for all background tasks
-        for bgTask in backgroundTasks {
-            // Only add positive remaining time
-            totalRemainingTime += max(0, bgTask.remainingTime)
+            
+            // Add remaining time for all background tasks
+            for bgTask in backgroundTasks {
+                // Only add positive remaining time
+                calculatedRemaining += max(0, bgTask.remainingTime)
+            }
+            
+            totalRemainingTime = calculatedRemaining
         }
         
         let estimatedFinishingTime = Date().addingTimeInterval(totalRemainingTime)
@@ -1123,9 +1203,7 @@ class RoutineRunner: ObservableObject {
         totalRoutineDuration += 180
         
         // Update schedule offset (subtract 3 minutes as we're adding time)
-        scheduleOffset += 180
-        updateScheduleOffsetString()
-        updateEstimatedFinishingTimeString()
+        recomputeOffsets()
         
         // Mark that we're handling an interruption
         isHandlingInterruption = true
@@ -1212,7 +1290,7 @@ class RoutineRunner: ObservableObject {
             
             // Update tracking
             totalRoutineDuration += duration
-            scheduleOffset += duration // This reduces the "ahead" time
+            recomputeOffsets() // This reduces the "ahead" time
             
             // Remove from unscheduled list
             unscheduledTasks.removeAll { $0.task.objectID == taskInfo.task.objectID }
@@ -1486,7 +1564,7 @@ class RoutineRunner: ObservableObject {
         let actualDuration = task.allocatedDuration - task.remainingTime
         let expectedDuration = task.allocatedDuration
         let deviation = actualDuration - expectedDuration
-        scheduleOffset += deviation
+        recomputeOffsets()
         logger.info("Background task '\(taskName)' completed. Actual: \(actualDuration)s, Expected: \(expectedDuration)s, Deviation: \(deviation)s")
         
         // Update task completion status
@@ -1690,10 +1768,8 @@ class RoutineRunner: ObservableObject {
                         logger.info("Overrun by \(overrunDuration, format: .fixed(precision: 1)) seconds.")
 
                         // Directly adjust schedule offset for the overrun that occurred in the background
-                        scheduleOffset += overrunDuration
-                        logger.debug("Schedule offset increased by overrun duration. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s")
-                        updateScheduleOffsetString()
-                        updateEstimatedFinishingTimeString()
+                        recomputeOffsets()
+                        logger.debug("Recomputed offsets after background overrun")
 
                         // Update display to show current overrun time
                         updateRemainingTimeDisplay(-overrunDuration)
@@ -1739,11 +1815,9 @@ class RoutineRunner: ObservableObject {
                             // Since we're already in overrun, continue updating schedule offset
                             if let lastUpdate = self.lastOffsetUpdateTime {
                                 let timeSinceLastUpdate = fireDate.timeIntervalSince(lastUpdate)
-                                self.scheduleOffset += timeSinceLastUpdate
-                                self.updateScheduleOffsetString()
-                                self.updateEstimatedFinishingTimeString()
+                                self.recomputeOffsets(now: fireDate)
                                 self.lastOffsetUpdateTime = fireDate
-                                self.logger.trace("Overrun: Added \(timeSinceLastUpdate, format: .fixed(precision: 1))s to offset. New offset: \(self.scheduleOffset, format: .fixed(precision: 1))s.")
+                                self.logger.trace("Overrun: Updated offsets at \(fireDate)")
                             }
                         }
                         
