@@ -28,7 +28,11 @@ struct RoutineRunnerView: View {
     
     // Check if current task is a checklist task
     private var isChecklistTask: Bool {
-        return currentTask?.isChecklistTask ?? false
+        let isChecklist = currentTask?.isChecklistTask ?? false
+        if let task = currentTask {
+            print("[RoutineRunnerView] Task '\(task.taskName ?? "")' isChecklistTask: \(task.isChecklistTask), checklistItems: \(task.checklistItems?.debugDescription ?? "nil")")
+        }
+        return isChecklist
     }
     
     // Helper function for schedule color
@@ -170,9 +174,19 @@ struct RoutineRunnerView: View {
                         
                         // Show either checklist view or regular task view
                         if isChecklistTask && !minimalMode {
-                            // Checklist task view
+                            // Task name at top for checklist tasks
+                            Text(runner.currentTaskName)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(runner.isOverrun ? .red : .primary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .padding(.horizontal)
+                                .padding(.top, 10)
+                            
+                            // Checklist task view with expanded height
                             ChecklistTaskView(runner: runner)
-                                .frame(maxHeight: 400)
+                                .frame(maxHeight: .infinity)
                                 .padding(.horizontal)
                         } else {
                             // Regular task name display
@@ -193,31 +207,6 @@ struct RoutineRunnerView: View {
                                         showTaskList = true
                                     }
                                 }
-                        }
-                        
-                        // Next task preview (hide in minimal mode)
-                        if !minimalMode {
-                            Group {
-                                if let nextTaskName = runner.nextTaskName {
-                                    Text("Coming Up: \(nextTaskName)")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(infoMode && highlightedElement == "comingUp" ? .blue : .secondary)
-                                        .lineLimit(1)
-                                        .padding(.horizontal)
-                                } else {
-                                    Text("Coming Up: Last task")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(infoMode && highlightedElement == "comingUp" ? .blue : .secondary)
-                                }
-                            }
-                            .saturation(elementSaturation(for: "comingUp"))
-                            .onTapGesture { 
-                                if infoMode { 
-                                    highlightedElement = "comingUp" 
-                                } else {
-                                    showTaskList = true
-                                }
-                            }
                         }
                         
                         // Circular progress and timer (hide for checklist tasks in non-minimal mode)
@@ -274,8 +263,8 @@ struct RoutineRunnerView: View {
                             Spacer()
                         }
                         
-                        // Schedule status with spend time button (hide in minimal mode)
-                        if !minimalMode {
+                        // Schedule status with spend time button (hide in minimal mode and for checklist tasks)
+                        if !minimalMode && !isChecklistTask {
                             Button(action: {
                                 if infoMode {
                                     highlightedElement = "schedule"
@@ -310,10 +299,13 @@ struct RoutineRunnerView: View {
                             .buttonStyle(PlainButtonStyle())
                             .saturation(elementSaturation(for: "schedule"))
                             .disabled(!runner.canSpendTime && !infoMode)
-                            .padding(.top, 10)
+                            .padding(.top, 5)
                         }
                         
-                        Spacer()
+                        // Reduce gap for checklist tasks to give more room
+                        if !isChecklistTask {
+                            Spacer()
+                        }
                         
                         // Add flexible spacer in minimal mode to push buttons up
                         if minimalMode {
@@ -484,6 +476,17 @@ struct RoutineRunnerView: View {
                         // Start the timer automatically when view appears
                         if !runner.isRunning && !runner.isRoutineComplete && runner.currentTaskIndex >= 0 {
                             runner.startTimer()
+                        }
+                        
+                        // Force detail view for checklist tasks
+                        if isChecklistTask && minimalMode {
+                            minimalMode = false
+                        }
+                    }
+                    .onChange(of: runner.currentTaskIndex) { _, _ in
+                        // Force detail view when switching to a checklist task
+                        if isChecklistTask && minimalMode {
+                            minimalMode = false
                         }
                     }
                     

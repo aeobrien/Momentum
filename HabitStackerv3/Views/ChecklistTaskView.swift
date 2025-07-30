@@ -21,77 +21,78 @@ struct ChecklistTaskView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Minimal timer display with progress bars
-            HStack {
+        VStack(spacing: 8) {
+            // Top bar with next task on left, timer on right
+            HStack(alignment: .top) {
+                // Next task and schedule info on the left
                 VStack(alignment: .leading, spacing: 4) {
-                    // Time remaining
-                    Text(runner.remainingTimeString)
-                        .font(.system(size: 24, weight: .medium).monospacedDigit())
-                        .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
+                    // Next task on one line
+                    Text("Next: \(runner.nextTaskName ?? "Last task")")
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     
-                    // Progress bars
-                    VStack(spacing: 2) {
-                        // Task progress
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 4)
-                                
-                                Rectangle()
-                                    .fill(runner.isOverrun ? Color.red : Color.blue)
-                                    .frame(width: geometry.size.width * runner.taskProgressFraction, height: 4)
-                            }
-                        }
-                        .frame(height: 4)
+                    // Schedule status and estimated finish time
+                    HStack(spacing: 6) {
+                        Text(runner.scheduleOffsetString)
+                            .font(.caption2)
+                            .foregroundColor(scheduleColor())
+                            .fontWeight(.medium)
                         
-                        // Overall progress
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 4)
-                                
-                                Rectangle()
-                                    .fill(Color.green)
-                                    .frame(width: geometry.size.width * runner.progressFraction, height: 4)
-                            }
-                        }
-                        .frame(height: 4)
+                        Text("•")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        Text(runner.estimatedFinishingTimeString)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer()
                 
-                // Schedule status
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(runner.scheduleOffsetString)
-                        .font(.caption)
-                        .foregroundColor(scheduleColor())
-                        .fontWeight(.medium)
+                // Timer with thin circular progress bars on the right
+                ZStack {
+                    // Custom thin progress rings
+                    // Outer ring background
+                    Circle()
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+                        .frame(width: 80, height: 80)
                     
-                    if let nextTask = runner.nextTaskName {
-                        Text("Next: \(nextTask)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
+                    // Outer ring progress (routine)
+                    Circle()
+                        .trim(from: 0.0, to: runner.progressFraction)
+                        .stroke(Color.green, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 80, height: 80)
+                    
+                    // Inner ring background
+                    Circle()
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+                        .frame(width: 65, height: 65)
+                    
+                    // Inner ring progress (task)
+                    Circle()
+                        .trim(from: 0.0, to: runner.taskProgressFraction)
+                        .stroke(runner.isOverrun ? Color.red : Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 65, height: 65)
+                    
+                    // Timer display
+                    Text(runner.remainingTimeString)
+                        .font(.system(size: 20, weight: .medium).monospacedDigit())
+                        .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 8)
-            
-            // Task name
-            Text(currentTask?.taskName ?? "Checklist Task")
-                .font(.title2)
-                .fontWeight(.bold)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            .padding(.top, 4)
             
             Divider()
+                .padding(.horizontal)
             
-            // Checklist items
+            // Checklist items (expanded to use maximum space)
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(checklistItems.sorted(by: { $0.order < $1.order })) { item in
@@ -151,7 +152,8 @@ struct ChecklistTaskView: View {
                             }
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
             }
         }
         .onAppear {

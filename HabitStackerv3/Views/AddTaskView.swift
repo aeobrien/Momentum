@@ -2,149 +2,9 @@ import SwiftUI
 import SwiftSoup
 import UniformTypeIdentifiers
 
-// Wrapper class to hold checklist items as a reference type
-class ChecklistItemsWrapper: ObservableObject {
-    @Published var items: [ChecklistItem]
-    private let id = UUID()
-    
-    init(items: [ChecklistItem] = []) {
-        self.items = items
-        print("[ChecklistItemsWrapper \(id)] initialized with \(items.count) items")
-    }
-}
-
-// Separate view for checklist management to maintain state
-struct ChecklistItemsView: View {
-    @ObservedObject var itemsWrapper: ChecklistItemsWrapper
-    @State private var newChecklistItemText: String = ""
-    @State private var editingChecklistItem: ChecklistItem?
-    @FocusState private var isTextFieldFocused: Bool
-    private let viewId = UUID()
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Checklist Items")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            // Add new item
-            HStack {
-                TextField("Add new item", text: $newChecklistItemText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($isTextFieldFocused)
-                    .onSubmit {
-                        addChecklistItem()
-                    }
-                
-                Button(action: addChecklistItem) {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.blue)
-                }
-                .disabled(newChecklistItemText.isEmpty)
-            }
-            
-            // List of items
-            if !itemsWrapper.items.isEmpty {
-                ForEach(itemsWrapper.items, id: \.id) { item in
-                    HStack {
-                        Image(systemName: "line.horizontal.3")
-                            .foregroundColor(.gray)
-                        
-                        if editingChecklistItem?.id == item.id {
-                            TextField("Item", text: Binding(
-                                get: { item.title },
-                                set: { newTitle in
-                                    if let index = itemsWrapper.items.firstIndex(where: { $0.id == item.id }) {
-                                        itemsWrapper.items[index].title = newTitle
-                                    }
-                                }
-                            ))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            
-                            Button("Done") {
-                                editingChecklistItem = nil
-                            }
-                            .foregroundColor(.blue)
-                        } else {
-                            Text(item.title)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Button(action: { editingChecklistItem = item }) {
-                                Image(systemName: "pencil")
-                                    .foregroundColor(.blue)
-                            }
-                            
-                            Button(action: { removeChecklistItem(item) }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .onMove(perform: moveChecklistItem)
-            } else {
-                Text("No items added yet")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .italic()
-                    .padding(.vertical, 8)
-            }
-        }
-        .onAppear {
-            print("[ChecklistItemsView \(viewId)] appeared - Checklist items count: \(itemsWrapper.items.count)")
-            for (i, item) in itemsWrapper.items.enumerated() {
-                print("  Item \(i): \(item.title)")
-            }
-        }
-    }
-    
-    private func addChecklistItem() {
-        guard !newChecklistItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
-        let newItem = ChecklistItem(
-            id: UUID(),
-            title: newChecklistItemText.trimmingCharacters(in: .whitespacesAndNewlines),
-            isCompleted: false,
-            order: itemsWrapper.items.count
-        )
-        
-        // Debug logging before
-        print("[ChecklistItemsView \(viewId)] Before adding - Current items: \(itemsWrapper.items.count)")
-        print("WRAPPER PTR:", Unmanaged.passUnretained(itemsWrapper).toOpaque())
-        for (i, item) in itemsWrapper.items.enumerated() {
-            print("  \(i): \(item.title)")
-        }
-        
-        itemsWrapper.items.append(newItem)
-        newChecklistItemText = ""
-        
-        // Debug logging after
-        print("[ChecklistItemsView \(viewId)] After adding - Total items: \(itemsWrapper.items.count)")
-        for (i, item) in itemsWrapper.items.enumerated() {
-            print("  \(i): \(item.title)")
-        }
-        
-        // Keep focus on the text field
-        isTextFieldFocused = true
-    }
-    
-    private func removeChecklistItem(_ item: ChecklistItem) {
-        itemsWrapper.items.removeAll { $0.id == item.id }
-        // Reorder remaining items
-        for (index, _) in itemsWrapper.items.enumerated() {
-            itemsWrapper.items[index].order = index
-        }
-    }
-    
-    private func moveChecklistItem(from source: IndexSet, to destination: Int) {
-        itemsWrapper.items.move(fromOffsets: source, toOffset: destination)
-        // Update order values
-        for (index, _) in itemsWrapper.items.enumerated() {
-            itemsWrapper.items[index].order = index
-        }
-    }
-}
+// Note: ChecklistItemsWrapper and related views have been removed
+// The checklist functionality is now integrated directly into AddTaskView
+// using @State for the single source of truth
 
 /// Enum representing the essentiality levels
 enum Essentiality: String, CaseIterable, Identifiable {
@@ -248,7 +108,8 @@ struct AddTaskView: View {
     
     // Checklist Properties
     @State private var isChecklistTask: Bool
-    @StateObject private var checklistItemsWrapper: ChecklistItemsWrapper
+    @State private var checklistItems: [ChecklistItem] = []
+    @State private var newItemText: String = ""
     
     // UI State
     @State private var showAlert: Bool = false
@@ -258,6 +119,7 @@ struct AddTaskView: View {
     // Debug
     private let viewId: UUID
     @State private var jsonPreviewContent: String = "" // For clipboard import
+    @State private var wrapperCreationCount: Int = 0
     
     // Info popover states
     @State private var showTaskNameInfo = false
@@ -301,8 +163,8 @@ struct AddTaskView: View {
         let initialChecklistItems = task?.checklistItems ?? []
         print("[AddTaskView \(self.viewId)] Initializing with \(initialChecklistItems.count) checklist items")
         
-        // Initialize the StateObject with the initial items
-        _checklistItemsWrapper = StateObject(wrappedValue: ChecklistItemsWrapper(items: initialChecklistItems))
+        // Initialize checklist items state
+        _checklistItems = State(initialValue: initialChecklistItems)
         
         // Set essentiality
         let essentiality: Essentiality
@@ -442,21 +304,69 @@ struct AddTaskView: View {
                         
                         // Checklist Task Toggle
                         VStack(alignment: .leading, spacing: 4) {
-                            Toggle("Checklist Task", isOn: $isChecklistTask.animation())
+                            Toggle("Checklist Task", isOn: $isChecklistTask)
                             Text("Transform this task into a checklist with multiple items to complete.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
                         
-                        // Checklist Items (shown when checklist is enabled)
-                        if isChecklistTask {
-                            Divider().padding(.vertical, 4)
-                            
-                            ChecklistItemsView(itemsWrapper: checklistItemsWrapper)
+                        // Checklist Items (inside Form with stable state)
+                        Divider()
+                            .padding(.vertical, 4)
+                            .collapsible(visible: isChecklistTask)
+
+                        // Always mounted; show/hide content only
+                        Group {
+                            // Add new item
+                            HStack {
+                                TextField("Add new item", text: $newItemText)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onSubmit {
+                                        addChecklistItem()
+                                    }
+
+                                Button(action: addChecklistItem) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                                .disabled(newItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+                            .collapsible(visible: isChecklistTask)
+
+                            // The items — binding-based ForEach inside the Form section
+                            ForEach($checklistItems) { $item in
+                                HStack {
+                                    Image(systemName: "line.horizontal.3")
+                                        .foregroundStyle(.secondary)
+
+                                    TextField("Item", text: $item.title)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                                    Button {
+                                        checklistItems.removeAll { $0.id == item.id }
+                                        renumberChecklistItems()
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    }
+                                }
                                 .padding(.vertical, 4)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                            }
+                            .collapsible(visible: isChecklistTask)
+
+                            if checklistItems.isEmpty {
+                                Text("No items added yet")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                                    .padding(.vertical, 8)
+                                    .collapsible(visible: isChecklistTask)
+                            }
                         }
+                    }
+                    .onChange(of: isChecklistTask) { _, new in
+                        print("[ATV] isChecklistTask -> \(new)")
                     }
                     
                     // --- Section 2: Duration ---
@@ -583,9 +493,8 @@ struct AddTaskView: View {
                 )
             }
             .onAppear {
-                print("[AddTaskView \(viewId)] appeared - Checklist items count: \(checklistItemsWrapper.items.count)")
-                print("WRAPPER PTR:", Unmanaged.passUnretained(checklistItemsWrapper).toOpaque())
-                for (i, item) in checklistItemsWrapper.items.enumerated() {
+                print("[AddTaskView \(viewId)] appeared - Checklist items count: \(checklistItems.count)")
+                for (i, item) in checklistItems.enumerated() {
                     print("  Item \(i): \(item.title)")
                 }
             }
@@ -642,6 +551,20 @@ struct AddTaskView: View {
     
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
+    private func addChecklistItem() {
+        let trimmed = newItemText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let new = ChecklistItem(id: UUID(), title: trimmed, isCompleted: false, order: checklistItems.count)
+        checklistItems.append(new)
+        newItemText = ""
+    }
+    
+    private func renumberChecklistItems() {
+        for idx in checklistItems.indices {
+            checklistItems[idx].order = idx
+        }
     }
     
     // MARK: - Import Logic
@@ -893,7 +816,7 @@ struct AddTaskView: View {
         }
         
         // --- Create/Update Task Object ---
-        let finalChecklistItems = isChecklistTask ? checklistItemsWrapper.items : []
+        let finalChecklistItems = isChecklistTask ? checklistItems : []
         let taskToSave = CustomTask(
             uuid: uuid, // Use the existing UUID or the newly generated one
             taskName: taskName,
@@ -938,6 +861,23 @@ struct AddTaskView: View {
                  print("Preview saved edited task: \(task.taskName)") 
             }
         }
+    }
+}
+
+private struct Collapsible: ViewModifier {
+    let visible: Bool
+    func body(content: Content) -> some View {
+        content
+            .opacity(visible ? 1 : 0)
+            .frame(height: visible ? nil : 0)   // collapse without removal
+            .clipped()
+            .disabled(!visible)
+    }
+}
+
+private extension View {
+    func collapsible(visible: Bool) -> some View {
+        modifier(Collapsible(visible: visible))
     }
 }
 

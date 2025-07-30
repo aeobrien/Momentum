@@ -11,7 +11,7 @@ import Foundation
 public class ChecklistItem: NSObject, NSSecureCoding, Codable, Identifiable {
     public static var supportsSecureCoding: Bool = true
     
-    @objc public var id: UUID
+    @objc public let id: UUID  // NOTE: 'let' so it never changes
     @objc public var title: String
     @objc public var isCompleted: Bool
     @objc public var order: Int
