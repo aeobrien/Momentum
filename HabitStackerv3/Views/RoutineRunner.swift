@@ -189,8 +189,10 @@ class RoutineRunner: ObservableObject {
     }
     
     private func computeMetrics(now: Date = Date()) -> Metrics {
+        logger.info("[OverUnder Calculation] Computing metrics at \(self.logTime())")
         let wallElapsed = now.timeIntervalSince(runStart)
         let expectedTotal = totalRoutineDuration
+        logger.info("[OverUnder Calculation] Wall elapsed: \(wallElapsed/60, format: .fixed(precision: 2))min, Expected total: \(expectedTotal/60, format: .fixed(precision: 2))min")
 
         // Expected remaining "budget" across:
         // - the current foreground task
@@ -203,26 +205,43 @@ class RoutineRunner: ObservableObject {
         if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete {
             let remaining = currentForegroundRemaining(now: now)
             expectedRemaining += max(0, remaining)
+            logger.info("[OverUnder Calculation] Current foreground task remaining: \(remaining, format: .fixed(precision: 2))s")
         }
 
         // 2) Background tasks
+        var bgTasksTime: TimeInterval = 0
         for bg in backgroundTasks {
-            expectedRemaining += max(0, bg.remainingTime)
+            let bgRemaining = max(0, bg.remainingTime)
+            bgTasksTime += bgRemaining
+            expectedRemaining += bgRemaining
+            logger.info("[OverUnder Calculation] Background task #\(bg.taskIndex) remaining: \(bgRemaining, format: .fixed(precision: 2))s")
+        }
+        if !backgroundTasks.isEmpty {
+            logger.info("[OverUnder Calculation] Total background tasks remaining: \(bgTasksTime, format: .fixed(precision: 2))s")
         }
 
         // 3) Future tasks
+        var futureTasksTime: TimeInterval = 0
         if currentTaskIndex >= 0 {
             for i in (currentTaskIndex + 1)..<scheduledTasks.count {
                 // If you treat skipped tasks as "completed", make sure they're in completedTaskIndices
                 if !completedTaskIndices.contains(i) &&
                    !backgroundTasks.contains(where: { $0.taskIndex == i }) {
-                    expectedRemaining += scheduledTasks[i].allocatedDuration
+                    let taskDuration = scheduledTasks[i].allocatedDuration
+                    futureTasksTime += taskDuration
+                    expectedRemaining += taskDuration
+                    logger.info("[OverUnder Calculation] Future task '\(self.scheduledTasks[i].task.taskName ?? "Unnamed")' allocated: \(taskDuration, format: .fixed(precision: 2))s")
                 }
             }
         }
+        logger.info("[OverUnder Calculation] Total future tasks time: \(futureTasksTime, format: .fixed(precision: 2))s")
 
         let ahead = expectedTotal - (wallElapsed + expectedRemaining)
         let projectedFinish = now.addingTimeInterval(expectedRemaining)
+        
+        logger.info("[OverUnder Calculation] Total expected remaining: \(expectedRemaining, format: .fixed(precision: 2))s")
+        logger.info("[OverUnder Calculation] Ahead/Behind calculation: \(expectedTotal, format: .fixed(precision: 2))s - (\(wallElapsed, format: .fixed(precision: 2))s + \(expectedRemaining, format: .fixed(precision: 2))s) = \(ahead, format: .fixed(precision: 2))s")
+        logger.info("[OverUnder Calculation] Result: \(ahead >= 0 ? "Ahead" : "Behind") by \(abs(ahead), format: .fixed(precision: 2))s")
 
         return Metrics(
             wallElapsed: wallElapsed,
@@ -236,19 +255,35 @@ class RoutineRunner: ObservableObject {
     // Helper pulled out of your existing logic
     private func currentForegroundRemaining(now: Date) -> TimeInterval {
         var currentRemaining = currentTaskDuration
+        logger.info("[Timer] Computing foreground remaining at \(self.logTime())")
+        logger.info("[Timer] Initial currentTaskDuration: \(self.currentTaskDuration, format: .fixed(precision: 2))s")
+        
         if let pauseTime = remainingTimeOnPause {
             currentRemaining = pauseTime
+            logger.info("[Timer] Using remainingTimeOnPause: \(pauseTime, format: .fixed(precision: 2))s")
         } else if let start = startTime, isRunning {
             let elapsed = now.timeIntervalSince(start)
             currentRemaining = timeToCountDownAtStart - elapsed
+            logger.info("[Timer] Timer running - Start time: \(Self.logDateFormatter.string(from: start)), Elapsed: \(elapsed, format: .fixed(precision: 2))s")
+            logger.info("[Timer] TimeToCountDownAtStart: \(self.timeToCountDownAtStart, format: .fixed(precision: 2))s, Remaining: \(currentRemaining, format: .fixed(precision: 2))s")
+        } else {
+            logger.info("[Timer] Timer not running or paused - Using currentTaskDuration: \(currentRemaining, format: .fixed(precision: 2))s")
         }
+        
         return currentRemaining
     }
     
     private func recomputeOffsets(now: Date = Date()) {
+        logger.info("[OverUnder Update] Recomputing offsets at \(self.logTime())")
+        let previousOffset = self.scheduleOffset
+        
         let m = computeMetrics(now: now)
         // Keep your sign convention: negative = ahead
         self.scheduleOffset = -m.ahead
+        
+        logger.info("[OverUnder Update] Previous offset: \(previousOffset, format: .fixed(precision: 2))s, New offset: \(self.scheduleOffset, format: .fixed(precision: 2))s")
+        logger.info("[OverUnder Update] Change in offset: \((self.scheduleOffset - previousOffset), format: .fixed(precision: 2))s")
+        
         updateScheduleOffsetString()
         updateEstimatedFinishingTimeString(usingRemaining: m.expectedRemaining)
     }
@@ -561,13 +596,15 @@ class RoutineRunner: ObservableObject {
 
     /// Called when the user taps the "Done" button. Marks the current task complete and moves to the next.
     func markTaskComplete() {
+        logger.info("[Task Complete] MarkTaskComplete called at \(self.logTime())")
+        
         guard self.currentTaskIndex != -1 && self.currentTaskIndex < self.scheduledTasks.count && !self.isRoutineComplete else {
-            logger.warning("Mark complete called but no task is active or routine is finished.")
+            logger.warning("[Task Complete] Mark complete called but no task is active or routine is finished. Index: \(self.currentTaskIndex), Complete: \(self.isRoutineComplete)")
             return
         }
         let completedTask = self.scheduledTasks[self.currentTaskIndex].task
         let completedTaskName = completedTask.taskName ?? "Unnamed Task"
-        logger.info("User marked task '\(completedTaskName, privacy: .public)' complete.")
+        logger.info("[Task Complete] User marked task '\(completedTaskName, privacy: .public)' complete.")
         
         // Check if we're completing an interruption task
         if isHandlingInterruption && completedTaskName == "Interruption" {
@@ -588,33 +625,41 @@ class RoutineRunner: ObservableObject {
         timer?.cancel() // Stop the timer
         timer = nil
         isRunning = false
+        logger.info("[Task Complete] Timer stopped")
         // DON'T clear startTime yet - we need it for duration calculation!
 
         // Calculate deviation based on allocated duration
         let expectedDuration = self.currentTaskDuration // This is now the allocated duration
         var actualDuration: TimeInterval = 0
+        
+        logger.info("[Task Complete] Calculating actual duration - Expected: \(expectedDuration, format: .fixed(precision: 2))s")
+        
         if let pauseTime = self.remainingTimeOnPause {
             actualDuration = expectedDuration - pauseTime
+            logger.info("[Task Complete] Using pause time calculation - Pause time: \(pauseTime, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
         } else if self.isOverrun {
             let intendedEndTime = (startTime ?? Date()).addingTimeInterval(self.timeToCountDownAtStart)
             let timeSinceIntendedEnd = Date().timeIntervalSince(intendedEndTime)
             actualDuration = expectedDuration + timeSinceIntendedEnd
+            logger.info("[Task Complete] Overrun calculation - Time since intended end: \(timeSinceIntendedEnd, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
         } else if let start = startTime {
             actualDuration = Date().timeIntervalSince(start)
+            logger.info("[Task Complete] Normal calculation from start time - Actual: \(actualDuration, format: .fixed(precision: 2))s")
             // Ensure we record at least 1 second if the task was started
             if actualDuration < 1.0 {
                 actualDuration = 1.0
+                logger.info("[Task Complete] Adjusted to minimum 1 second")
             }
         } else {
             // If no start time recorded, use a default minimum duration
             actualDuration = 1.0
+            logger.info("[Task Complete] No start time - using default 1 second")
         }
 
         let deviation = actualDuration - expectedDuration
-        logger.info("Task '\(completedTaskName, privacy: .public)' completed. Duration: \(actualDuration, format: .fixed(precision: 1))s (Expected: \(expectedDuration, format: .fixed(precision: 1))s). Deviation: \(deviation, format: .fixed(precision: 1))s.")
+        logger.info("[Task Complete] Task '\(completedTaskName, privacy: .public)' completed. Duration: \(actualDuration, format: .fixed(precision: 1))s (Expected: \(expectedDuration, format: .fixed(precision: 1))s). Deviation: \(deviation, format: .fixed(precision: 1))s.")
 
-        // Recompute offsets instead of manual update
-        self.recomputeOffsets()
+        // NOTE: We'll recompute offsets AFTER advancing to next task, not here
         
         // NOW we can clear the timing state
         self.startTime = nil
@@ -659,17 +704,24 @@ class RoutineRunner: ObservableObject {
 
         // Advance *after* calculation and updates
         self.advanceToNextTask()
+        
+        // NOW recompute offsets after the task has been removed from active schedule
+        logger.info("[Task Complete] Recomputing offsets after task advancement")
+        self.recomputeOffsets()
+        logger.info("[Task Complete] Completion of '\(completedTaskName, privacy: .public)' finalized - offsets updated")
     }
 
     /// Skips the current task, updating schedule offset based on time saved.
     func skipCurrentTask() {
+        logger.info("[Task Skip] SkipCurrentTask called at \(self.logTime())")
+        
         guard self.currentTaskIndex != -1 && self.currentTaskIndex < self.scheduledTasks.count && !self.isRoutineComplete else {
-            logger.warning("Skip called but no task is active or routine is finished.")
+            logger.warning("[Task Skip] Skip called but no task is active or routine is finished. Index: \(self.currentTaskIndex), Complete: \(self.isRoutineComplete)")
             return
         }
         let skippedTask = self.scheduledTasks[self.currentTaskIndex].task
         let skippedTaskName = skippedTask.taskName ?? "Unnamed Task"
-        logger.info("User skipped task '\(skippedTaskName, privacy: .public)'.")
+        logger.info("[Task Skip] User skipped task '\(skippedTaskName, privacy: .public)'.")
         
         // Check if we're skipping an interruption task
         if isHandlingInterruption && skippedTaskName == "Interruption" {
@@ -704,22 +756,27 @@ class RoutineRunner: ObservableObject {
         let expectedDuration = self.currentTaskDuration // This is the allocated duration
         var timeElapsed: TimeInterval = 0
         
+        logger.info("[Task Skip] Calculating time saved - Expected duration: \(expectedDuration, format: .fixed(precision: 2))s")
+        
         if let pauseTime = self.remainingTimeOnPause {
             // Task was paused, calculate elapsed time from remaining
             timeElapsed = expectedDuration - pauseTime
+            logger.info("[Task Skip] Task was paused - Remaining: \(pauseTime, format: .fixed(precision: 2))s, Elapsed: \(timeElapsed, format: .fixed(precision: 2))s")
         } else if let start = startTime {
             // Task was running, calculate elapsed time
             timeElapsed = Date().timeIntervalSince(start)
+            logger.info("[Task Skip] Task was running - Start time: \(Self.logDateFormatter.string(from: start)), Elapsed: \(timeElapsed, format: .fixed(precision: 2))s")
         } else {
             // Task was never started, elapsed time is 0
             timeElapsed = 0
+            logger.info("[Task Skip] Task was never started - Elapsed: 0s")
         }
         
         let timeSaved = expectedDuration - timeElapsed
+        logger.info("[Task Skip] Time saved by skipping: \(timeSaved, format: .fixed(precision: 2))s")
         
-        // Update schedule offset - negative means ahead of schedule
-        self.recomputeOffsets()
-        logger.info("Task '\(skippedTaskName, privacy: .public)' skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s.")
+        // NOTE: We'll recompute offsets AFTER advancing to next task, not here
+        logger.info("[Task Skip] Task '\(skippedTaskName, privacy: .public)' will be skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s.")
 
         // Stop timer and reset state
         timer?.cancel()
@@ -728,6 +785,7 @@ class RoutineRunner: ObservableObject {
         startTime = nil
         remainingTimeOnPause = nil
         isOverrun = false
+        logger.info("[Task Skip] Timer and state reset")
         lastOffsetUpdateTime = nil
         DispatchQueue.main.async { [weak self] in
            guard let self = self else { return }
@@ -758,6 +816,11 @@ class RoutineRunner: ObservableObject {
 
         // Advance *after* update
         self.advanceToNextTask()
+        
+        // NOW recompute offsets after the task has been removed from active schedule
+        logger.info("[Task Skip] Recomputing offsets after task advancement")
+        self.recomputeOffsets()
+        logger.info("[Task Skip] Skip complete for '\(skippedTaskName, privacy: .public)' - offsets updated")
     }
 
     /// Updates the completion status (e.g., lastCompleted date) of the current task in Core Data.
@@ -869,12 +932,14 @@ class RoutineRunner: ObservableObject {
 
     /// Starts or resumes the timer for the current task.
     func startTimer() {
+        logger.info("[Timer Control] StartTimer called at \(self.logTime())")
+        
         guard self.currentTaskIndex != -1 && !self.isRoutineComplete else {
-            logger.warning("Start timer called but no task active or routine complete.")
+            logger.warning("[Timer Control] Start timer called but no task active or routine complete. Index: \(self.currentTaskIndex), Complete: \(self.isRoutineComplete)")
             return
         }
         guard !isRunning else {
-            logger.warning("Start timer called but timer is already running.")
+            logger.warning("[Timer Control] Start timer called but timer is already running.")
             return
         }
 
@@ -885,15 +950,17 @@ class RoutineRunner: ObservableObject {
         // Determine the time to count down from
         if let pausedTime = self.remainingTimeOnPause {
             self.timeToCountDownAtStart = pausedTime
-            logger.info("Resuming timer for task '\(taskName, privacy: .public)' with \(pausedTime, format: .fixed(precision: 1))s remaining.")
+            logger.info("[Timer Control] Resuming timer for task '\(taskName, privacy: .public)' with \(pausedTime, format: .fixed(precision: 1))s remaining.")
+            logger.info("[Timer Control] Cleared remainingTimeOnPause")
             self.remainingTimeOnPause = nil // Clear pause state
         } else {
              self.timeToCountDownAtStart = self.currentTaskDuration
-            logger.info("Starting timer for task '\(taskName, privacy: .public)' for \(self.currentTaskDuration, format: .fixed(precision: 1))s.")
+            logger.info("[Timer Control] Starting timer for task '\(taskName, privacy: .public)' for \(self.currentTaskDuration, format: .fixed(precision: 1))s.")
         }
 
         self.startTime = Date() // Record the exact start/resume time
         self.lastOffsetUpdateTime = self.startTime // Initialize for overrun calculation
+        logger.info("[Timer Control] Start time: \(Self.logDateFormatter.string(from: self.startTime!)), timeToCountDownAtStart: \(self.timeToCountDownAtStart, format: .fixed(precision: 2))s")
 
         isRunning = true
          DispatchQueue.main.async { // Ensure UI updates are on main thread
@@ -911,10 +978,20 @@ class RoutineRunner: ObservableObject {
 
         // Setup the Combine timer to fire every second
         timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
-            guard let self = self, self.isRunning else { return } // Ensure we're still running
+            guard let self = self, self.isRunning else { 
+                self?.logger.trace("[Timer Update] Timer fired but not running or self is nil")
+                return 
+            }
 
             let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
             let timeRemaining = self.timeToCountDownAtStart - elapsedTime
+            
+            // Log every 5 seconds to avoid spam, or when transitioning states
+            let shouldLogDetails = Int(elapsedTime) % 5 == 0 || abs(timeRemaining) < 1.0 || (self.isOverrun && self.lastOffsetUpdateTime == nil)
+            
+            if shouldLogDetails {
+                self.logger.info("[Timer Update] Timer tick at \(self.logTime()) - Elapsed: \(elapsedTime, format: .fixed(precision: 2))s, Remaining: \(timeRemaining, format: .fixed(precision: 2))s, Overrun: \(self.isOverrun)")
+            }
 
             // Update the display regardless of overrun state first
             self.updateRemainingTimeDisplay(timeRemaining) // This now handles 00:00 correctly
@@ -960,7 +1037,8 @@ class RoutineRunner: ObservableObject {
 
                     let task = self.scheduledTasks[self.currentTaskIndex].task // task is non-optional here
                     let taskNameToLog = task.taskName ?? "Unnamed"
-                    self.logger.warning("Task '\(taskNameToLog, privacy: .public)' timer passed 0. Entering overrun state (time: \(timeRemaining, format: .fixed(precision: 2))s).")
+                    self.logger.warning("[Timer Update] Task '\(taskNameToLog, privacy: .public)' timer passed 0. Entering overrun state (time: \(timeRemaining, format: .fixed(precision: 2))s).")
+                    self.logger.warning("[Timer Update] Overrun started at: \(self.logTime()), lastOffsetUpdateTime set to: \(Self.logDateFormatter.string(from: self.lastOffsetUpdateTime!))")
                     // Consider playing a subtle sound here if desired
                     // AudioServicesPlaySystemSound(1005)
                 }
@@ -971,12 +1049,13 @@ class RoutineRunner: ObservableObject {
                     let timeSinceLastUpdate = fireDate.timeIntervalSince(lastUpdate)
                     // Update offset continuously during overrun
                     // Note: timeSinceLastUpdate might be slightly more or less than 1.0s
+                    self.logger.info("[Timer Update] Overrun offset update - Time since last update: \(timeSinceLastUpdate, format: .fixed(precision: 2))s")
                     self.recomputeOffsets(now: fireDate)
                     self.lastOffsetUpdateTime = fireDate // Update for the next calculation
-                    self.logger.trace("Overrun: Updated offsets at \(fireDate)")
+                    self.logger.trace("[Timer Update] Overrun: Updated offsets at \(Self.logDateFormatter.string(from: fireDate))")
                 } else {
                     // Log if lastOffsetUpdateTime was unexpectedly nil during overrun
-                    self.logger.error("lastOffsetUpdateTime was nil during overrun calculation.")
+                    self.logger.error("[Timer Update] lastOffsetUpdateTime was nil during overrun calculation.")
                     self.lastOffsetUpdateTime = fireDate // Attempt to recover
                 }
 
@@ -996,11 +1075,13 @@ class RoutineRunner: ObservableObject {
 
     /// Pauses the timer for the current task.
     func pauseTimer(isBackgrounding: Bool = false) {
+        logger.info("[Timer Control] PauseTimer called at \(self.logTime()) (backgrounding: \(isBackgrounding))")
+        
         guard isRunning else {
-            logger.debug("Pause timer called, but timer is not running.")
+            logger.debug("[Timer Control] Pause timer called, but timer is not running.")
             return
         }
-        logger.info("Pausing timer. \(isBackgrounding ? "(Due to backgrounding)" : "")")
+        logger.info("[Timer Control] Pausing timer. \(isBackgrounding ? "(Due to backgrounding)" : "")")
 
         timer?.cancel() // Stop the timer publisher
         timer = nil
@@ -1008,21 +1089,24 @@ class RoutineRunner: ObservableObject {
         // Calculate remaining time accurately based on when it started/resumed
         let elapsed = Date().timeIntervalSince(startTime ?? Date()) // Time since last start/resume
         let remaining = timeToCountDownAtStart - elapsed // Calculate actual time left
+        
+        logger.info("[Timer Control] Pause calculation - Elapsed: \(elapsed, format: .fixed(precision: 2))s, TimeToCountDown: \(self.timeToCountDownAtStart, format: .fixed(precision: 2))s, Remaining: \(remaining, format: .fixed(precision: 2))s")
 
         // Store the remaining time regardless of whether it's positive or negative
         // This preserves overrun state when backgrounding
         remainingTimeOnPause = remaining
         
         if remaining > 0 {
-            logger.debug("Remaining time on pause stored: \(remaining, format: .fixed(precision: 1))s")
+            logger.debug("[Timer Control] Remaining time on pause stored: \(remaining, format: .fixed(precision: 1))s")
         } else {
-            logger.debug("Timer paused during overrun. Stored negative remaining time: \(remaining, format: .fixed(precision: 1))s")
+            logger.debug("[Timer Control] Timer paused during overrun. Stored negative remaining time: \(remaining, format: .fixed(precision: 1))s")
         }
 
         // Update published state on main thread
         DispatchQueue.main.async {
             self.isRunning = false
         }
+        logger.info("[Timer Control] Timer paused successfully. StartTime cleared, isRunning set to false")
         startTime = nil // Clear start time as it's no longer relevant for pause calculation
 
         // DO NOT update backgroundEnterTime here; it's handled by observeScenePhase
@@ -1060,11 +1144,15 @@ class RoutineRunner: ObservableObject {
 
     /// Updates the `scheduleOffsetString` published property based on the `scheduleOffset`.
     private func updateScheduleOffsetString() {
+        logger.info("[Schedule String] Updating schedule offset string at \(self.logTime())")
         let offset = self.scheduleOffset
+        logger.info("[Schedule String] Current offset value: \(offset, format: .fixed(precision: 2))s (negative=ahead, positive=behind)")
+        
         var newString: String
 
         if abs(offset) < 1.0 {
             newString = "On schedule"
+            logger.info("[Schedule String] Within 1s threshold - displaying 'On schedule'")
         } else {
             let totalSeconds = Int(abs(offset))
             let hours = totalSeconds / 3600
@@ -1082,8 +1170,10 @@ class RoutineRunner: ObservableObject {
             
             if offset < 0 {
                 newString = "\(formattedOffset) ahead of schedule"
+                logger.info("[Schedule String] Formatted: '\(newString)' (offset was negative)")
             } else {
                 newString = "\(formattedOffset) behind schedule"
+                logger.info("[Schedule String] Formatted: '\(newString)' (offset was positive)")
             }
         }
         
@@ -1091,20 +1181,28 @@ class RoutineRunner: ObservableObject {
         let availableTime = max(0, -offset) // Positive when ahead of schedule
         let canSpend = availableTime >= shortestUnscheduledDuration && !unscheduledTasks.isEmpty && !isRoutineComplete
         
+        logger.info("[Schedule String] Available time: \(availableTime, format: .fixed(precision: 2))s, Shortest unscheduled: \(self.shortestUnscheduledDuration, format: .fixed(precision: 2))s")
+        logger.info("[Schedule String] Can spend time: \(canSpend) (has unscheduled: \(!self.unscheduledTasks.isEmpty), not complete: \(!self.isRoutineComplete))")
+        
         DispatchQueue.main.async {
             self.scheduleOffsetString = newString
             self.canSpendTime = canSpend
+            self.logger.info("[Schedule String] UI updated - String: '\(newString)', Can spend: \(canSpend)")
         }
     }
     
     /// Updates the `estimatedFinishingTimeString` published property based on current time and remaining tasks.
     private func updateEstimatedFinishingTimeString(usingRemaining remaining: TimeInterval? = nil) {
+        logger.info("[Estimated Finish] Updating estimated finishing time at \(self.logTime())")
+        
         let totalRemainingTime: TimeInterval
         
         if let remaining = remaining {
+            logger.info("[Estimated Finish] Using provided remaining time: \(remaining, format: .fixed(precision: 2))s")
             // Use the provided remaining time
             totalRemainingTime = remaining
         } else {
+            logger.info("[Estimated Finish] Calculating remaining time manually")
             // Calculate remaining time manually (old logic)
             var calculatedRemaining: TimeInterval = 0
             
@@ -1114,31 +1212,47 @@ class RoutineRunner: ObservableObject {
                 var currentRemaining: TimeInterval = currentTaskDuration
                 if let pauseTime = remainingTimeOnPause {
                     currentRemaining = pauseTime
+                    logger.info("[Estimated Finish] Current task using pause time: \(pauseTime, format: .fixed(precision: 2))s")
                 } else if let start = startTime, isRunning {
                     let elapsed = Date().timeIntervalSince(start)
                     currentRemaining = timeToCountDownAtStart - elapsed
+                    logger.info("[Estimated Finish] Current task running - elapsed: \(elapsed, format: .fixed(precision: 2))s, remaining: \(currentRemaining, format: .fixed(precision: 2))s")
+                } else {
+                    logger.info("[Estimated Finish] Current task not running - using full duration: \(currentRemaining, format: .fixed(precision: 2))s")
                 }
                 // Only add positive remaining time (if overrun, don't add negative time)
-                calculatedRemaining += max(0, currentRemaining)
+                let addedTime = max(0, currentRemaining)
+                calculatedRemaining += addedTime
+                logger.info("[Estimated Finish] Added current task time: \(addedTime, format: .fixed(precision: 2))s (raw: \(currentRemaining, format: .fixed(precision: 2))s)")
             }
             
             // Add all future tasks in the schedule
+            var futureTasksTime: TimeInterval = 0
             if currentTaskIndex >= 0 {
                 for i in (currentTaskIndex + 1)..<scheduledTasks.count {
-                    calculatedRemaining += scheduledTasks[i].allocatedDuration
+                    let taskTime = scheduledTasks[i].allocatedDuration
+                    calculatedRemaining += taskTime
+                    futureTasksTime += taskTime
                 }
             }
+            logger.info("[Estimated Finish] Future tasks total: \(futureTasksTime, format: .fixed(precision: 2))s")
             
             // Add remaining time for all background tasks
+            var bgTasksTime: TimeInterval = 0
             for bgTask in backgroundTasks {
                 // Only add positive remaining time
-                calculatedRemaining += max(0, bgTask.remainingTime)
+                let bgRemaining = max(0, bgTask.remainingTime)
+                calculatedRemaining += bgRemaining
+                bgTasksTime += bgRemaining
             }
+            logger.info("[Estimated Finish] Background tasks total: \(bgTasksTime, format: .fixed(precision: 2))s")
             
             totalRemainingTime = calculatedRemaining
+            logger.info("[Estimated Finish] Total calculated remaining: \(calculatedRemaining, format: .fixed(precision: 2))s")
         }
         
         let estimatedFinishingTime = Date().addingTimeInterval(totalRemainingTime)
+        logger.info("[Estimated Finish] Estimated finish time: \(Self.logDateFormatter.string(from: estimatedFinishingTime)) (in \(totalRemainingTime/60, format: .fixed(precision: 2)) minutes)")
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         let timeString = formatter.string(from: estimatedFinishingTime)
@@ -1463,15 +1577,17 @@ class RoutineRunner: ObservableObject {
     
     /// Moves the current task to background and advances to the next task
     func moveCurrentTaskToBackground() {
+        logger.info("[Background Task] MoveCurrentTaskToBackground called at \(self.logTime())")
+        
         guard currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count && !isRoutineComplete else {
-            logger.warning("Cannot move to background: no active task or routine complete")
+            logger.warning("[Background Task] Cannot move to background: no active task or routine complete. Index: \(self.currentTaskIndex), Complete: \(self.isRoutineComplete)")
             return
         }
         
         // Don't allow interruption tasks to be backgrounded
         let currentTaskName = scheduledTasks[currentTaskIndex].task.taskName ?? ""
         if currentTaskName == "Interruption" {
-            logger.warning("Cannot move interruption task to background")
+            logger.warning("[Background Task] Cannot move interruption task to background")
             return
         }
         
@@ -1485,11 +1601,17 @@ class RoutineRunner: ObservableObject {
         
         // Calculate remaining time for current task (including negative values for overrun)
         var remainingTime: TimeInterval = currentTaskDuration
+        
+        logger.info("[Background Task] Calculating remaining time for backgrounding")
         if let pauseTime = remainingTimeOnPause {
             remainingTime = pauseTime
+            logger.info("[Background Task] Using pause time: \(pauseTime, format: .fixed(precision: 2))s")
         } else if let start = startTime, isRunning {
             let elapsed = Date().timeIntervalSince(start)
             remainingTime = timeToCountDownAtStart - elapsed // Don't use max(0, ...) to preserve negative values
+            logger.info("[Background Task] Task running - elapsed: \(elapsed, format: .fixed(precision: 2))s, remaining: \(remainingTime, format: .fixed(precision: 2))s")
+        } else {
+            logger.info("[Background Task] Task not running - using full duration: \(self.currentTaskDuration, format: .fixed(precision: 2))s")
         }
         
         // Create background task state
@@ -1500,6 +1622,8 @@ class RoutineRunner: ObservableObject {
             remainingTime: remainingTime
         )
         
+        logger.info("[Background Task] Creating background task for index \(self.currentTaskIndex) with allocated: \(self.currentTaskDuration, format: .fixed(precision: 2))s, remaining: \(remainingTime, format: .fixed(precision: 2))s")
+        
         // Stop the current timer
         timer?.cancel()
         timer = nil
@@ -1509,7 +1633,7 @@ class RoutineRunner: ObservableObject {
         startBackgroundTimer(for: &backgroundTask)
         backgroundTasks.append(backgroundTask)
         
-        logger.info("Task moved to background with \(remainingTime)s remaining")
+        logger.info("[Background Task] Task '\(currentTaskName)' moved to background with \(remainingTime, format: .fixed(precision: 2))s remaining. Total background tasks: \(self.backgroundTasks.count)")
         
         // Advance to next task
         advanceToNextTask()
@@ -1536,6 +1660,11 @@ class RoutineRunner: ObservableObject {
                     // Use initial remaining time, not allocated duration (preserve negative values)
                     task.remainingTime = initialRemainingTime - elapsed
                     
+                    // Log every 5 seconds to avoid spam
+                    if Int(elapsed) % 5 == 0 {
+                        self.logger.trace("[Background Task Timer] Task '\(task.task.taskName ?? "Unnamed")' (index: \(task.taskIndex)) - Elapsed: \(elapsed, format: .fixed(precision: 2))s, Remaining: \(task.remainingTime, format: .fixed(precision: 2))s")
+                    }
+                    
                     // Update the task in the array
                     self.backgroundTasks[index] = task
                     
@@ -1550,7 +1679,12 @@ class RoutineRunner: ObservableObject {
     
     /// Completes a background task
     func completeBackgroundTask(at index: Int) {
-        guard index >= 0 && index < backgroundTasks.count else { return }
+        logger.info("[Background Task] CompleteBackgroundTask called at \(self.logTime()) for index \(index)")
+        
+        guard index >= 0 && index < backgroundTasks.count else { 
+            logger.warning("[Background Task] Invalid background task index: \(index), count: \(self.backgroundTasks.count)")
+            return 
+        }
         
         var task = backgroundTasks[index]
         task.timer?.cancel()
@@ -1558,7 +1692,7 @@ class RoutineRunner: ObservableObject {
         task.isRunning = false
         
         let taskName = task.task.taskName ?? "Unnamed"
-        logger.info("Completing background task '\(taskName)'")
+        logger.info("[Background Task] Completing background task '\(taskName)' (index: \(task.taskIndex)) with remaining time: \(task.remainingTime, format: .fixed(precision: 2))s")
         
         // Calculate actual duration and update schedule offset
         let actualDuration = task.allocatedDuration - task.remainingTime
@@ -1607,13 +1741,19 @@ class RoutineRunner: ObservableObject {
     
     /// Switches a background task back to foreground
     func switchBackgroundTaskToForeground(at backgroundIndex: Int) {
-        guard backgroundIndex >= 0 && backgroundIndex < backgroundTasks.count else { return }
+        logger.info("[Background Task] SwitchBackgroundTaskToForeground called at \(self.logTime()) for index \(backgroundIndex)")
+        
+        guard backgroundIndex >= 0 && backgroundIndex < backgroundTasks.count else { 
+            logger.warning("[Background Task] Invalid background task index: \(backgroundIndex), count: \(self.backgroundTasks.count)")
+            return 
+        }
         
         let backgroundTask = backgroundTasks[backgroundIndex]
-        logger.info("Switching background task '\(backgroundTask.task.taskName ?? "Unnamed")' to foreground")
+        logger.info("[Background Task] Switching background task '\(backgroundTask.task.taskName ?? "Unnamed")' (index: \(backgroundTask.taskIndex)) to foreground. Remaining time: \(backgroundTask.remainingTime, format: .fixed(precision: 2))s")
         
         // First, pause the current task if it's running
         if isRunning {
+            logger.info("[Background Task] Pausing current task before switch")
             pauseTimer()
         }
         
