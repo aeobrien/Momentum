@@ -303,14 +303,11 @@ struct RoutineRunnerView: View {
                         }
                         
                         // Reduce gap for checklist tasks to give more room
-                        if !isChecklistTask {
+                        if !isChecklistTask && !minimalMode {
                             Spacer()
                         }
                         
-                        // Add flexible spacer in minimal mode to push buttons up
-                        if minimalMode {
-                            Spacer()
-                        }
+                        // Remove spacer in minimal mode to keep buttons higher
                         
                         // Action buttons
                         if !minimalMode {
@@ -471,6 +468,7 @@ struct RoutineRunnerView: View {
                         // Bottom spacing
                         Spacer().frame(height: 20)
                     }
+                    .padding(.bottom, minimalMode ? 120 : 60) // More padding in minimal mode to lift elements higher
                     .background(Color(.systemGray6))
                     .onAppear {
                         // Start the timer automatically when view appears

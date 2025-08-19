@@ -228,9 +228,14 @@ struct SchedulePreviewView: View {
 
         logger.info("Running routine '\(routine.name ?? "Unnamed")' with \(currentSchedule.count) modified tasks.")
 
-        // Create the RoutineRunner with the modified schedule
+        // Recalculate the finishing time based on the current (potentially modified) schedule
+        let currentTotalDuration = currentSchedule.reduce(0) { $0 + $1.allocatedDuration }
+        let adjustedFinishingTime = Date().addingTimeInterval(currentTotalDuration)
+        logger.info("Adjusted finishing time for modified schedule - duration: \(currentTotalDuration/60) minutes")
+        
+        // Create the RoutineRunner with the modified schedule and adjusted finishing time
         // Using the confirmed correct initializer
-        let newRunner = RoutineRunner(context: viewContext, routine: routine, schedule: currentSchedule, originalFinishingTime: originalFinishingTime)
+        let newRunner = RoutineRunner(context: viewContext, routine: routine, schedule: currentSchedule, originalFinishingTime: adjustedFinishingTime)
 
         // Update the parent view's state via bindings
         runnerInstance = newRunner

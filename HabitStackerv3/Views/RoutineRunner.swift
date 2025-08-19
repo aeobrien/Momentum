@@ -338,6 +338,21 @@ class RoutineRunner: ObservableObject {
         // Identify unscheduled tasks
         identifyUnscheduledTasks(routine: routine, scheduledTasks: schedule)
         
+        // Register for device lock/unlock notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(protectedDataWillBecomeUnavailable),
+            name: UIApplication.protectedDataWillBecomeUnavailableNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(protectedDataDidBecomeAvailable),
+            name: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil
+        )
+        
         // fetchAndSortTasks() // No longer needed - schedule is provided
         prepareFirstTask() // Set up the first task from the schedule
         updateScheduleOffsetString() // Initialize offset string
@@ -348,6 +363,22 @@ class RoutineRunner: ObservableObject {
 
     /// Fetches the CDRoutineTask entities from the provided CDRoutine and sorts them by their 'order' attribute.
     // private func fetchAndSortTasks() { ... } // No longer needed
+    
+    /// Handles when device is about to be locked
+    @objc private func protectedDataWillBecomeUnavailable() {
+        logger.info("Device is being locked - cancelling background notifications")
+        cancelBackgroundNotifications()
+    }
+    
+    /// Handles when device is unlocked
+    @objc private func protectedDataDidBecomeAvailable() {
+        logger.info("Device was unlocked")
+        // If the app is in background and routine is running, reschedule notifications
+        if backgroundEnterTime != nil && isRunning {
+            logger.info("Rescheduling background notifications after device unlock")
+            scheduleBackgroundNotifications()
+        }
+    }
     
     /// Identifies tasks that were not scheduled due to time constraints (but are eligible)
     private func identifyUnscheduledTasks(routine: CDRoutine, scheduledTasks: [ScheduledTask]) {
@@ -1852,6 +1883,9 @@ class RoutineRunner: ObservableObject {
              backgroundTasks[i].timer?.cancel()
          }
          
+         // Clean up notification observers
+         NotificationCenter.default.removeObserver(self)
+         
          logger.info("🔵 DEINIT: Ending Live Activity from deinit")
          // End Live Activity when RoutineRunner is deallocated
          endLiveActivity()
@@ -2393,6 +2427,12 @@ class RoutineRunner: ObservableObject {
     private func scheduleBackgroundNotifications() {
         guard isRunning, currentTaskIndex >= 0, currentTaskIndex < scheduledTasks.count else {
             logger.info("Not scheduling background notifications - routine not running")
+            return
+        }
+        
+        // Check if device is locked - don't schedule notifications if locked
+        if !UIApplication.shared.isProtectedDataAvailable {
+            logger.info("Device is locked - not scheduling background notifications")
             return
         }
         
