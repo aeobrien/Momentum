@@ -36,6 +36,7 @@ class TempRoutineRunner: ObservableObject {
     @Published var isHandlingInterruption: Bool = false
     @Published var backgroundTasks: [TempBackgroundTaskState] = []
     @Published var canMoveToBackground: Bool = false
+    @Published var completedTaskIndices: Set<Int> = []
     
     private(set) var tasks: [TempTask]
     private(set) var currentTaskIndex: Int = -1
@@ -214,6 +215,11 @@ class TempRoutineRunner: ObservableObject {
     func markTaskComplete() {
         let wasRunning = isRunning
         pauseTimer()
+        
+        // Mark current task as completed
+        if currentTaskIndex >= 0 {
+            completedTaskIndices.insert(currentTaskIndex)
+        }
         
         // Check if we're completing an interruption
         if isHandlingInterruption && tasks[currentTaskIndex].name == "Interruption" {

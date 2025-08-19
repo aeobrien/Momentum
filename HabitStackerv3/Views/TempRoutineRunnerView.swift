@@ -532,39 +532,100 @@ struct TempRoutineRunnerView: View {
 
 // Detail view for temporary routine
 struct TempRoutineRunnerDetailView: View {
-    let runner: TempRoutineRunner
+    @ObservedObject var runner: TempRoutineRunner
     @Environment(\.presentationMode) var presentationMode
+    @State private var editMode: EditMode = .active // Enable edit mode for reordering
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(Array(runner.tasks.enumerated()), id: \.element.id) { index, task in
-                    HStack {
-                        if index < runner.currentTaskIndex {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        } else if index == runner.currentTaskIndex {
-                            Image(systemName: "play.circle.fill")
-                                .foregroundColor(.blue)
-                        } else {
-                            Image(systemName: "circle")
-                                .foregroundColor(.gray)
-                        }
-                        
-                        VStack(alignment: .leading) {
-                            Text(task.name)
-                                .font(.headline)
-                            Text("\(task.duration) minutes")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
+            VStack(alignment: .leading, spacing: 16) {
+                // Display Schedule Status
+                HStack {
+                    Text("Schedule Status:")
+                        .font(.headline)
+                    Text(runner.scheduleOffsetString)
+                        .font(.headline)
+                        .foregroundColor(scheduleColor())
                 }
+                .padding(.horizontal)
+                .padding(.top)
+                
+                // Display Current Task Info
+                if !runner.isRoutineComplete {
+                    HStack {
+                        Text("Current Task:")
+                            .font(.headline)
+                        Text("\(runner.currentTaskName) (")
+                        + Text(runner.remainingTimeString)
+                            .font(.system(.headline, design: .monospaced))
+                        + Text(")")
+                    }
+                    .foregroundColor(runner.isOverrun ? .red : .primary)
+                    .padding(.horizontal)
+                } else {
+                    Text("Routine Complete!")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                        .padding(.horizontal)
+                }
+                
+                Divider()
+                    .padding(.horizontal)
+                
+                // Task List Header with Count and Reorder Hint
+                HStack {
+                    Text("Tasks (\(runner.currentTaskIndex + 1)/\(runner.tasks.count))")
+                        .font(.headline)
+                    Spacer()
+                    Text("Drag to reorder")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 5)
+                
+                // Task List with Reordering
+                ScrollViewReader { proxy in
+                    List {
+                        ForEach(Array(runner.tasks.enumerated()), id: \.element.id) { index, task in
+                            HStack {
+                                Image(systemName: taskStatusIcon(index: index))
+                                    .foregroundColor(taskStatusColor(index: index))
+                                    .frame(width: 25, alignment: .center)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(task.name)
+                                        .font(.headline)
+                                        .foregroundColor(runner.completedTaskIndices.contains(index) ? .secondary : .primary)
+                                }
+                                
+                                Spacer()
+                                
+                                // Display duration
+                                Text("\(task.duration) min")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                            .id(index) // Add ID for ScrollViewReader
+                            .deleteDisabled(runner.completedTaskIndices.contains(index) || index == runner.currentTaskIndex)
+                            .moveDisabled(runner.completedTaskIndices.contains(index) || index == runner.currentTaskIndex)
+                        }
+                        .onMove(perform: moveTask)
+                    }
+                    .listStyle(PlainListStyle())
+                    .environment(\.editMode, $editMode)
+                    .onAppear {
+                        // Scroll to current task when view appears
+                        withAnimation {
+                            proxy.scrollTo(runner.currentTaskIndex, anchor: .center)
+                        }
+                    }
+                }
+                
+                Spacer()
             }
-            .navigationTitle("Task List")
+            .navigationTitle("Routine Progress")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -574,6 +635,46 @@ struct TempRoutineRunnerDetailView: View {
                 }
             }
         }
+    }
+    
+    // Helper to get task status icon
+    private func taskStatusIcon(index: Int) -> String {
+        if runner.isRoutineComplete || runner.completedTaskIndices.contains(index) {
+            return "checkmark.circle.fill"
+        } else if index == runner.currentTaskIndex {
+            return runner.isRunning ? "play.circle.fill" : "pause.circle.fill"
+        } else {
+            return "circle"
+        }
+    }
+    
+    // Helper to get task status color
+    private func taskStatusColor(index: Int) -> Color {
+        if runner.isRoutineComplete || runner.completedTaskIndices.contains(index) {
+            return .green
+        } else if index == runner.currentTaskIndex {
+            return runner.isRunning ? .blue : .orange
+        } else {
+            return .gray
+        }
+    }
+    
+    // Helper for schedule color
+    private func scheduleColor() -> Color {
+        if runner.scheduleOffsetString == "On schedule" {
+            return .secondary
+        } else if runner.scheduleOffsetString.contains("ahead") {
+            return .green
+        } else if runner.scheduleOffsetString.contains("behind") {
+            return .red
+        } else {
+            return .primary
+        }
+    }
+    
+    // Function to handle reordering tasks
+    private func moveTask(from source: IndexSet, to destination: Int) {
+        runner.reorderTasks(from: source, to: destination)
     }
 }
 
