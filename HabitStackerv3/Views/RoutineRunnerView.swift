@@ -299,155 +299,113 @@ struct RoutineRunnerView: View {
                             .buttonStyle(PlainButtonStyle())
                             .saturation(elementSaturation(for: "schedule"))
                             .disabled(!runner.canSpendTime && !infoMode)
-                            .padding(.top, 5)
+                            .padding(.top, 30)
                         }
                         
-                        // Reduce gap for checklist tasks to give more room
-                        if !isChecklistTask && !minimalMode {
-                            Spacer()
-                        }
-                        
-                        // Remove spacer in minimal mode to keep buttons higher
+                        // Remove spacers to keep buttons higher
                         
                         // Action buttons
-                        if !minimalMode {
-                            HStack(spacing: 40) {
-                                // Interruption - far left
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "interrupt"
-                                    } else {
-                                        logger.info("Interruption button tapped.")
-                                        runner.handleInterruption()
-                                    }
-                                }) {
-                                    Image(systemName: "exclamationmark.circle")
-                                        .foregroundColor(.red)
-                                        .font(.title2)
+                        HStack(spacing: 40) {
+                            // Interruption - far left (only in detailed mode)
+                            Button(action: {
+                                if infoMode {
+                                    highlightedElement = "interrupt"
+                                } else {
+                                    logger.info("Interruption button tapped.")
+                                    runner.handleInterruption()
                                 }
-                                .saturation(elementSaturation(for: "interrupt"))
-                                .disabled((runner.isRoutineComplete || runner.isHandlingInterruption) && !infoMode)
-                                
-                                // Delay (hourglass) - second from left
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "delay"
-                                    } else {
-                                        logger.info("Delay button tapped.")
-                                        runner.delayCurrentTask()
-                                    }
-                                }) {
-                                    Image(systemName: "hourglass")
-                                        .foregroundColor(.purple)
-                                        .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "delay"))
-                                .disabled((runner.isRoutineComplete || !runner.canDelayCurrentTask) && !infoMode)
-                                
-                                // Toggle minimal mode (minus) - center
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "minimal"
-                                    } else {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            minimalMode.toggle()
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: "minus")
-                                        .foregroundColor(infoMode && highlightedElement == "minimal" ? .blue : .gray)
-                                        .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "minimal"))
-                                
-                                // Skip - second from right
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "skip"
-                                    } else {
-                                        logger.info("Skip button tapped.")
-                                        runner.skipCurrentTask()
-                                    }
-                                }) {
-                                    Image(systemName: "forward.fill")
-                                        .foregroundColor(.yellow)
-                                        .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "skip"))
-                                .disabled(runner.isRoutineComplete && !infoMode)
-                                
-                                // Continue in Background - far right
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "background"
-                                    } else if runner.canMoveToBackground {
-                                        logger.info("Continue in Background button tapped.")
-                                        withAnimation {
-                                            runner.moveCurrentTaskToBackground()
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: "arrow.uturn.down")
-                                        .foregroundColor(.blue)
-                                        .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "background"))
-                                .disabled(!runner.canMoveToBackground && !infoMode)
+                            }) {
+                                Image(systemName: "exclamationmark.circle")
+                                    .foregroundColor(.red)
+                                    .font(.title2)
                             }
-                            .padding(.vertical, 20)
-                        } else {
-                            // Minimal mode - show hourglass, plus, skip buttons
-                            HStack(spacing: 40) {
-                                // Delay (hourglass) - left
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "delay"
-                                    } else {
-                                        logger.info("Delay button tapped in minimal mode.")
-                                        runner.delayCurrentTask()
-                                    }
-                                }) {
-                                    Image(systemName: "hourglass")
-                                        .foregroundColor(.purple)
-                                        .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "delay"))
-                                .disabled(!infoMode && (runner.isRoutineComplete || !runner.canDelayCurrentTask))
+                            .saturation(elementSaturation(for: "interrupt"))
+                            .disabled((runner.isRoutineComplete || runner.isHandlingInterruption) && !infoMode)
+                            .opacity(minimalMode ? 0 : 1)
+                            .scaleEffect(minimalMode ? 0.5 : 1)
+                            .animation(.easeInOut(duration: 0.3), value: minimalMode)
                                 
-                                // Expand to full view (plus) - center
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "minimal"
-                                    } else {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            minimalMode = false
-                                        }
+                            // Delay (hourglass) - visible in both modes
+                            Button(action: {
+                                if infoMode {
+                                    highlightedElement = "delay"
+                                } else {
+                                    logger.info("Delay button tapped.")
+                                    runner.delayCurrentTask()
+                                }
+                            }) {
+                                Image(systemName: "hourglass")
+                                    .foregroundColor(.purple)
+                                    .font(.title2)
+                            }
+                            .saturation(elementSaturation(for: "delay"))
+                            .disabled((runner.isRoutineComplete || !runner.canDelayCurrentTask) && !infoMode)
+                                
+                            // Toggle mode button - changes based on mode
+                            Button(action: {
+                                if infoMode {
+                                    highlightedElement = "minimal"
+                                } else {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        minimalMode.toggle()
                                     }
-                                }) {
+                                }
+                            }) {
+                                ZStack {
                                     Image(systemName: "plus")
                                         .foregroundColor(infoMode && highlightedElement == "minimal" ? .blue : .gray)
                                         .font(.title2)
-                                }
-                                .saturation(elementSaturation(for: "minimal"))
-                                
-                                // Skip - right
-                                Button(action: {
-                                    if infoMode {
-                                        highlightedElement = "skip"
-                                    } else {
-                                        logger.info("Skip button tapped in minimal mode.")
-                                        runner.skipCurrentTask()
-                                    }
-                                }) {
-                                    Image(systemName: "forward.fill")
-                                        .foregroundColor(.yellow)
+                                        .opacity(minimalMode ? 1 : 0)
+                                        .scaleEffect(minimalMode ? 1 : 0.5)
+                                    
+                                    Image(systemName: "minus")
+                                        .foregroundColor(infoMode && highlightedElement == "minimal" ? .blue : .gray)
                                         .font(.title2)
+                                        .opacity(minimalMode ? 0 : 1)
+                                        .scaleEffect(minimalMode ? 0.5 : 1)
                                 }
-                                .saturation(elementSaturation(for: "skip"))
-                                .disabled(!infoMode && runner.isRoutineComplete)
                             }
-                            .padding(.vertical, 20)
+                            .saturation(elementSaturation(for: "minimal"))
+                                
+                            // Skip - visible in both modes
+                            Button(action: {
+                                if infoMode {
+                                    highlightedElement = "skip"
+                                } else {
+                                    logger.info("Skip button tapped.")
+                                    runner.skipCurrentTask()
+                                }
+                            }) {
+                                Image(systemName: "forward.fill")
+                                    .foregroundColor(.yellow)
+                                    .font(.title2)
+                            }
+                            .saturation(elementSaturation(for: "skip"))
+                            .disabled(runner.isRoutineComplete && !infoMode)
+                                
+                            // Continue in Background - far right (only in detailed mode)
+                            Button(action: {
+                                if infoMode {
+                                    highlightedElement = "background"
+                                } else if runner.canMoveToBackground {
+                                    logger.info("Continue in Background button tapped.")
+                                    withAnimation {
+                                        runner.moveCurrentTaskToBackground()
+                                    }
+                                }
+                            }) {
+                                Image(systemName: "arrow.uturn.down")
+                                    .foregroundColor(.blue)
+                                    .font(.title2)
+                            }
+                            .saturation(elementSaturation(for: "background"))
+                            .disabled(!runner.canMoveToBackground && !infoMode)
+                            .opacity(minimalMode ? 0 : 1)
+                            .scaleEffect(minimalMode ? 0.5 : 1)
+                            .animation(.easeInOut(duration: 0.3), value: minimalMode)
                         }
+                        .padding(.vertical, 20)
+                        .animation(.easeInOut(duration: 0.3), value: minimalMode)
                         
                         // Slide to complete
                         ZStack {
@@ -468,7 +426,7 @@ struct RoutineRunnerView: View {
                         // Bottom spacing
                         Spacer().frame(height: 20)
                     }
-                    .padding(.bottom, minimalMode ? 120 : 60) // More padding in minimal mode to lift elements higher
+                    .padding(.bottom, minimalMode ? 120 : 100) // Increased padding in detailed mode to lift buttons and slider higher
                     .background(Color(.systemGray6))
                     .onAppear {
                         // Start the timer automatically when view appears
