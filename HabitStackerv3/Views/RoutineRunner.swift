@@ -2436,56 +2436,81 @@ class RoutineRunner: ObservableObject {
             return
         }
         
-        // Request authorization if needed
-        requestNotificationAuthorization()
-        
-        // Clear any existing scheduled notifications
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        
-        let currentTaskName = scheduledTasks[currentTaskIndex].task.taskName ?? "Unnamed Task"
-        let interval = TimeInterval(SettingsManager.shared.backgroundNotificationIntervalSeconds)
-        
-        // Schedule up to 10 notifications (iOS limit is 64 pending notifications)
-        for i in 1...10 {
-            let content = UNMutableNotificationContent()
-            content.title = "Routine Reminder"
-            content.body = "Current task: \(currentTaskName)"
-            content.sound = .default
+        // Add a small delay to allow lock detection to settle
+        // This helps catch cases where the device is being locked simultaneously with backgrounding
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
             
-            let trigger = UNTimeIntervalNotificationTrigger(
-                timeInterval: interval * Double(i),
-                repeats: false
-            )
+            // Double-check lock state after delay
+            if !UIApplication.shared.isProtectedDataAvailable {
+                self.logger.info("Device became locked - aborting notification scheduling")
+                return
+            }
             
-            let request = UNNotificationRequest(
-                identifier: "routine-background-\(i)",
-                content: content,
-                trigger: trigger
-            )
+            // Request authorization if needed
+            self.requestNotificationAuthorization()
             
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    self.logger.error("Failed to schedule notification: \(error.localizedDescription)")
+            // Clear any existing scheduled notifications
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            
+            guard self.currentTaskIndex >= 0, self.currentTaskIndex < self.scheduledTasks.count else { return }
+            
+            let currentTaskName = self.scheduledTasks[self.currentTaskIndex].task.taskName ?? "Unnamed Task"
+            let interval = TimeInterval(SettingsManager.shared.backgroundNotificationIntervalSeconds)
+            
+            // Schedule up to 10 notifications (iOS limit is 64 pending notifications)
+            for i in 1...10 {
+                // Final check before each notification
+                if !UIApplication.shared.isProtectedDataAvailable {
+                    self.logger.info("Device locked during notification scheduling - stopping at notification \(i)")
+                    break
+                }
+                
+                let content = UNMutableNotificationContent()
+                content.title = "Routine Reminder"
+                content.body = "Current task: \(currentTaskName)"
+                content.sound = .default
+                
+                let trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: interval * Double(i),
+                    repeats: false
+                )
+                
+                let request = UNNotificationRequest(
+                    identifier: "routine-background-\(i)",
+                    content: content,
+                    trigger: trigger
+                )
+                
+                UNUserNotificationCenter.current().add(request) { error in
+                    if let error = error {
+                        self.logger.error("Failed to schedule notification: \(error.localizedDescription)")
+                    }
                 }
             }
+            
+            self.backgroundNotificationsScheduled = true
+            self.logger.info("Scheduled background notifications at \(interval)s intervals")
         }
-        
-        backgroundNotificationsScheduled = true
-        logger.info("Scheduled \(10) background notifications at \(interval)s intervals")
     }
     
     /// Cancels all scheduled background notifications
     private func cancelBackgroundNotifications() {
-        guard backgroundNotificationsScheduled else { return }
-        
+        // Always attempt to cancel notifications, even if we think none are scheduled
+        // This handles race conditions where notifications were scheduled before lock
         var identifiers: [String] = []
         for i in 1...10 {
             identifiers.append("routine-background-\(i)")
         }
         
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
-        backgroundNotificationsScheduled = false
-        logger.info("Cancelled background notifications")
+        
+        if backgroundNotificationsScheduled {
+            backgroundNotificationsScheduled = false
+            logger.info("Cancelled background notifications")
+        } else {
+            logger.info("Cancelled any pending background notifications (precautionary)")
+        }
     }
     
     // MARK: - Live Activity Management
