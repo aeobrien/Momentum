@@ -40,7 +40,8 @@ struct TempRoutineRunnerView: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
+        let _ = logger.debug("TempRoutineRunnerView body called, isRoutineComplete: \(runner.isRoutineComplete)")
+        return GeometryReader { geometry in
             if !runner.isRoutineComplete {
                 ZStack {
                     // Main content

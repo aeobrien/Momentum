@@ -27,6 +27,8 @@ struct RoutineSelectionView: View {
     @State private var scheduleForRunFrom: [ScheduledTask]? = nil
     @State private var showTempRoutineEntry = false
     @State private var infoMode = false
+    @StateObject private var tempRunnerWrapper = TempRunnerWrapper()
+    @State private var showTempRunner = false
     
     @State private var runnerInstance: RoutineRunner? = nil
     
@@ -250,7 +252,72 @@ struct RoutineSelectionView: View {
             }
         }
         .sheet(isPresented: $showTempRoutineEntry) {
-            TempRoutineEntryView()
+            TempRoutineEntryView(onStartTasks: { tasks in
+                logger.info("Received \(tasks.count) tasks from TempRoutineEntryView")
+                logger.info("Tasks details: \(tasks.map { $0.name }.joined(separator: ", "))")
+                
+                // Create the runner immediately with the tasks
+                let runner = TempRoutineRunner(tasks: tasks)
+                logger.info("Created TempRoutineRunner instance: \(Unmanaged.passUnretained(runner).toOpaque())")
+                
+                // Store in wrapper
+                tempRunnerWrapper.runner = runner
+                logger.info("Stored runner in wrapper. Runner is now: \(tempRunnerWrapper.runner != nil ? "set" : "nil")")
+                
+                // Verify it's still there
+                if tempRunnerWrapper.runner == nil {
+                    logger.error("Runner became nil immediately after setting in wrapper!")
+                } else {
+                    logger.info("Runner verified as non-nil in wrapper")
+                    logger.info("Wrapper runner has \(tempRunnerWrapper.runner!.tasks.count) tasks")
+                }
+                
+                // Set flag to show fullScreenCover first
+                showTempRunner = true
+                
+                // Then dismiss sheet with minimal delay for animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    showTempRoutineEntry = false
+                }
+            })
+        }
+        .fullScreenCover(isPresented: $showTempRunner, onDismiss: {
+            logger.info("fullScreenCover dismissed")
+            tempRunnerWrapper.runner = nil
+        }) {
+            Group {
+                if let runner = tempRunnerWrapper.runner {
+                    TempRoutineRunnerView(runner: runner)
+                        .onAppear {
+                            logger.info("TempRoutineRunnerView appeared with runner: \(Unmanaged.passUnretained(runner).toOpaque())")
+                            logger.info("Runner has \(runner.tasks.count) tasks")
+                            logger.info("First task: \(runner.tasks.first?.name ?? "none")")
+                        }
+                } else {
+                    VStack {
+                        Text("Error: Runner not initialized")
+                            .foregroundColor(.red)
+                            .font(.headline)
+                        
+                        Text("Runner is nil in wrapper when presenting fullScreenCover")
+                            .foregroundColor(.secondary)
+                            .padding(.bottom)
+                        
+                        Button("Dismiss") {
+                            showTempRunner = false
+                            logger.error("User dismissed error screen - runner was nil in wrapper")
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .onAppear {
+                        logger.error("fullScreenCover presented but runner is nil in wrapper")
+                        logger.error("showTempRunner: \(showTempRunner), wrapper.runner: \(tempRunnerWrapper.runner != nil ? "exists" : "nil")")
+                    }
+                }
+            }
         }
         .onChange(of: scheduleForRunFrom) { schedule in
             if schedule != nil {

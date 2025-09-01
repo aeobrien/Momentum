@@ -2,12 +2,22 @@ import Foundation
 import SwiftUI
 import Combine
 import OSLog
+import CoreData
 
 // Temporary task model that doesn't rely on Core Data
 struct TempTask {
     let id = UUID()
     let name: String
     let duration: Int // in minutes
+    let originalTaskUUID: UUID? // Reference to original CDTask if from existing
+    let isFromExisting: Bool
+    
+    init(name: String, duration: Int, originalTaskUUID: UUID? = nil, isFromExisting: Bool = false) {
+        self.name = name
+        self.duration = duration
+        self.originalTaskUUID = originalTaskUUID
+        self.isFromExisting = isFromExisting
+    }
 }
 
 // Background task state for temporary routines
@@ -78,12 +88,15 @@ class TempRoutineRunner: ObservableObject {
     }
     
     init(tasks: [TempTask]) {
+        logger.info("TempRoutineRunner init with \(tasks.count) tasks")
         self.tasks = tasks
         self.totalRoutineDuration = tasks.reduce(0) { $0 + TimeInterval($1.duration * 60) }
         self.originalFinishingTime = Date().addingTimeInterval(totalRoutineDuration)
+        logger.info("About to start routine in init")
         startRoutine()
         updateScheduleOffsetString()
         updateEstimatedFinishingTimeString()
+        logger.info("TempRoutineRunner init complete")
     }
     
     private func startRoutine() {
@@ -219,6 +232,12 @@ class TempRoutineRunner: ObservableObject {
         // Mark current task as completed
         if currentTaskIndex >= 0 {
             completedTaskIndices.insert(currentTaskIndex)
+            
+            // If this task is from an existing task, mark it as completed in Core Data
+            let currentTask = tasks[currentTaskIndex]
+            if currentTask.isFromExisting, let originalTaskUUID = currentTask.originalTaskUUID {
+                markOriginalTaskComplete(uuid: originalTaskUUID)
+            }
         }
         
         // Check if we're completing an interruption
@@ -546,6 +565,34 @@ class TempRoutineRunner: ObservableObject {
         @unknown default:
             logger.warning("Unknown scene phase encountered")
             break
+        }
+    }
+    
+    // MARK: - Core Data Integration
+    
+    private func markOriginalTaskComplete(uuid: UUID) {
+        // Use the DataStoreManager's context
+        let context = DataStoreManager.shared.viewContext
+        
+        // Fetch the task with the given UUID
+        let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
+        
+        do {
+            let tasks = try context.fetch(fetchRequest)
+            if let task = tasks.first {
+                // Mark the task as completed
+                task.lastCompleted = Date()
+                
+                // Save the context
+                try context.save()
+                
+                logger.info("Marked original task '\(task.taskName ?? "")' as completed")
+            } else {
+                logger.warning("Could not find task with UUID: \(uuid)")
+            }
+        } catch {
+            logger.error("Error marking task as complete: \(error.localizedDescription)")
         }
     }
 }
