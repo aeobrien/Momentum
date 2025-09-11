@@ -545,16 +545,18 @@ struct RoutineRunnerView: View {
                 }
             } else {
                 // Routine complete view
-                VStack(spacing: 30) {
-                    Spacer()
-                    
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.green)
-                    
-                    Text("Routine Complete!")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                ScrollView {
+                    VStack(spacing: 30) {
+                        // Add some top padding instead of Spacer
+                        Color.clear.frame(height: 40)
+                        
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 80))
+                            .foregroundColor(.green)
+                        
+                        Text("Routine Complete!")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
                     
                     // Display original vs actual finish times
                     VStack(spacing: 10) {
@@ -583,6 +585,113 @@ struct RoutineRunnerView: View {
                     }
                     .padding(.vertical, 10)
                     
+                    // Time Savings Analytics
+                    VStack(spacing: 15) {
+                        Text("Time Analysis")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        VStack(spacing: 10) {
+                            // Time saved by skipping tasks
+                            if runner.timeSavedBySkipping > 0 {
+                                HStack {
+                                    Image(systemName: "forward.fill")
+                                        .foregroundColor(.orange)
+                                    Text("Time saved by skipping tasks:")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(formatTimeInterval(runner.timeSavedBySkipping))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.orange)
+                                }
+                                .font(.system(size: 16))
+                            }
+                            
+                            // Time saved by faster completion
+                            if runner.timeSavedByFasterCompletion > 0 {
+                                HStack {
+                                    Image(systemName: "hare.fill")
+                                        .foregroundColor(.green)
+                                    Text("Time saved by faster completion:")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(formatTimeInterval(runner.timeSavedByFasterCompletion))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.green)
+                                }
+                                .font(.system(size: 16))
+                            }
+                            
+                            // Time lost by slower completion
+                            if runner.timeLostBySlowerCompletion > 0 {
+                                HStack {
+                                    Image(systemName: "tortoise.fill")
+                                        .foregroundColor(.red)
+                                    Text("Extra time on tasks:")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(formatTimeInterval(runner.timeLostBySlowerCompletion))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.red)
+                                }
+                                .font(.system(size: 16))
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    // Tasks with significant time differences
+                    if !runner.tasksWithSignificantDifferences.isEmpty {
+                        VStack(spacing: 10) {
+                            Text("Tasks to Review")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text("These tasks had significant time differences:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(runner.tasksWithSignificantDifferences, id: \.taskName) { analytics in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(analytics.taskName)
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                        if let avgTime = analytics.averageCompletionTime, analytics.completionCount >= 10 {
+                                            Text("Avg: \(formatDuration(avgTime)) (\(analytics.completionCount)x)")
+                                                .font(.caption2)
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                    Spacer()
+                                    if let actual = analytics.actualDuration {
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("Expected: \(formatDuration(analytics.expectedDuration))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                            Text("Actual: \(formatDuration(actual))")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(analytics.timeDifference > 0 ? .green : .red)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 5)
+                                .padding(.horizontal)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray5))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                    }
+                    
                     Button("Done") {
                         presentationMode.wrappedValue.dismiss()
                     }
@@ -593,7 +702,9 @@ struct RoutineRunnerView: View {
                     .foregroundColor(.white)
                     .cornerRadius(10)
                     
-                    Spacer()
+                    // Add some bottom padding
+                    Color.clear.frame(height: 40)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemBackground))
@@ -602,6 +713,32 @@ struct RoutineRunnerView: View {
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
         // Removed onDisappear to allow routine to continue when switching views
+    }
+    
+    // Helper function to format time intervals
+    private func formatTimeInterval(_ interval: TimeInterval) -> String {
+        let totalSeconds = Int(interval)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        
+        if minutes > 0 {
+            return String(format: "%dm %02ds", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
+    }
+    
+    // Helper function to format duration with minutes and seconds
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let totalSeconds = Int(duration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        
+        if minutes > 0 {
+            return String(format: "%dm %02ds", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
     }
     
     // Info mode helper functions

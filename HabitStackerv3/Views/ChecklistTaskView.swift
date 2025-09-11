@@ -108,6 +108,7 @@ struct ChecklistTaskView: View {
                 }
                 .padding(.horizontal)
             }
+            .frame(minHeight: 250) // Set minimum height to show more items without overlapping bottom navigation
             
             // Completion status
             let completedCount = checklistItems.filter { $0.isCompleted }.count

@@ -99,6 +99,61 @@ class RoutineRunner: ObservableObject {
     
     /// Tasks that have duration suggestions based on average completion times
     @Published var durationSuggestions: [TaskDurationSuggestion] = []
+    
+    // MARK: - Completion Analytics Properties
+    
+    /// Tracks analytics for completed/skipped tasks
+    struct TaskCompletionAnalytics {
+        let taskName: String
+        let expectedDuration: TimeInterval
+        let actualDuration: TimeInterval?  // nil if skipped
+        let wasSkipped: Bool
+        let averageCompletionTime: TimeInterval?  // Average time from historical data
+        let completionCount: Int  // Number of times this task has been completed
+        
+        var timeDifference: TimeInterval {
+            if wasSkipped {
+                return expectedDuration  // All time was saved
+            } else if let actual = actualDuration {
+                return expectedDuration - actual  // Positive = saved time, Negative = took longer
+            }
+            return 0
+        }
+    }
+    
+    /// Collection of analytics for all tasks in this routine run
+    @Published private(set) var taskAnalytics: [TaskCompletionAnalytics] = []
+    
+    /// Computed property for total time saved by skipping tasks
+    var timeSavedBySkipping: TimeInterval {
+        taskAnalytics
+            .filter { $0.wasSkipped }
+            .reduce(0) { $0 + $1.expectedDuration }
+    }
+    
+    /// Computed property for total time saved by completing tasks faster than expected
+    var timeSavedByFasterCompletion: TimeInterval {
+        taskAnalytics
+            .filter { !$0.wasSkipped && $0.timeDifference > 0 }
+            .reduce(0) { $0 + $1.timeDifference }
+    }
+    
+    /// Computed property for total time lost by tasks taking longer than expected
+    var timeLostBySlowerCompletion: TimeInterval {
+        abs(taskAnalytics
+            .filter { !$0.wasSkipped && $0.timeDifference < 0 }
+            .reduce(0) { $0 + $1.timeDifference })
+    }
+    
+    /// Tasks with significant time differences (more than 30% or 2 minutes difference)
+    var tasksWithSignificantDifferences: [TaskCompletionAnalytics] {
+        taskAnalytics.filter { analytics in
+            guard !analytics.wasSkipped, analytics.actualDuration != nil else { return false }
+            let difference = abs(analytics.timeDifference)
+            let percentDifference = difference / analytics.expectedDuration
+            return percentDifference > 0.3 || difference > 120  // 30% or 2 minutes
+        }
+    }
 
     // MARK: - Core Data & Routine Properties
 
@@ -709,6 +764,19 @@ class RoutineRunner: ObservableObject {
         if completedTask.shouldTrackAverageTime {
             recordCompletionTime(for: completedTask, duration: actualDuration)
         }
+        
+        // Record analytics for this completed task
+        let completionCount = (completedTask.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
+        let analytics = TaskCompletionAnalytics(
+            taskName: completedTaskName,
+            expectedDuration: expectedDuration,
+            actualDuration: actualDuration,
+            wasSkipped: false,
+            averageCompletionTime: completedTask.averageCompletionTime,
+            completionCount: completionCount
+        )
+        taskAnalytics.append(analytics)
+        logger.debug("[Analytics] Recorded completion - Task: '\(completedTaskName)', Expected: \(expectedDuration/60, format: .fixed(precision: 1))m, Actual: \(actualDuration/60, format: .fixed(precision: 1))m")
 
         // SAVE context ONCE after task status update
         self.saveContext()
@@ -805,6 +873,19 @@ class RoutineRunner: ObservableObject {
         
         let timeSaved = expectedDuration - timeElapsed
         logger.info("[Task Skip] Time saved by skipping: \(timeSaved, format: .fixed(precision: 2))s")
+        
+        // Record analytics for this skipped task
+        let completionCount = (skippedTask.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
+        let analytics = TaskCompletionAnalytics(
+            taskName: skippedTaskName,
+            expectedDuration: expectedDuration,
+            actualDuration: nil,  // nil indicates skipped
+            wasSkipped: true,
+            averageCompletionTime: skippedTask.averageCompletionTime,
+            completionCount: completionCount
+        )
+        taskAnalytics.append(analytics)
+        logger.debug("[Analytics] Recorded skip - Task: '\(skippedTaskName)', Expected: \(expectedDuration/60, format: .fixed(precision: 1))m, Time saved: \(timeSaved/60, format: .fixed(precision: 1))m")
         
         // NOTE: We'll recompute offsets AFTER advancing to next task, not here
         logger.info("[Task Skip] Task '\(skippedTaskName, privacy: .public)' will be skipped. Time elapsed: \(timeElapsed, format: .fixed(precision: 1))s, Time saved: \(timeSaved, format: .fixed(precision: 1))s.")
@@ -1747,6 +1828,19 @@ class RoutineRunner: ObservableObject {
         if task.task.shouldTrackAverageTime {
             recordCompletionTime(for: task.task, duration: actualDuration)
         }
+        
+        // Record analytics for this completed background task
+        let completionCount = (task.task.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
+        let analytics = TaskCompletionAnalytics(
+            taskName: taskName,
+            expectedDuration: expectedDuration,
+            actualDuration: actualDuration,
+            wasSkipped: false,
+            averageCompletionTime: task.task.averageCompletionTime,
+            completionCount: completionCount
+        )
+        taskAnalytics.append(analytics)
+        logger.debug("[Analytics] Recorded background completion - Task: '\(taskName)', Expected: \(expectedDuration/60, format: .fixed(precision: 1))m, Actual: \(actualDuration/60, format: .fixed(precision: 1))m")
         
         // Update completed duration for progress bar
         if task.taskIndex < currentTaskIndex {
