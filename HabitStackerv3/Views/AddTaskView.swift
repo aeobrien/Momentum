@@ -82,6 +82,7 @@ enum RepetitionUnit: String, CaseIterable, Identifiable {
 /// AddTaskView provides a form to create or edit a task
 struct AddTaskView: View {
     @Environment(\.presentationMode) var presentationMode
+    @StateObject private var settingsManager = SettingsManager.shared
     let existingTask: CustomTask?
     let onSave: (CustomTask) -> Void
     
@@ -115,6 +116,7 @@ struct AddTaskView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var showJSONPreview: Bool = false // For clipboard import
+    @State private var editMode: EditMode = .inactive
     
     // Debug
     private let viewId: UUID
@@ -198,7 +200,9 @@ struct AddTaskView: View {
             }
         } else {
             _isVariableDuration = State(initialValue: false)
-            _duration = State(initialValue: "")
+            // Set default 10 minutes for No Timers mode
+            let defaultDuration = SettingsManager.shared.noTimersMode ? "10" : ""
+            _duration = State(initialValue: defaultDuration)
             _minDuration = State(initialValue: "")
             _maxDuration = State(initialValue: "")
         }
@@ -353,6 +357,7 @@ struct AddTaskView: View {
                                 }
                                 .padding(.vertical, 4)
                             }
+                            .onMove(perform: moveChecklistItem)
                             .collapsible(visible: isChecklistTask)
 
                             if checklistItems.isEmpty {
@@ -369,20 +374,21 @@ struct AddTaskView: View {
                         print("[ATV] isChecklistTask -> \(new)")
                     }
                     
-                    // --- Section 2: Duration ---
-                    Section(header: HStack {
-                        Text("Duration")
-                        Button(action: { showDurationInfo.toggle() }) {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
-                                .imageScale(.small)
-                        }
-                        .popover(isPresented: $showDurationInfo) {
-                            Text("Specify how long the task takes. Use variable duration if the time varies depending on circumstances.")
-                                .padding()
-                                .frame(maxWidth: 250)
-                        }
-                    }) {
+                    // --- Section 2: Duration (hidden in No Timers mode) ---
+                    if !settingsManager.noTimersMode {
+                        Section(header: HStack {
+                            Text("Duration")
+                            Button(action: { showDurationInfo.toggle() }) {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                    .imageScale(.small)
+                            }
+                            .popover(isPresented: $showDurationInfo) {
+                                Text("Specify how long the task takes. Use variable duration if the time varies depending on circumstances.")
+                                    .padding()
+                                    .frame(maxWidth: 250)
+                            }
+                        }) {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("Variable Duration", isOn: $isVariableDuration.animation())
                                 .padding(.bottom, 4) // Add padding below toggle
@@ -416,6 +422,7 @@ struct AddTaskView: View {
                             }
                         }
                         .padding(.vertical, 4)
+                    }
                     }
                     
                     // --- Section 3: Repetition ---
@@ -477,6 +484,7 @@ struct AddTaskView: View {
                     }
                 }
                 .gesture(DragGesture().onChanged{_ in hideKeyboard() }) // Dismiss keyboard on scroll
+                .environment(\.editMode, .constant(isChecklistTask && !checklistItems.isEmpty ? .active : .inactive))
             }
              .navigationBarTitle(existingTask == nil ? "Add New Task" : "Edit Task", displayMode: .inline)
             .navigationBarItems(
@@ -566,7 +574,12 @@ struct AddTaskView: View {
             checklistItems[idx].order = idx
         }
     }
-    
+
+    private func moveChecklistItem(from source: IndexSet, to destination: Int) {
+        checklistItems.move(fromOffsets: source, toOffset: destination)
+        renumberChecklistItems()
+    }
+
     // MARK: - Import Logic
     
     private func formatJSON(_ jsonString: String) -> String {
@@ -777,27 +790,42 @@ struct AddTaskView: View {
         let finalMinDuration: Int
         let finalMaxDuration: Int
         
-        if isVariableDuration {
-            guard let min = Int(minDuration), let max = Int(maxDuration), min > 0, max > 0 else {
-                alertMessage = "Minimum and maximum duration must be positive numbers."
-                showAlert = true
-                return
+        // In No Timers mode, use default duration if fields are empty
+        if settingsManager.noTimersMode {
+            if isVariableDuration {
+                let min = Int(minDuration) ?? 10
+                let max = Int(maxDuration) ?? 10
+                finalMinDuration = min
+                finalMaxDuration = max
+            } else {
+                let fixed = Int(duration) ?? 10
+                finalMinDuration = fixed
+                finalMaxDuration = fixed
             }
-            guard min <= max else {
-                alertMessage = "Minimum duration cannot be greater than maximum duration."
-                showAlert = true
-                return
-            }
-            finalMinDuration = min
-            finalMaxDuration = max
         } else {
-            guard let fixed = Int(duration), fixed > 0 else {
-                alertMessage = "Duration must be a positive number."
-                showAlert = true
-                return
+            // Normal validation when timers are enabled
+            if isVariableDuration {
+                guard let min = Int(minDuration), let max = Int(maxDuration), min > 0, max > 0 else {
+                    alertMessage = "Minimum and maximum duration must be positive numbers."
+                    showAlert = true
+                    return
+                }
+                guard min <= max else {
+                    alertMessage = "Minimum duration cannot be greater than maximum duration."
+                    showAlert = true
+                    return
+                }
+                finalMinDuration = min
+                finalMaxDuration = max
+            } else {
+                guard let fixed = Int(duration), fixed > 0 else {
+                    alertMessage = "Duration must be a positive number."
+                    showAlert = true
+                    return
+                }
+                finalMinDuration = fixed
+                finalMaxDuration = fixed
             }
-            finalMinDuration = fixed
-            finalMaxDuration = fixed
         }
         
         // --- Calculate Repetition Interval ---

@@ -94,6 +94,32 @@ struct SettingsView: View {
                 
                 // MARK: Scheduling
                 Section(header: Text("Scheduling")) {
+                    // No Timers Mode Toggle
+                    Toggle(isOn: $settingsManager.noTimersMode) {
+                        HStack {
+                            Image(systemName: "timer.square")
+                                .foregroundColor(.orange)
+                                .frame(width: 30)
+                            VStack(alignment: .leading) {
+                                Text("No Timers Mode")
+                                Text("Hide all time-related features")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    
+                    if settingsManager.noTimersMode {
+                        Text("When enabled, routines will run without timers. Tasks will still have durations for scheduling purposes, but time tracking, progress bars, and schedule status will be hidden during routine execution.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 38)
+                            .padding(.bottom, 8)
+                    }
+                    
+                    Divider()
+                    
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "clock.arrow.circlepath")
@@ -117,6 +143,8 @@ struct SettingsView: View {
                             Stepper("", value: $settingsManager.scheduleBufferMinutes, in: 0...30, step: 5)
                                 .labelsHidden()
                         }
+                        .opacity(settingsManager.noTimersMode ? 0.5 : 1.0)
+                        .disabled(settingsManager.noTimersMode)
                         
                         Text("This buffer time is automatically subtracted from your available time when scheduling routines. It helps ensure you finish earlier than expected and provides wiggle room if tasks run longer than planned.")
                             .font(.caption)

@@ -7,6 +7,7 @@ struct RoutineRunnerView: View {
     @Environment(\.presentationMode) var presentationMode
     
     @ObservedObject var runner: RoutineRunner
+    @StateObject private var settingsManager = SettingsManager.shared
     
     // State variables
     @State private var showTaskList: Bool = false
@@ -59,7 +60,7 @@ struct RoutineRunnerView: View {
     }
     
     private func finalScheduleDifference() -> String {
-        let actualFinishTime = Date()
+        let actualFinishTime = runner.actualCompletionTime ?? Date()
         let timeDifference = actualFinishTime.timeIntervalSince(runner.originalFinishingTime)
         
         if abs(timeDifference) < 1.0 {
@@ -88,11 +89,110 @@ struct RoutineRunnerView: View {
     var body: some View {
         GeometryReader { geometry in
             if !runner.isRoutineComplete {
-                ZStack {
-                    // Main content
-                    VStack(spacing: 20) {
-                        // Top bar with X, routine info, and info button
-                        if minimalMode {
+                Group {
+                    // Use special layout for No Timers mode
+                    if settingsManager.noTimersMode {
+                    VStack(spacing: 0) {
+                        // Top bar with X and routine info
+                        HStack {
+                            Button(action: {
+                                showTaskList = true
+                            }) {
+                                Text("\(runner.routine.name ?? "Routine") \(runner.currentTaskIndex + 1)/\(runner.scheduledTasks.count)")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.blue)
+                                    .font(.title2)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+                        
+                        if isChecklistTask {
+                            // Checklist task layout
+                            Text(runner.currentTaskName)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .padding(.horizontal)
+                                .padding(.vertical, 10)
+                            
+                            // Checklist items
+                            ChecklistTaskView(runner: runner)
+                                .frame(maxHeight: .infinity)
+                                .padding(.horizontal)
+                        } else {
+                            // Regular task layout - centered task name
+                            Spacer()
+                            
+                            Text(runner.currentTaskName)
+                                .font(.system(size: 42, weight: .bold))
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                                .minimumScaleFactor(0.7)
+                                .padding(.horizontal)
+                            
+                            Spacer()
+                        }
+                        
+                        // Bottom section with buttons and slide to complete
+                        VStack(spacing: 20) {
+                            // Two buttons: Delay and Skip
+                            HStack(spacing: 60) {
+                                // Delay (hourglass)
+                                Button(action: {
+                                    logger.info("Delay button tapped.")
+                                    runner.delayCurrentTask()
+                                }) {
+                                    Image(systemName: "hourglass")
+                                        .foregroundColor(.purple)
+                                        .font(.system(size: 40))
+                                }
+                                .disabled(runner.isRoutineComplete || !runner.canDelayCurrentTask)
+                                
+                                // Skip
+                                Button(action: {
+                                    logger.info("Skip button tapped.")
+                                    runner.skipCurrentTask()
+                                }) {
+                                    Image(systemName: "forward.fill")
+                                        .foregroundColor(.yellow)
+                                        .font(.system(size: 40))
+                                }
+                                .disabled(runner.isRoutineComplete)
+                            }
+                            .padding(.bottom, 10)
+                            
+                            // Slide to complete at the bottom
+                            SlideToCompleteView {
+                                logger.info("Task completed via slide.")
+                                runner.markTaskComplete()
+                            }
+                            .disabled(runner.isRoutineComplete)
+                            .frame(height: 60)
+                            .padding(.horizontal)
+                            .padding(.bottom, 30)
+                        }
+                    }
+                } else {
+                    // Original layout for when timers are enabled
+                    ZStack {
+                        // Main content
+                        VStack(spacing: 20) {
+                            // Top bar with X, routine info, and info button
+                            if minimalMode {
                             // Minimal mode - just show info button in top-left
                             HStack {
                                 Button(action: {
@@ -209,8 +309,8 @@ struct RoutineRunnerView: View {
                                 }
                         }
                         
-                        // Circular progress and timer (hide for checklist tasks in non-minimal mode)
-                        if !isChecklistTask || minimalMode {
+                        // Circular progress and timer (hide for checklist tasks in non-minimal mode OR when in No Timers mode)
+                        if !settingsManager.noTimersMode && (!isChecklistTask || minimalMode) {
                             ZStack {
                                 ConcentricProgressView(
                                     outerProgress: runner.progressFraction,
@@ -263,8 +363,8 @@ struct RoutineRunnerView: View {
                             Spacer()
                         }
                         
-                        // Schedule status with spend time button (hide in minimal mode and for checklist tasks)
-                        if !minimalMode && !isChecklistTask {
+                        // Schedule status with spend time button (hide in minimal mode, for checklist tasks, and in No Timers mode)
+                        if !minimalMode && !isChecklistTask && !settingsManager.noTimersMode {
                             Button(action: {
                                 if infoMode {
                                     highlightedElement = "schedule"
@@ -276,10 +376,10 @@ struct RoutineRunnerView: View {
                                     VStack(spacing: 4) {
                                         HStack(spacing: 8) {
                                             Image(systemName: scheduleIconName())
-                                                .foregroundColor(Color(red: 0, green: 0.7, blue: 0))
-                                            
+                                                .foregroundColor(scheduleColor())
+
                                             Text(runner.scheduleOffsetString)
-                                                .foregroundColor(Color(red: 0, green: 0.7, blue: 0))
+                                                .foregroundColor(scheduleColor())
                                                 .font(.body)
                                                 .fontWeight(.bold)
                                             
@@ -306,24 +406,26 @@ struct RoutineRunnerView: View {
                         
                         // Action buttons
                         HStack(spacing: 40) {
-                            // Interruption - far left (only in detailed mode)
-                            Button(action: {
-                                if infoMode {
-                                    highlightedElement = "interrupt"
-                                } else {
-                                    logger.info("Interruption button tapped.")
-                                    runner.handleInterruption()
+                            // Interruption - far left (only in detailed mode, hidden in No Timers mode)
+                            if !settingsManager.noTimersMode {
+                                Button(action: {
+                                    if infoMode {
+                                        highlightedElement = "interrupt"
+                                    } else {
+                                        logger.info("Interruption button tapped.")
+                                        runner.handleInterruption()
+                                    }
+                                }) {
+                                    Image(systemName: "exclamationmark.circle")
+                                        .foregroundColor(.red)
+                                        .font(.title2)
                                 }
-                            }) {
-                                Image(systemName: "exclamationmark.circle")
-                                    .foregroundColor(.red)
-                                    .font(.title2)
+                                .saturation(elementSaturation(for: "interrupt"))
+                                .disabled((runner.isRoutineComplete || runner.isHandlingInterruption) && !infoMode)
+                                .opacity(minimalMode ? 0 : 1)
+                                .scaleEffect(minimalMode ? 0.5 : 1)
+                                .animation(.easeInOut(duration: 0.3), value: minimalMode)
                             }
-                            .saturation(elementSaturation(for: "interrupt"))
-                            .disabled((runner.isRoutineComplete || runner.isHandlingInterruption) && !infoMode)
-                            .opacity(minimalMode ? 0 : 1)
-                            .scaleEffect(minimalMode ? 0.5 : 1)
-                            .animation(.easeInOut(duration: 0.3), value: minimalMode)
                                 
                             // Delay (hourglass) - visible in both modes
                             Button(action: {
@@ -383,26 +485,28 @@ struct RoutineRunnerView: View {
                             .saturation(elementSaturation(for: "skip"))
                             .disabled(runner.isRoutineComplete && !infoMode)
                                 
-                            // Continue in Background - far right (only in detailed mode)
-                            Button(action: {
-                                if infoMode {
-                                    highlightedElement = "background"
-                                } else if runner.canMoveToBackground {
-                                    logger.info("Continue in Background button tapped.")
-                                    withAnimation {
-                                        runner.moveCurrentTaskToBackground()
+                            // Continue in Background - far right (only in detailed mode, hidden in No Timers mode)
+                            if !settingsManager.noTimersMode {
+                                Button(action: {
+                                    if infoMode {
+                                        highlightedElement = "background"
+                                    } else if runner.canMoveToBackground {
+                                        logger.info("Continue in Background button tapped.")
+                                        withAnimation {
+                                            runner.moveCurrentTaskToBackground()
+                                        }
                                     }
+                                }) {
+                                    Image(systemName: "arrow.uturn.down")
+                                        .foregroundColor(.blue)
+                                        .font(.title2)
                                 }
-                            }) {
-                                Image(systemName: "arrow.uturn.down")
-                                    .foregroundColor(.blue)
-                                    .font(.title2)
+                                .saturation(elementSaturation(for: "background"))
+                                .disabled(!runner.canMoveToBackground && !infoMode)
+                                .opacity(minimalMode ? 0 : 1)
+                                .scaleEffect(minimalMode ? 0.5 : 1)
+                                .animation(.easeInOut(duration: 0.3), value: minimalMode)
                             }
-                            .saturation(elementSaturation(for: "background"))
-                            .disabled(!runner.canMoveToBackground && !infoMode)
-                            .opacity(minimalMode ? 0 : 1)
-                            .scaleEffect(minimalMode ? 0.5 : 1)
-                            .animation(.easeInOut(duration: 0.3), value: minimalMode)
                         }
                         .padding(.vertical, 20)
                         .animation(.easeInOut(duration: 0.3), value: minimalMode)
@@ -513,7 +617,9 @@ struct RoutineRunnerView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
-                }
+                } // End of ZStack for original layout
+                } // End of else block for original layout
+                } // End of Group
                 .sheet(isPresented: $showTaskList) {
                     RoutineRunnerDetailView(
                         runner: runner
@@ -558,91 +664,95 @@ struct RoutineRunnerView: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
                     
-                    // Display original vs actual finish times
-                    VStack(spacing: 10) {
-                        HStack {
-                            Text("Original estimated finish:")
-                                .foregroundColor(.secondary)
-                            Text(DateFormatter.localizedString(from: runner.originalFinishingTime, dateStyle: .none, timeStyle: .short))
-                                .fontWeight(.semibold)
-                        }
-                        .font(.system(size: 18))
-                        
-                        HStack {
-                            Text("Actual finish time:")
-                                .foregroundColor(.secondary)
-                            Text(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short))
-                                .fontWeight(.semibold)
-                        }
-                        .font(.system(size: 18))
-                        
-                        if runner.scheduleOffsetString != "On schedule" {
-                            Text("(" + finalScheduleDifference().lowercased() + ")")
-                                .font(.subheadline)
-                                .foregroundColor(scheduleColor())
-                                .padding(.top, 5)
-                        }
-                    }
-                    .padding(.vertical, 10)
-                    
-                    // Time Savings Analytics
-                    VStack(spacing: 15) {
-                        Text("Time Analysis")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
+                    // Display original vs actual finish times (hide in No Timers mode)
+                    if !settingsManager.noTimersMode {
                         VStack(spacing: 10) {
-                            // Time saved by skipping tasks
-                            if runner.timeSavedBySkipping > 0 {
-                                HStack {
-                                    Image(systemName: "forward.fill")
-                                        .foregroundColor(.orange)
-                                    Text("Time saved by skipping tasks:")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(formatTimeInterval(runner.timeSavedBySkipping))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.orange)
-                                }
-                                .font(.system(size: 16))
+                            HStack {
+                                Text("Original estimated finish:")
+                                    .foregroundColor(.secondary)
+                                Text(DateFormatter.localizedString(from: runner.originalFinishingTime, dateStyle: .none, timeStyle: .short))
+                                    .fontWeight(.semibold)
                             }
+                            .font(.system(size: 18))
                             
-                            // Time saved by faster completion
-                            if runner.timeSavedByFasterCompletion > 0 {
-                                HStack {
-                                    Image(systemName: "hare.fill")
-                                        .foregroundColor(.green)
-                                    Text("Time saved by faster completion:")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(formatTimeInterval(runner.timeSavedByFasterCompletion))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.green)
-                                }
-                                .font(.system(size: 16))
+                            HStack {
+                                Text("Actual finish time:")
+                                    .foregroundColor(.secondary)
+                                Text(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short))
+                                    .fontWeight(.semibold)
                             }
+                            .font(.system(size: 18))
                             
-                            // Time lost by slower completion
-                            if runner.timeLostBySlowerCompletion > 0 {
-                                HStack {
-                                    Image(systemName: "tortoise.fill")
-                                        .foregroundColor(.red)
-                                    Text("Extra time on tasks:")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(formatTimeInterval(runner.timeLostBySlowerCompletion))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.red)
-                                }
-                                .font(.system(size: 16))
+                            if runner.scheduleOffsetString != "On schedule" {
+                                Text("(" + finalScheduleDifference().lowercased() + ")")
+                                    .font(.subheadline)
+                                    .foregroundColor(scheduleColor())
+                                    .padding(.top, 5)
                             }
                         }
+                        .padding(.vertical, 10)
+                    }
+                    
+                    // Time Savings Analytics (hide in No Timers mode)
+                    if !settingsManager.noTimersMode {
+                        VStack(spacing: 15) {
+                            Text("Time Analysis")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            VStack(spacing: 10) {
+                                // Time saved by skipping tasks
+                                if runner.timeSavedBySkipping > 0 {
+                                    HStack {
+                                        Image(systemName: "forward.fill")
+                                            .foregroundColor(.orange)
+                                        Text("Time saved by skipping tasks:")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(formatTimeInterval(runner.timeSavedBySkipping))
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                    }
+                                    .font(.system(size: 16))
+                                }
+                                
+                                // Time saved by faster completion
+                                if runner.timeSavedByFasterCompletion > 0 {
+                                    HStack {
+                                        Image(systemName: "hare.fill")
+                                            .foregroundColor(.green)
+                                        Text("Time saved by faster completion:")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(formatTimeInterval(runner.timeSavedByFasterCompletion))
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.green)
+                                    }
+                                    .font(.system(size: 16))
+                                }
+                                
+                                // Time lost by slower completion
+                                if runner.timeLostBySlowerCompletion > 0 {
+                                    HStack {
+                                        Image(systemName: "tortoise.fill")
+                                            .foregroundColor(.red)
+                                        Text("Extra time on tasks:")
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text(formatTimeInterval(runner.timeLostBySlowerCompletion))
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.red)
+                                    }
+                                    .font(.system(size: 16))
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
                         .padding(.horizontal)
                     }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
                     
                     // Tasks with significant time differences
                     if !runner.tasksWithSignificantDifferences.isEmpty {

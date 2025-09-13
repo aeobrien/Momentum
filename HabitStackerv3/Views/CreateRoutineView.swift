@@ -42,6 +42,7 @@ struct CompactTaskCard: View {
                         .foregroundColor(.gray)
                         .imageScale(.large)
                 }
+                .buttonStyle(BorderlessButtonStyle())
                 .padding(.trailing, 4)
             }
             
@@ -74,6 +75,7 @@ struct CompactTaskCard: View {
                         .foregroundColor(.blue)
                         .imageScale(.large)
                 }
+                .buttonStyle(BorderlessButtonStyle())
             }
         }
         .padding(.vertical, 8)

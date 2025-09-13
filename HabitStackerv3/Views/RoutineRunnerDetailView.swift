@@ -12,6 +12,7 @@ import CoreData // Import CoreData for preview context
 /// RoutineRunnerDetailView provides detailed information about the running routine.
 struct RoutineRunnerDetailView: View {
     @ObservedObject var runner: RoutineRunner
+    @StateObject private var settingsManager = SettingsManager.shared
     @State private var editMode: EditMode = .active // Enable edit mode for reordering
 
     // Access managed object context for fetching routine details if needed
@@ -28,13 +29,15 @@ struct RoutineRunnerDetailView: View {
                 .font(.largeTitle)
                 .padding(.bottom, 5)
 
-            // Display Schedule Offset
-            HStack {
-                Text("Schedule Status:")
-                    .font(.headline)
-                Text(runner.scheduleOffsetString)
-                    .font(.headline)
-                    .foregroundColor(scheduleColor())
+            // Display Schedule Offset (hide in No Timers mode)
+            if !settingsManager.noTimersMode {
+                HStack {
+                    Text("Schedule Status:")
+                        .font(.headline)
+                    Text(runner.scheduleOffsetString)
+                        .font(.headline)
+                        .foregroundColor(scheduleColor())
+                }
             }
 
             // Display Current Task Info
@@ -42,12 +45,16 @@ struct RoutineRunnerDetailView: View {
                 HStack {
                     Text("Current Task:")
                         .font(.headline)
-                    Text("\(runner.currentTaskName) (")
-                    + Text(runner.remainingTimeString)
-                        .font(.system(.headline, design: .monospaced))
-                    + Text(")")
+                    if settingsManager.noTimersMode {
+                        Text(runner.currentTaskName)
+                    } else {
+                        Text("\(runner.currentTaskName) (")
+                        + Text(runner.remainingTimeString)
+                            .font(.system(.headline, design: .monospaced))
+                        + Text(")")
+                    }
                 }
-                .foregroundColor(runner.isOverrun ? .red : .primary)
+                .foregroundColor(!settingsManager.noTimersMode && runner.isOverrun ? .red : .primary)
             } else {
                 Text("Routine Complete!")
                     .font(.headline)
@@ -80,10 +87,12 @@ struct RoutineRunnerDetailView: View {
 
                             Spacer()
 
-                            // Display the ACTUAL allocated duration for this run
-                            Text("\(Int(scheduledTask.allocatedDuration / 60)) min")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            // Display the ACTUAL allocated duration for this run (hide in No Timers mode)
+                            if !settingsManager.noTimersMode {
+                                Text("\(Int(scheduledTask.allocatedDuration / 60)) min")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .id(index) // Add ID for ScrollViewReader
                         .deleteDisabled(runner.completedTaskIndices.contains(index) || index == runner.currentTaskIndex) // Disable delete for completed/current tasks

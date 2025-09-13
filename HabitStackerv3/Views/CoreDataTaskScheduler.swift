@@ -58,6 +58,7 @@ struct CoreDataTaskScheduler {
 
     private let context: NSManagedObjectContext
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "CoreDataTaskScheduler")
+    private let settingsManager = SettingsManager.shared
     private static let secondsInDay: TimeInterval = 86400
     private static let incrementDuration: TimeInterval = 300 // 5 minutes in seconds
 
@@ -81,6 +82,19 @@ struct CoreDataTaskScheduler {
         }
         let sortedRelations = relations.sorted { $0.order < $1.order }
         let allTasksInOrderIDs = sortedRelations.compactMap { $0.task?.objectID }
+        
+        // In No Timers mode, schedule all tasks with their minimum duration
+        if settingsManager.noTimersMode {
+            logger.info("No Timers mode enabled - scheduling all tasks without prioritization")
+            var scheduledTasks: [ScheduledTask] = []
+            for relation in sortedRelations {
+                guard let task = relation.task else { continue }
+                let taskInContext = context.object(with: task.objectID) as? CDTask ?? task
+                let duration = TimeInterval(taskInContext.minDuration * 60)
+                scheduledTasks.append(ScheduledTask(task: taskInContext, allocatedDuration: duration))
+            }
+            return scheduledTasks
+        }
         // Create a map from ObjectID to original CDTask for easy lookup if needed,
         // ensuring they are accessed via the scheduler's context.
         let taskMap = Dictionary(uniqueKeysWithValues: sortedRelations.compactMap { relation -> (NSManagedObjectID, CDTask)? in

@@ -74,20 +74,22 @@ struct SchedulePreviewView: View {
                 .listStyle(PlainListStyle()) // Use plain style for better integration
                 .environment(\.editMode, .constant(.active)) // Enable edit mode for reordering
 
-                // Summary or total time (optional)
+                // Summary or total time (hide in No Timers mode)
                 if !currentSchedule.isEmpty {
-                    VStack(spacing: 4) {
-                        Text("Total Estimated Time: \(formattedTotalDuration)")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                        
-                        if SettingsManager.shared.scheduleBufferMinutes > 0 {
-                            Text("(includes \(SettingsManager.shared.scheduleBufferMinutes)m buffer)")
-                                .font(.caption2)
-                                .foregroundColor(Color.secondary.opacity(0.6))
+                    if !settingsManager.noTimersMode {
+                        VStack(spacing: 4) {
+                            Text("Total Estimated Time: \(formattedTotalDuration)")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            
+                            if SettingsManager.shared.scheduleBufferMinutes > 0 {
+                                Text("(includes \(SettingsManager.shared.scheduleBufferMinutes)m buffer)")
+                                    .font(.caption2)
+                                    .foregroundColor(Color.secondary.opacity(0.6))
+                            }
                         }
+                        .padding(.vertical, 5)
                     }
-                    .padding(.vertical, 5)
                 } else {
                     Text("No tasks remaining in this schedule.")
                         .foregroundColor(.secondary)
@@ -150,11 +152,13 @@ struct SchedulePreviewView: View {
                 // Assuming CDTask has 'taskName' attribute
                 Text(scheduledTask.task.taskName ?? "Unnamed Task")
                     .fontWeight(.medium)
-                // Show allocated duration for this task
+                // Show allocated duration for this task (hide in No Timers mode)
                 // Using ScheduledTask property 'allocatedDuration' (TimeInterval)
-                Text("Allocated: \(formatDuration(Int(scheduledTask.allocatedDuration / 60)))")
-                     .font(.caption)
-                     .foregroundColor(.secondary)
+                if !settingsManager.noTimersMode {
+                    Text("Allocated: \(formatDuration(Int(scheduledTask.allocatedDuration / 60)))")
+                         .font(.caption)
+                         .foregroundColor(.secondary)
+                }
             }
 
             Spacer() // Pushes button to the right

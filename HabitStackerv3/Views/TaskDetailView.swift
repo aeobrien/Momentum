@@ -9,6 +9,7 @@ struct IdentifiableError: Identifiable {
 
 struct TaskDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var settingsManager = SettingsManager.shared
     @ObservedObject var cdTask: CDTask
     @State private var showEdit = false
     @State private var errorMessage: IdentifiableError?
@@ -78,13 +79,15 @@ struct TaskDetailView: View {
                                        cdTask.essentiality == 2 ? .orange : .green)
                 }
                 
-                HStack {
-                    Text("Duration")
-                    Spacer()
-                    Text(cdTask.minDuration == cdTask.maxDuration ?
-                         "\(cdTask.minDuration) minutes" :
-                         "\(cdTask.minDuration)-\(cdTask.maxDuration) minutes")
-                        .foregroundColor(.secondary)
+                if !settingsManager.noTimersMode {
+                    HStack {
+                        Text("Duration")
+                        Spacer()
+                        Text(cdTask.minDuration == cdTask.maxDuration ?
+                             "\(cdTask.minDuration) minutes" :
+                             "\(cdTask.minDuration)-\(cdTask.maxDuration) minutes")
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 if cdTask.repetitionInterval > 0 {

@@ -229,7 +229,10 @@ class RoutineRunner: ObservableObject {
     
     /// The original finishing time selected when the routine was started.
     @Published private(set) var originalFinishingTime: Date = Date()
-    
+
+    /// The actual time when the routine was completed
+    @Published private(set) var actualCompletionTime: Date?
+
     /// The estimated finishing time based on the original time plus/minus the schedule offset.
     @Published var estimatedFinishingTimeString: String = ""
 
@@ -629,6 +632,7 @@ class RoutineRunner: ObservableObject {
         
         // Update published properties on the main thread
         DispatchQueue.main.async {
+            self.actualCompletionTime = Date() // Store the actual completion time
             self.currentTaskName = errorMessage ?? "Routine Complete!"
             self.remainingTimeString = "--:--" // Indicate no timer
             self.isRunning = false
@@ -695,14 +699,35 @@ class RoutineRunner: ObservableObject {
         // Check if we're completing an interruption task
         if isHandlingInterruption && completedTaskName == "Interruption" {
             logger.info("Completing interruption task, will restore interrupted task")
+
+            // Calculate actual time spent on interruption
+            var actualInterruptionTime: TimeInterval = 180 // Default to full 3 minutes
+            if let pauseTime = self.remainingTimeOnPause {
+                actualInterruptionTime = 180 - pauseTime
+            } else if let start = startTime {
+                actualInterruptionTime = Date().timeIntervalSince(start)
+            }
+
+            // Update schedule offset based on actual time vs expected 3 minutes
+            let timeDifference = 180 - actualInterruptionTime
+            if timeDifference > 0 {
+                // Completed interruption faster than 3 minutes, gain time back
+                scheduleOffset -= timeDifference
+                logger.info("Interruption completed \(timeDifference)s faster than expected, gaining time back")
+            }
+
             // Don't record completion time or update task status for interruption
             timer?.cancel()
             timer = nil
             isRunning = false
-            
-            // Update completed duration for the interruption
-            completedDuration += 180 // 3 minutes
-            
+
+            // Update completed duration for the actual time spent
+            completedDuration += actualInterruptionTime
+
+            // Update schedule displays
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+
             // Restore the interrupted task
             restoreInterruptedTask()
             return
@@ -825,7 +850,7 @@ class RoutineRunner: ObservableObject {
         // Check if we're skipping an interruption task
         if isHandlingInterruption && skippedTaskName == "Interruption" {
             logger.info("Skipping interruption task, will restore interrupted task")
-            // Calculate time saved from skipping interruption
+            // Calculate time spent on interruption before skipping
             var timeElapsed: TimeInterval = 0
             if let pauseTime = self.remainingTimeOnPause {
                 timeElapsed = 180 - pauseTime // 3 minutes - remaining
@@ -833,19 +858,25 @@ class RoutineRunner: ObservableObject {
                 timeElapsed = Date().timeIntervalSince(start)
             }
             let timeSaved = 180 - timeElapsed
-            
-            // Update schedule offset
-            self.recomputeOffsets()
-            logger.info("Interruption skipped. Time saved: \(timeSaved)s")
-            
+
+            // Update schedule offset - we save the time not spent on the interruption
+            if timeSaved > 0 {
+                scheduleOffset -= timeSaved // Reduce the behind-schedule amount
+                logger.info("Interruption skipped. Time saved: \(timeSaved)s")
+            }
+
             // Stop timer
             timer?.cancel()
             timer = nil
             isRunning = false
-            
-            // Update completed duration
-            completedDuration += 180 // Count full interruption duration as completed
-            
+
+            // Update completed duration for time actually spent
+            completedDuration += timeElapsed
+
+            // Update schedule displays
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+
             // Restore the interrupted task
             restoreInterruptedTask()
             return
@@ -1424,12 +1455,15 @@ class RoutineRunner: ObservableObject {
         
         // Insert interruption task at current position
         scheduledTasks.insert(interruptionScheduledTask, at: currentTaskIndex)
-        
+
         // Update total routine duration
         totalRoutineDuration += 180
-        
-        // Update schedule offset (subtract 3 minutes as we're adding time)
-        recomputeOffsets()
+
+        // Update schedule offset - adding an interruption puts us behind schedule
+        // The interruption is extra time not in the original schedule
+        scheduleOffset += 180 // Positive means behind schedule
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
         
         // Mark that we're handling an interruption
         isHandlingInterruption = true
@@ -1453,16 +1487,16 @@ class RoutineRunner: ObservableObject {
         // Remove the interruption task from the schedule
         if currentTaskIndex >= 0 && currentTaskIndex < scheduledTasks.count {
             let removedTask = scheduledTasks.remove(at: currentTaskIndex)
-            
+
             // Delete the interruption task from Core Data context to prevent it from being saved
             if removedTask.task.taskName == "Interruption" && removedTask.task.isSessionTask {
                 context.delete(removedTask.task)
                 logger.info("Deleted interruption task from context")
             }
-            
-            // Update total routine duration
+
+            // Update total routine duration (remove the interruption duration)
             totalRoutineDuration -= removedTask.allocatedDuration
-            
+
             // The current index now points to the original task (or next task if it was the last)
             // No need to change currentTaskIndex
         }

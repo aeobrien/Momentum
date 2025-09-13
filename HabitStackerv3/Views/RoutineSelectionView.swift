@@ -216,7 +216,7 @@ struct RoutineSelectionView: View {
                 }
             }
         }
-        .sheet(isPresented: $showSchedulePreviewModal) {
+        .fullScreenCover(isPresented: $showSchedulePreviewModal) {
             if let schedule = scheduleForPreview, let routine = selectedRoutine {
                 SchedulePreviewView(
                     initialSchedule: schedule,
@@ -375,27 +375,31 @@ struct RoutineSelectionView: View {
     }
     
     private var timeSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Finishing Time")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        Group {
+            if !settingsManager.noTimersMode {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Finishing Time")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
-            DatePicker("Select End Time",
-                       selection: $selectedTime,
-                       in: Date()...,
-                       displayedComponents: [.hourAndMinute])
-                .datePickerStyle(.compact)
-                .labelsHidden()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(8)
-                .onChange(of: selectedTime) { newTime in
-                    logger.debug("Selected end time changed to: \(newTime)")
+                    DatePicker("Select End Time",
+                               selection: $selectedTime,
+                               in: Date()...,
+                               displayedComponents: [.hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(8)
+                        .onChange(of: selectedTime) { newTime in
+                            logger.debug("Selected end time changed to: \(newTime)")
+                        }
                 }
+                .frame(maxWidth: .infinity)
+            }
         }
-        .frame(maxWidth: .infinity)
     }
     
     private func durationOptionsSection(routine: CDRoutine) -> some View {
