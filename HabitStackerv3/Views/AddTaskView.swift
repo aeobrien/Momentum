@@ -506,7 +506,7 @@ struct AddTaskView: View {
                     print("  Item \(i): \(item.title)")
                 }
             }
-        .sheet(isPresented: $showJSONPreview) {
+        .fullScreenCover(isPresented: $showJSONPreview) {
                 NavigationView {
                     ScrollView {
                         VStack(alignment: .leading) {
@@ -514,7 +514,7 @@ struct AddTaskView: View {
                             Text("Successfully parsed \(tasks.count) tasks")
                                 .font(.headline)
                                 .padding()
-                            
+
                             Text(formatJSON(jsonPreviewContent))
                                 .font(.system(.body, design: .monospaced))
                                 .padding()

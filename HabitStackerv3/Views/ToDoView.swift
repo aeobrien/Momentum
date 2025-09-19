@@ -21,13 +21,99 @@ enum TodoViewFilter {
 struct ToDoView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest private var cdTasks: FetchedResults<CDTask>
-    
+
     @State private var selectedFilter: TodoViewFilter = .eligible
     @State private var completedTaskId: UUID? = nil
     @State private var isAnimating = false
     @State private var infoMode = false
-    
+
     private let logger = AppLogger.create(subsystem: "com.app.ToDoView", category: "UI")
+
+    // Helper functions for formatting time
+    private func formatRelativeTime(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        let hours = Int(interval / 3600)
+        let days = Int(interval / 86400)
+
+        if days >= 365 {
+            let years = days / 365
+            return "\(years) year\(years == 1 ? "" : "s") ago"
+        } else if days >= 30 {
+            let months = days / 30
+            return "\(months) month\(months == 1 ? "" : "s") ago"
+        } else if days >= 7 {
+            let weeks = days / 7
+            return "\(weeks) week\(weeks == 1 ? "" : "s") ago"
+        } else if days >= 1 {
+            return "\(days) day\(days == 1 ? "" : "s") ago"
+        } else if hours >= 1 {
+            return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+        } else {
+            return "less than 1 hour ago"
+        }
+    }
+
+    private func formatRepetitionInterval(_ seconds: Int32) -> String {
+        if seconds == 0 {
+            return "Daily"
+        }
+
+        let hours = seconds / 3600
+        let days = seconds / 86400
+
+        if days >= 365 {
+            let years = days / 365
+            return "Every \(years) year\(years == 1 ? "" : "s")"
+        } else if days >= 30 {
+            let months = days / 30
+            return "Every \(months) month\(months == 1 ? "" : "s")"
+        } else if days >= 7 {
+            let weeks = days / 7
+            return "Every \(weeks) week\(weeks == 1 ? "" : "s")"
+        } else if days >= 1 {
+            return "Every \(days) day\(days == 1 ? "" : "s")"
+        } else if hours >= 1 {
+            return "Every \(hours) hour\(hours == 1 ? "" : "s")"
+        } else {
+            let minutes = seconds / 60
+            return "Every \(minutes) minute\(minutes == 1 ? "" : "s")"
+        }
+    }
+
+    private func nextDueText(_ task: CDTask) -> String? {
+        guard let lastCompleted = task.lastCompleted,
+              task.repetitionInterval >= 0 else {
+            return nil
+        }
+
+        let nextDueDate = lastCompleted.addingTimeInterval(TimeInterval(task.repetitionInterval))
+        let now = Date()
+        let interval = nextDueDate.timeIntervalSince(now)
+
+        if interval <= 0 {
+            return "due now"
+        }
+
+        let hours = Int(interval / 3600)
+        let days = Int(interval / 86400)
+
+        if days >= 365 {
+            let years = days / 365
+            return "in \(years) year\(years == 1 ? "" : "s")"
+        } else if days >= 30 {
+            let months = days / 30
+            return "in \(months) month\(months == 1 ? "" : "s")"
+        } else if days >= 7 {
+            let weeks = days / 7
+            return "in \(weeks) week\(weeks == 1 ? "" : "s")"
+        } else if days >= 1 {
+            return "in \(days) day\(days == 1 ? "" : "s")"
+        } else if hours >= 1 {
+            return "in \(hours) hour\(hours == 1 ? "" : "s")"
+        } else {
+            return "in less than 1 hour"
+        }
+    }
     
     init() {
         let request: NSFetchRequest<CDTask> = CDTask.fetchRequest()
@@ -137,24 +223,36 @@ struct ToDoView: View {
                         .buttonStyle(BorderlessButtonStyle())
                         
                         // Task details
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(task.taskName ?? "")
                                 .font(.headline)
-                            
-                            if let lastCompleted = task.lastCompleted {
-                                Text("Last completed: \(lastCompleted, formatter: dateFormatter)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text("Never completed")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            if task.repetitionInterval > 0 {
-                                Text("Repeats every \(task.repetitionInterval / 86400) days")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+
+                            // Show repetition interval, last completed, and next due on one line
+                            HStack(spacing: 6) {
+                                // Repetition interval (or Daily)
+                                if task.repetitionInterval >= 0 {
+                                    Text(formatRepetitionInterval(task.repetitionInterval))
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+
+                                // Last completed
+                                if let lastCompleted = task.lastCompleted {
+                                    Text("• Last: \(formatRelativeTime(lastCompleted))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("• Never completed")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                // Next due
+                                if let nextDue = nextDueText(task) {
+                                    Text("• Next: \(nextDue)")
+                                        .font(.caption)
+                                        .foregroundColor(nextDue == "due now" ? .orange : .secondary)
+                                }
                             }
                         }
                         

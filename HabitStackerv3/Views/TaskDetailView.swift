@@ -13,8 +13,18 @@ struct TaskDetailView: View {
     @ObservedObject var cdTask: CDTask
     @State private var showEdit = false
     @State private var errorMessage: IdentifiableError?
-    
+
     private let logger = AppLogger.create(subsystem: "com.app.TaskDetailView", category: "UI")
+
+    // Fetch routines that contain this task
+    private var routinesContainingTask: [CDRoutine] {
+        guard let routineRelations = cdTask.routineRelations?.allObjects as? [CDRoutineTask] else {
+            return []
+        }
+        return routineRelations.compactMap { $0.routine }.sorted {
+            ($0.name ?? "") < ($1.name ?? "")
+        }
+    }
     
     private func formatRepetitionInterval(_ seconds: Int32) -> String {
         let days = seconds / 86400
@@ -135,7 +145,22 @@ struct TaskDetailView: View {
                     }
                 }
             }
-            
+
+            // Display routines containing this task
+            if !routinesContainingTask.isEmpty {
+                Section(header: Text("ROUTINES")) {
+                    ForEach(routinesContainingTask, id: \.objectID) { routine in
+                        HStack {
+                            Image(systemName: "repeat.circle.fill")
+                                .foregroundColor(.blue)
+                            Text(routine.name ?? "Unnamed Routine")
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                    }
+                }
+            }
+
             if let lastCompleted = cdTask.lastCompleted {
                 Section(header: Text("HISTORY AND ELIGIBILITY")) {
                     HStack {
@@ -201,7 +226,7 @@ struct TaskDetailView: View {
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("Task Details")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showEdit) {
+        .fullScreenCover(isPresented: $showEdit) {
             AddTaskView(task: cdTask.toDomainModel()) { updatedTask in
                 updateTask(updatedTask)
             }

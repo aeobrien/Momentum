@@ -242,9 +242,35 @@ class TempRoutineRunner: ObservableObject {
         
         // Check if we're completing an interruption
         if isHandlingInterruption && tasks[currentTaskIndex].name == "Interruption" {
-            // Update completed duration for interruption
-            completedDuration += 180
-            
+            // Calculate actual time spent on interruption
+            var actualInterruptionTime: TimeInterval = 180 // Default to full 3 minutes
+            if remainingTimeOnPause != nil {
+                actualInterruptionTime = 180 - remainingTimeOnPause!
+            } else if isOverrun {
+                // Task went into overrun - remaining time is negative
+                actualInterruptionTime = 180 - remainingTime // Since remainingTime is negative, this adds
+            } else if let start = startTime {
+                actualInterruptionTime = Date().timeIntervalSince(start)
+            } else {
+                // If timer wasn't started, use remaining time
+                actualInterruptionTime = 180 - remainingTime
+            }
+
+            // Update schedule offset based on actual time vs expected 3 minutes
+            let timeDifference = 180 - actualInterruptionTime
+            if timeDifference > 0 {
+                // Completed interruption faster than 3 minutes, gain time back
+                scheduleOffset -= timeDifference
+            }
+            // Note: If interruption went over time, the overrun updates have already adjusted scheduleOffset
+
+            // Update completed duration for actual time spent
+            completedDuration += actualInterruptionTime
+
+            // Update schedule displays
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+
             // Restore the interrupted task
             restoreInterruptedTask()
             return
@@ -283,6 +309,40 @@ class TempRoutineRunner: ObservableObject {
     }
     
     func skipToNextTask() {
+        // Check if we're skipping an interruption task
+        if isHandlingInterruption && currentTaskIndex >= 0 && currentTaskIndex < tasks.count && tasks[currentTaskIndex].name == "Interruption" {
+            // Calculate time spent on interruption before skipping
+            var timeElapsed: TimeInterval = 0
+            if remainingTimeOnPause != nil {
+                timeElapsed = 180 - remainingTimeOnPause!
+            } else if let start = startTime {
+                timeElapsed = Date().timeIntervalSince(start)
+            } else {
+                timeElapsed = 180 - remainingTime
+            }
+            let timeSaved = 180 - timeElapsed
+
+            // Update schedule offset - we save the time not spent on the interruption
+            if timeSaved > 0 {
+                scheduleOffset -= timeSaved // Reduce the behind-schedule amount
+            }
+
+            // Update completed duration for time actually spent
+            completedDuration += timeElapsed
+
+            // Pause timer
+            pauseTimer()
+
+            // Update schedule displays
+            updateScheduleOffsetString()
+            updateEstimatedFinishingTimeString()
+
+            // Restore the interrupted task
+            restoreInterruptedTask()
+            return
+        }
+
+        // Normal skip behavior
         markTaskComplete()
     }
     
@@ -371,25 +431,30 @@ class TempRoutineRunner: ObservableObject {
     func handleInterruption() {
         guard currentTaskIndex >= 0 && currentTaskIndex < tasks.count && !isRoutineComplete else { return }
         guard !isHandlingInterruption else { return }
-        
+
         // Store the current task state
         interruptedTaskState = (taskIndex: currentTaskIndex, remainingTime: remainingTime)
-        
+
         // Pause current timer
         pauseTimer()
-        
+
         // Create interruption task
         let interruptionTask = TempTask(name: "Interruption", duration: 3)
-        
+
         // Insert at current position
         tasks.insert(interruptionTask, at: currentTaskIndex)
-        
+
         // Update total duration
         totalRoutineDuration += 180 // 3 minutes
-        
+
+        // Update schedule offset - adding an interruption puts us behind schedule
+        scheduleOffset += 180 // Positive means behind schedule
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
+
         // Mark as handling interruption
         isHandlingInterruption = true
-        
+
         // Configure the interruption task
         configureCurrentTask()
         startTimer()

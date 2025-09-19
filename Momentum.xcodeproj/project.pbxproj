@@ -19,6 +19,7 @@
 		DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C42CDCCF6F008B839C /* TaskCard.swift */; };
 		DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C62CDCCF7B008B839C /* SearchBar.swift */; };
 		DD4222C92CDCD342008B839C /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C82CDCD342008B839C /* DateExtensions.swift */; };
+		DD4ED5222E75999F00B195CA /* TaskCleanupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */; };
 		DD5902B02CDD1CFA005F040A /* ToDoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902AF2CDD1CFA005F040A /* ToDoView.swift */; };
 		DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */; };
 		DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B32CDD2347005F040A /* RoutineTestView.swift */; };
@@ -190,6 +191,7 @@
 		DD4222C42CDCCF6F008B839C /* TaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCard.swift; sourceTree = "<group>"; };
 		DD4222C62CDCCF7B008B839C /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
 		DD4222C82CDCD342008B839C /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
+		DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCleanupView.swift; sourceTree = "<group>"; };
 		DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		DD5902AF2CDD1CFA005F040A /* ToDoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoView.swift; sourceTree = "<group>"; };
 		DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestHarness.swift; sourceTree = "<group>"; };
@@ -574,6 +576,7 @@
 				DDF228CA2CCD8C400014505A /* SplashScreenView.swift */,
 				DD4222C42CDCCF6F008B839C /* TaskCard.swift */,
 				DDF228CE2CCD95E60014505A /* TaskCardView.swift */,
+				DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */,
 				DDF228322CC9599D0014505A /* TaskDetailView.swift */,
 				DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */,
 				DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */,
@@ -821,6 +824,7 @@
 				DDF228A22CC96B830014505A /* RoutineStorage.swift in Sources */,
 				DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */,
 				DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */,
+				DD4ED5222E75999F00B195CA /* TaskCleanupView.swift in Sources */,
 				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
 				DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */,
 				DDA018482E378145006EEA49 /* ChecklistTaskView.swift in Sources */,

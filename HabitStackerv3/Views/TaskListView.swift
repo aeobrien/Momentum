@@ -10,6 +10,7 @@ struct TaskListView: View {
     @State private var searchText: String = ""
     @State private var showAddTask = false
     @State private var showTemplateOnboarding = false
+    @State private var showCleanup = false
     @State private var sortMode: SortMode = .nameAsc
     @State private var infoMode = false
     
@@ -148,20 +149,32 @@ struct TaskListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(
             leading: InfoButton(showInfo: $infoMode),
-            trailing: Button(action: {
-                logger.debug("Opening add task view")
-                showAddTask = true
-            }) {
-                Image(systemName: "plus")
+            trailing: HStack(spacing: 16) {
+                Button(action: {
+                    logger.debug("Opening cleanup view")
+                    showCleanup = true
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.orange)
+                }
+                Button(action: {
+                    logger.debug("Opening add task view")
+                    showAddTask = true
+                }) {
+                    Image(systemName: "plus")
+                }
             }
         )
-        .sheet(isPresented: $showAddTask) {
+        .fullScreenCover(isPresented: $showAddTask) {
             AddTaskView { newTask in
                 createTask(from: newTask)
             }
         }
         .sheet(isPresented: $showTemplateOnboarding) {
             RoutineTemplateOnboardingView()
+        }
+        .sheet(isPresented: $showCleanup) {
+            TaskCleanupView()
         }
     }
     

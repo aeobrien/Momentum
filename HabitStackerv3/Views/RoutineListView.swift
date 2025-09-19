@@ -194,7 +194,7 @@ struct RoutineListView: View {
                 }
             }
         }
-        .sheet(isPresented: $showCreateRoutine) {
+        .fullScreenCover(isPresented: $showCreateRoutine) {
             CreateRoutineView(viewModel: viewModel)
         }
         .sheet(isPresented: $showTemplateOnboarding) {

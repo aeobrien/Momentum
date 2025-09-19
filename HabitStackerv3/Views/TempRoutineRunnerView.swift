@@ -366,6 +366,7 @@ struct TempRoutineRunnerView: View {
                                 runner.markTaskComplete()
                             }
                             .disabled(runner.isRoutineComplete)
+                            .frame(height: 60)
                             .padding(.horizontal)
                             .onTapGesture {
                                 if infoMode {

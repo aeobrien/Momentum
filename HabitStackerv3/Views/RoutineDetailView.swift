@@ -111,7 +111,7 @@ struct RoutineDetailView: View {
                 }
             )
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingEditRoutine) {
+            .fullScreenCover(isPresented: $showingEditRoutine) {
                 NavigationView {
                     EditRoutineView(cdRoutine: cdRoutine)
                         .environment(\.managedObjectContext, viewContext)

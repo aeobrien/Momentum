@@ -704,6 +704,14 @@ class RoutineRunner: ObservableObject {
             var actualInterruptionTime: TimeInterval = 180 // Default to full 3 minutes
             if let pauseTime = self.remainingTimeOnPause {
                 actualInterruptionTime = 180 - pauseTime
+            } else if self.isOverrun {
+                // Task went into overrun - calculate total time including overrun
+                var currentRemaining: TimeInterval = 0
+                if let start = startTime {
+                    let elapsed = Date().timeIntervalSince(start)
+                    currentRemaining = timeToCountDownAtStart - elapsed
+                }
+                actualInterruptionTime = 180 - currentRemaining // Since currentRemaining is negative during overrun, this adds
             } else if let start = startTime {
                 actualInterruptionTime = Date().timeIntervalSince(start)
             }
@@ -715,6 +723,8 @@ class RoutineRunner: ObservableObject {
                 scheduleOffset -= timeDifference
                 logger.info("Interruption completed \(timeDifference)s faster than expected, gaining time back")
             }
+            // Note: If interruption went over time (timeDifference < 0), the overrun logic
+            // has already been adding to scheduleOffset second by second, so no adjustment needed
 
             // Don't record completion time or update task status for interruption
             timer?.cancel()
@@ -739,32 +749,46 @@ class RoutineRunner: ObservableObject {
         logger.info("[Task Complete] Timer stopped")
         // DON'T clear startTime yet - we need it for duration calculation!
 
-        // Calculate deviation based on allocated duration
-        let expectedDuration = self.currentTaskDuration // This is now the allocated duration
+        // Calculate deviation based on the task's actual duration (not allocated)
+        let expectedDuration = TimeInterval(completedTask.minDuration * 60)
         var actualDuration: TimeInterval = 0
-        
+
         logger.info("[Task Complete] Calculating actual duration - Expected: \(expectedDuration, format: .fixed(precision: 2))s")
-        
+
+        // Calculate based on the timer display to handle backgrounded tasks correctly
+        // If timer shows 2:30 remaining from 10:00 expected, task took 7:30
+        // If timer shows -4:00 from 5:00 expected, task took 9:00
+
         if let pauseTime = self.remainingTimeOnPause {
+            // Task was paused - calculate from remaining time
             actualDuration = expectedDuration - pauseTime
             logger.info("[Task Complete] Using pause time calculation - Pause time: \(pauseTime, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
         } else if self.isOverrun {
-            let intendedEndTime = (startTime ?? Date()).addingTimeInterval(self.timeToCountDownAtStart)
-            let timeSinceIntendedEnd = Date().timeIntervalSince(intendedEndTime)
-            actualDuration = expectedDuration + timeSinceIntendedEnd
-            logger.info("[Task Complete] Overrun calculation - Time since intended end: \(timeSinceIntendedEnd, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
-        } else if let start = startTime {
-            actualDuration = Date().timeIntervalSince(start)
-            logger.info("[Task Complete] Normal calculation from start time - Actual: \(actualDuration, format: .fixed(precision: 2))s")
+            // Task went into overrun - need to calculate total time including overrun
+            // Get current remaining time (which will be negative during overrun)
+            var currentRemaining: TimeInterval = 0
+            if let start = startTime {
+                let elapsed = Date().timeIntervalSince(start)
+                currentRemaining = timeToCountDownAtStart - elapsed
+            }
+            // Actual duration = expected duration + overrun time
+            actualDuration = expectedDuration - currentRemaining // Since currentRemaining is negative, this adds
+            logger.info("[Task Complete] Overrun calculation - Current remaining: \(currentRemaining, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
+        } else {
+            // Normal case - calculate from timer's remaining time
+            var currentRemaining: TimeInterval = currentTaskDuration
+            if let start = startTime {
+                let elapsed = Date().timeIntervalSince(start)
+                currentRemaining = timeToCountDownAtStart - elapsed
+            }
+            actualDuration = expectedDuration - currentRemaining
+            logger.info("[Task Complete] Timer-based calculation - Remaining: \(currentRemaining, format: .fixed(precision: 2))s, Actual: \(actualDuration, format: .fixed(precision: 2))s")
+
             // Ensure we record at least 1 second if the task was started
             if actualDuration < 1.0 {
                 actualDuration = 1.0
                 logger.info("[Task Complete] Adjusted to minimum 1 second")
             }
-        } else {
-            // If no start time recorded, use a default minimum duration
-            actualDuration = 1.0
-            logger.info("[Task Complete] No start time - using default 1 second")
         }
 
         let deviation = actualDuration - expectedDuration
@@ -882,8 +906,8 @@ class RoutineRunner: ObservableObject {
             return
         }
 
-        // Calculate time saved by skipping
-        let expectedDuration = self.currentTaskDuration // This is the allocated duration
+        // Calculate time saved by skipping (use task's actual duration, not allocated)
+        let expectedDuration = TimeInterval(skippedTask.minDuration * 60)
         var timeElapsed: TimeInterval = 0
         
         logger.info("[Task Skip] Calculating time saved - Expected duration: \(expectedDuration, format: .fixed(precision: 2))s")

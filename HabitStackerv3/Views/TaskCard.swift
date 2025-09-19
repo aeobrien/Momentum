@@ -5,7 +5,7 @@ struct TaskCard: View {
     let isSelected: Bool
     var onRemove: (() -> Void)? = nil
     var onAdd: (() -> Void)? = nil
-    
+
     private func essentialityColor(_ value: Int16) -> Color {
         switch value {
         case 3: return .red
@@ -14,7 +14,7 @@ struct TaskCard: View {
         default: return .gray
         }
     }
-    
+
     private var durationText: String {
         if cdTask.minDuration == cdTask.maxDuration {
             return "\(cdTask.minDuration)m"
@@ -34,7 +34,7 @@ struct TaskCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(cdTask.taskName ?? "")
                     .font(.headline)
-                
+
                 HStack {
                     Image(systemName: "clock")
                         .foregroundColor(.gray)
