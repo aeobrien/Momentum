@@ -13,6 +13,7 @@ struct RoutineRunnerView: View {
     @State private var showTaskList: Bool = false
     @State private var showDurationSuggestions: Bool = false
     @State private var showBackgroundTasks: Bool = true
+    @State private var selectedThreshold: Double = 0.3
     @State private var infoMode: Bool = false
     @State private var highlightedElement: String? = nil
     @State private var minimalMode: Bool = true
@@ -755,17 +756,54 @@ struct RoutineRunnerView: View {
                     }
                     
                     // Tasks with significant time differences
-                    if !runner.tasksWithSignificantDifferences.isEmpty {
+                    let thresholdOptions = [(0.1, "10%"), (0.2, "20%"), (0.3, "30%"), (0.4, "40%"), (0.5, "50%")]
+                    let filteredTasks = runner.tasksWithDifferenceThreshold(percentThreshold: selectedThreshold)
+
+                    if !filteredTasks.isEmpty || !runner.taskAnalytics.filter({ !$0.wasSkipped && $0.actualDuration != nil }).isEmpty {
                         VStack(spacing: 10) {
-                            Text("Tasks to Review")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                            HStack {
+                                Text("Tasks to Review")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+
+                                Spacer()
+
+                                Menu {
+                                    ForEach(thresholdOptions, id: \.0) { threshold, label in
+                                        Button(action: {
+                                            selectedThreshold = threshold
+                                        }) {
+                                            Label(label, systemImage: selectedThreshold == threshold ? "checkmark" : "")
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Text("≥ \(Int(selectedThreshold * 100))%")
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                        Image(systemName: "chevron.down")
+                                            .font(.caption2)
+                                            .foregroundColor(.blue)
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(6)
+                                }
+                            }
+
+                            if filteredTasks.isEmpty {
+                                Text("No tasks with ≥\(Int(selectedThreshold * 100))% time difference")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            } else {
+                                Text("Tasks with ≥\(Int(selectedThreshold * 100))% time difference:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                             
-                            Text("These tasks had significant time differences:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            ForEach(runner.tasksWithSignificantDifferences, id: \.taskName) { analytics in
+                            ForEach(filteredTasks, id: \.taskName) { analytics in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(analytics.taskName)

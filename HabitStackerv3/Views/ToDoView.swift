@@ -141,11 +141,21 @@ struct ToDoView: View {
 
         // Rule 3: Interval-based eligibility (repetitionInterval > 0)
         let now = Date()
+        let calendar = Calendar.current
+
+        // Calculate when the task will be due based on the interval
+        let dueDate = lastCompleted.addingTimeInterval(TimeInterval(task.repetitionInterval))
+
+        // Get the start of the day when the task will be due
+        let dueDateStartOfDay = calendar.startOfDay(for: dueDate)
+
+        // If we're past the start of the due day, the task is due
+        // This allows tasks to be completed from midnight on their due date
+        let isDue = now >= dueDateStartOfDay
+
         let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
-        let requiredInterval = TimeInterval(task.repetitionInterval) // Assuming repetitionInterval is stored in seconds
-        
-        let isDue = secondsSinceCompletion >= requiredInterval
-        logger.debug("- Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Due: \(isDue)")
+        let requiredInterval = TimeInterval(task.repetitionInterval)
+        logger.debug("- Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Due from midnight: \(isDue)")
         return isDue
     }
     

@@ -155,6 +155,16 @@ class RoutineRunner: ObservableObject {
         }
     }
 
+    /// Get tasks with time differences above a custom percentage threshold
+    func tasksWithDifferenceThreshold(percentThreshold: Double) -> [TaskCompletionAnalytics] {
+        taskAnalytics.filter { analytics in
+            guard !analytics.wasSkipped, analytics.actualDuration != nil else { return false }
+            let difference = abs(analytics.timeDifference)
+            let percentDifference = difference / analytics.expectedDuration
+            return percentDifference > percentThreshold
+        }
+    }
+
     // MARK: - Core Data & Routine Properties
 
     /// The Core Data managed object context.

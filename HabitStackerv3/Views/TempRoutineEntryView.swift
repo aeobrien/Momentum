@@ -81,15 +81,23 @@ struct TempRoutineEntryView: View {
         guard let lastCompleted = task.lastCompleted else {
             return true
         }
-        
+
         if task.repetitionInterval == 0 {
             return !Calendar.current.isDateInToday(lastCompleted)
         }
-        
+
         let now = Date()
-        let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
-        let requiredInterval = TimeInterval(task.repetitionInterval)
-        return secondsSinceCompletion >= requiredInterval
+        let calendar = Calendar.current
+
+        // Calculate when the task will be due based on the interval
+        let dueDate = lastCompleted.addingTimeInterval(TimeInterval(task.repetitionInterval))
+
+        // Get the start of the day when the task will be due
+        let dueDateStartOfDay = calendar.startOfDay(for: dueDate)
+
+        // If we're past the start of the due day, the task is due
+        // This allows tasks to be completed from midnight on their due date
+        return now >= dueDateStartOfDay
     }
     
     private func filteredTasks() -> [CDTask] {
@@ -116,6 +124,29 @@ struct TempRoutineEntryView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
+                // Task counter at top, visible in all tabs
+                if !selectedTasks.isEmpty {
+                    HStack {
+                        Text("Selected: \(selectedTasks.count) task\(selectedTasks.count == 1 ? "" : "s")")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button("Clear All") {
+                            selectedTasks.removeAll()
+                            selectedTaskIds.removeAll()
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.red)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+
+                    Divider()
+                }
+
                 // Three-tab picker
                 Picker("Filter", selection: $selectedFilter) {
                     ForEach(TempRoutineFilter.allCases, id: \.self) { filter in
@@ -138,29 +169,10 @@ struct TempRoutineEntryView: View {
                     existingTasksView
                 }
                 
-                // Selected tasks summary and next button
+                // Next button
                 VStack(spacing: 0) {
-                    if !selectedTasks.isEmpty {
-                        Divider()
-                        
-                        HStack {
-                            Text("Selected: \(selectedTasks.count) task\(selectedTasks.count == 1 ? "" : "s")")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button("Clear All") {
-                                selectedTasks.removeAll()
-                                selectedTaskIds.removeAll()
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.red)
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                    }
-                    
+                    Divider()
+
                     Button(action: {
                         navigationPath.append("reorder")
                     }) {
@@ -272,13 +284,46 @@ struct TempRoutineEntryView: View {
                             .padding(.vertical, 4)
                         }
                     }
-                    
+
+                    // Show selected tasks from other tabs (read-only)
+                    let otherSelectedTasks = selectedTasks.filter { task in
+                        task.isFromExisting && !customTasks.contains(where: { custom in custom.id == task.id })
+                    }
+                    if !otherSelectedTasks.isEmpty {
+                        Divider()
+                            .padding(.vertical, 8)
+
+                        Text("Selected from other tabs:")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+
+                        ForEach(otherSelectedTasks) { task in
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+
+                                Text(task.name)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+
+                                Spacer()
+
+                                Text("\(task.duration) min")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 4)
+                        }
+                    }
+
                     Spacer(minLength: 20)
                 }
             }
         }
     }
-    
+
     private var existingTasksView: some View {
         VStack(spacing: 0) {
             // Search bar

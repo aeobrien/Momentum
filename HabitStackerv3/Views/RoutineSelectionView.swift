@@ -251,7 +251,7 @@ struct RoutineSelectionView: View {
                     }
             }
         }
-        .sheet(isPresented: $showTempRoutineEntry) {
+        .fullScreenCover(isPresented: $showTempRoutineEntry) {
             TempRoutineEntryView(onStartTasks: { tasks in
                 logger.info("Received \(tasks.count) tasks from TempRoutineEntryView")
                 logger.info("Tasks details: \(tasks.map { $0.name }.joined(separator: ", "))")

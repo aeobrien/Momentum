@@ -75,10 +75,10 @@ struct SlideToCompleteView: View {
                                     }
                                 }
                                 .onEnded { value in
-                                    let threshold = width * 0.8
+                                    let threshold = width * 0.6  // Reduced threshold from 80% to 60%
                                     if offset > threshold && !isCompleting {
                                         isCompleting = true
-                                        
+
                                         // Hold at end position
                                         withAnimation(.easeOut(duration: 0.2)) {
                                             offset = width - 60
@@ -109,6 +109,9 @@ struct SlideToCompleteView: View {
             .frame(height: 50)
             .onAppear {
                 width = geometry.size.width
+            }
+            .onChange(of: geometry.size.width) { newWidth in
+                width = newWidth
             }
         }
         .frame(height: 50)
