@@ -146,16 +146,24 @@ struct ToDoView: View {
         // Calculate when the task will be due based on the interval
         let dueDate = lastCompleted.addingTimeInterval(TimeInterval(task.repetitionInterval))
 
-        // Get the start of the day when the task will be due
-        let dueDateStartOfDay = calendar.startOfDay(for: dueDate)
+        // For tasks with repetition intervals less than 24 hours,
+        // they should only be eligible when actually due
+        if task.repetitionInterval < 86400 {
+            // Strict timing: eligible only if due time has passed
+            let isDue = now >= dueDate
+            let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
+            let requiredInterval = TimeInterval(task.repetitionInterval)
+            logger.debug("- Short Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Due: \(isDue)")
+            return isDue
+        }
 
-        // If we're past the start of the due day, the task is due
-        // This allows tasks to be completed from midnight on their due date
+        // For longer intervals (>= 24 hours), eligible from midnight of the due date
+        let dueDateStartOfDay = calendar.startOfDay(for: dueDate)
         let isDue = now >= dueDateStartOfDay
 
         let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
         let requiredInterval = TimeInterval(task.repetitionInterval)
-        logger.debug("- Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Due from midnight: \(isDue)")
+        logger.debug("- Long Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Due from midnight: \(isDue)")
         return isDue
     }
     

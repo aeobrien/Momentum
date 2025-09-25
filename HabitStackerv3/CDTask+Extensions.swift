@@ -76,13 +76,22 @@ extension CDTask {
         guard let dueDate = self.nextDueDate else {
             return true
         }
-        
-        // Tasks with a due date are eligible if the due date is today or in the past.
-        // We compare the start of the due date with the start of today.
+
+        let now = Date()
         let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
+
+        // For tasks with repetition intervals less than 24 hours,
+        // they should only be eligible when actually due
+        if self.repetitionInterval > 0 && self.repetitionInterval < 86400 {
+            // Strict timing: eligible only if due time has passed
+            return now >= dueDate
+        }
+
+        // For longer intervals (>= 24 hours) or daily reset tasks,
+        // eligible from midnight of the due date
+        let startOfToday = calendar.startOfDay(for: now)
         let startOfDueDate = calendar.startOfDay(for: dueDate)
-        
+
         // Eligible if the due date is on or before today
         return startOfDueDate <= startOfToday
     }

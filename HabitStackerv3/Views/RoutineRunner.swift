@@ -217,7 +217,11 @@ class RoutineRunner: ObservableObject {
     
     /// Stores the task to return to after completing a background task that was brought to foreground
     private var returnToTaskState: (index: Int, remainingTime: TimeInterval)?
-    
+
+    // MARK: - Checklist State Properties
+    /// Stores the completion state of checklist items for each task (keyed by task index)
+    @Published var checklistCompletionStates: [Int: [UUID: Bool]] = [:]
+
     // MARK: - Background Notification Properties
     
     /// Timer for scheduling periodic background notifications

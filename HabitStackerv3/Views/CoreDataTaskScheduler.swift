@@ -559,11 +559,29 @@ struct CoreDataTaskScheduler {
 
         // Rule 3: Interval-based eligibility (repetitionInterval > 0)
         let now = Date()
-        let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
-        let requiredInterval = TimeInterval(task.repetitionInterval) // Assuming repetitionInterval is stored in seconds
+        let calendar = Calendar.current
 
-        let isEligible = secondsSinceCompletion >= requiredInterval
-        logger.trace("- Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Eligible: \(isEligible)")
+        // Calculate when the task will be due based on the interval
+        let dueDate = lastCompleted.addingTimeInterval(TimeInterval(task.repetitionInterval))
+
+        // For tasks with repetition intervals less than 24 hours,
+        // they should only be eligible when actually due
+        if task.repetitionInterval < 86400 {
+            // Strict timing: eligible only if due time has passed
+            let isEligible = now >= dueDate
+            let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
+            let requiredInterval = TimeInterval(task.repetitionInterval)
+            logger.trace("- Short Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Eligible: \(isEligible)")
+            return isEligible
+        }
+
+        // For longer intervals (>= 24 hours), eligible from midnight of the due date
+        let dueDateStartOfDay = calendar.startOfDay(for: dueDate)
+        let isEligible = now >= dueDateStartOfDay
+
+        let secondsSinceCompletion = now.timeIntervalSince(lastCompleted)
+        let requiredInterval = TimeInterval(task.repetitionInterval)
+        logger.trace("- Long Interval Task: \(String(format: "%.1f", secondsSinceCompletion))s since completion. Required: \(String(format: "%.1f", requiredInterval))s. Eligible from midnight: \(isEligible)")
         return isEligible
     }
 

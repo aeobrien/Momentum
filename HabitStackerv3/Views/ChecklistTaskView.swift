@@ -177,13 +177,16 @@ struct ChecklistTaskView: View {
               let items = task.checklistItems as? [ChecklistItem] else {
             return
         }
-        
-        // Create mutable copies of the items
+
+        // Get existing completion states for this task
+        let existingStates = runner.checklistCompletionStates[runner.currentTaskIndex] ?? [:]
+
+        // Create mutable copies of the items, preserving completion state if it exists
         checklistItems = items.map { item in
             ChecklistItem(
                 id: item.id,
                 title: item.title,
-                isCompleted: false, // Reset completion state for this run
+                isCompleted: existingStates[item.id] ?? false, // Use persisted state or default to false
                 order: item.order
             )
         }
@@ -193,11 +196,17 @@ struct ChecklistTaskView: View {
         guard let index = checklistItems.firstIndex(where: { $0.id == item.id }) else {
             return
         }
-        
+
         withAnimation(.easeInOut(duration: 0.2)) {
             checklistItems[index].isCompleted.toggle()
         }
-        
+
+        // Update the persisted state in RoutineRunner
+        if runner.checklistCompletionStates[runner.currentTaskIndex] == nil {
+            runner.checklistCompletionStates[runner.currentTaskIndex] = [:]
+        }
+        runner.checklistCompletionStates[runner.currentTaskIndex]?[item.id] = checklistItems[index].isCompleted
+
         // Check if all items are completed
         if checklistItems.allSatisfy({ $0.isCompleted }) && !showingCompletionAnimation {
             completeTask()
