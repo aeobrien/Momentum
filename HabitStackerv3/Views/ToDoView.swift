@@ -265,8 +265,8 @@ struct ToDoView: View {
                                         .foregroundColor(.secondary)
                                 }
 
-                                // Next due
-                                if let nextDue = nextDueText(task) {
+                                // Next due (only show in Not Due and All Tasks tabs)
+                                if selectedFilter != .eligible, let nextDue = nextDueText(task) {
                                     Text("• Next: \(nextDue)")
                                         .font(.caption)
                                         .foregroundColor(nextDue == "due now" ? .orange : .secondary)

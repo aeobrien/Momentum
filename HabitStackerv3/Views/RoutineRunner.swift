@@ -392,7 +392,8 @@ class RoutineRunner: ObservableObject {
         // }
 
         self.context = context
-        self.scheduledTasks = schedule
+        // Create a new array to avoid retaining the passed-in array
+        self.scheduledTasks = Array(schedule)
         self.routine = routine // Use the passed-in routine
         self.runStart = Date() // Initialize run start time
         

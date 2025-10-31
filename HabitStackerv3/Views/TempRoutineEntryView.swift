@@ -45,7 +45,7 @@ struct TempRoutineTask: Identifiable, Equatable {
 
 struct TempRoutineEntryView: View {
     let onStartTasks: (([TempTask]) -> Void)?
-    
+
     @State private var selectedTasks: [TempRoutineTask] = []
     @State private var customTaskText: String = ""
     @State private var customTasks: [TempRoutineTask] = []
@@ -57,6 +57,10 @@ struct TempRoutineEntryView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedRoutine: CDRoutine? = nil
     @State private var routineTemplateTasks: [TempRoutineTask] = []
+
+    // Use SceneStorage to persist custom tasks across app switches
+    @SceneStorage("tempRoutineCustomTaskNames") private var persistedCustomTaskNames: String = ""
+    @SceneStorage("tempRoutineSelectedTaskIds") private var persistedSelectedTaskIds: String = ""
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -194,6 +198,12 @@ struct TempRoutineEntryView: View {
             }
             .navigationTitle("Temporary Routine")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                restoreFromStorage()
+            }
+            .onChange(of: selectedTaskIds) { _, _ in
+                saveCustomTasksToStorage()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -552,7 +562,7 @@ struct TempRoutineEntryView: View {
     
     private func addCustomTask() {
         guard !customTaskText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
+
         let tempTask = TempRoutineTask(
             name: customTaskText.trimmingCharacters(in: .whitespacesAndNewlines),
             duration: 10, // Default 10 minutes for custom tasks
@@ -561,11 +571,46 @@ struct TempRoutineEntryView: View {
         customTasks.append(tempTask)
         selectedTasks.append(tempTask)
         customTaskText = ""
+
+        // Save custom tasks to persistent storage
+        saveCustomTasksToStorage()
     }
     
     private func removeCustomTask(_ task: TempRoutineTask) {
         customTasks.removeAll { $0.id == task.id }
         selectedTasks.removeAll { $0.id == task.id }
+        saveCustomTasksToStorage()
+    }
+
+    private func saveCustomTasksToStorage() {
+        // Save custom task names as a pipe-separated string
+        let customTaskNames = customTasks.map { $0.name }.joined(separator: "|")
+        persistedCustomTaskNames = customTaskNames
+
+        // Save all selected task IDs (both custom and from existing)
+        let selectedIds = selectedTaskIds.map { $0.uuidString }.joined(separator: "|")
+        persistedSelectedTaskIds = selectedIds
+    }
+
+    private func restoreFromStorage() {
+        // Restore custom tasks
+        if !persistedCustomTaskNames.isEmpty {
+            let taskNames = persistedCustomTaskNames.split(separator: "|").map { String($0) }
+            customTasks = taskNames.map { name in
+                TempRoutineTask(
+                    name: name,
+                    duration: 10,
+                    isFromExisting: false
+                )
+            }
+            selectedTasks.append(contentsOf: customTasks)
+        }
+
+        // Restore selected task IDs for existing tasks
+        if !persistedSelectedTaskIds.isEmpty {
+            let idStrings = persistedSelectedTaskIds.split(separator: "|").map { String($0) }
+            selectedTaskIds = Set(idStrings.compactMap { UUID(uuidString: $0) })
+        }
     }
     
     private func processBulkTasks() {
@@ -588,6 +633,9 @@ struct TempRoutineEntryView: View {
         // Clear the bulk text after processing
         bulkTaskText = ""
         showBulkEntry = false
+
+        // Save to persistent storage
+        saveCustomTasksToStorage()
     }
     
     private func proceedToTimeAllocation() {

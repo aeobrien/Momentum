@@ -5,10 +5,11 @@ import OSLog
 struct RoutineRunnerView: View {
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.presentationMode) var presentationMode
-    
+    @Environment(\.managedObjectContext) private var viewContext
+
     @ObservedObject var runner: RoutineRunner
     @StateObject private var settingsManager = SettingsManager.shared
-    
+
     // State variables
     @State private var showTaskList: Bool = false
     @State private var showDurationSuggestions: Bool = false
@@ -17,6 +18,8 @@ struct RoutineRunnerView: View {
     @State private var infoMode: Bool = false
     @State private var highlightedElement: String? = nil
     @State private var minimalMode: Bool = true
+    @State private var taskToEdit: RoutineRunner.TaskCompletionAnalytics? = nil
+    @State private var showEditDurationSheet: Bool = false
     
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineRunnerView")
     
@@ -629,6 +632,19 @@ struct RoutineRunnerView: View {
                 .sheet(isPresented: $runner.showSpendTimeSheet) {
                     SpendOverUnderView(runner: runner)
                 }
+                .sheet(isPresented: $showEditDurationSheet) {
+                    if let taskAnalytics = taskToEdit {
+                        EditTaskDurationView(
+                            taskName: taskAnalytics.taskName,
+                            currentDuration: taskAnalytics.expectedDuration,
+                            viewContext: viewContext,
+                            onSave: {
+                                showEditDurationSheet = false
+                                taskToEdit = nil
+                            }
+                        )
+                    }
+                }
                 .onChange(of: scenePhase) { newPhase in
                     logger.debug("Scene phase changed to: \\(String(describing: newPhase))")
                     switch newPhase {
@@ -832,6 +848,10 @@ struct RoutineRunnerView: View {
                                 .padding(.horizontal)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(8)
+                                .onLongPressGesture {
+                                    taskToEdit = analytics
+                                    showEditDurationSheet = true
+                                }
                             }
                         }
                         .padding()
@@ -963,6 +983,150 @@ struct RoutineRunnerView: View {
             // Show above the slide to complete
             return 120
         default: return 60
+        }
+    }
+}
+
+struct EditTaskDurationView: View {
+    let taskName: String
+    let currentDuration: TimeInterval
+    let viewContext: NSManagedObjectContext
+    let onSave: () -> Void
+
+    @State private var minDurationMinutes: String = ""
+    @State private var maxDurationMinutes: String = ""
+    @State private var isVariableDuration: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
+    @Environment(\.dismiss) private var dismiss
+
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "EditTaskDurationView")
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Task")) {
+                    Text(taskName)
+                        .font(.headline)
+                }
+
+                Section(header: Text("Duration Type")) {
+                    Toggle("Variable Duration", isOn: $isVariableDuration.animation())
+                }
+
+                Section(header: Text("Duration (minutes)")) {
+                    if isVariableDuration {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Minimum")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Min", text: $minDurationMinutes)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                            }
+
+                            VStack(alignment: .leading) {
+                                Text("Maximum")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Max", text: $maxDurationMinutes)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                            }
+                        }
+                    } else {
+                        TextField("Duration", text: $minDurationMinutes)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                }
+
+                Section {
+                    Text("Current duration: \(Int(currentDuration/60)) minutes")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("Edit Task Duration")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveTaskDuration()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .onAppear {
+            // Initialize with current duration
+            let minutes = Int(currentDuration / 60)
+            minDurationMinutes = String(minutes)
+            maxDurationMinutes = String(minutes)
+        }
+        .alert("Error", isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+
+    private func saveTaskDuration() {
+        // Validate input
+        guard let minDuration = Int(minDurationMinutes), minDuration > 0 else {
+            alertMessage = "Please enter a valid minimum duration"
+            showAlert = true
+            return
+        }
+
+        let maxDuration: Int
+        if isVariableDuration {
+            guard let max = Int(maxDurationMinutes), max > 0 else {
+                alertMessage = "Please enter a valid maximum duration"
+                showAlert = true
+                return
+            }
+            guard max >= minDuration else {
+                alertMessage = "Maximum duration must be greater than or equal to minimum duration"
+                showAlert = true
+                return
+            }
+            maxDuration = max
+        } else {
+            maxDuration = minDuration
+        }
+
+        // Find and update the task in Core Data
+        let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "taskName == %@", taskName)
+        fetchRequest.fetchLimit = 1
+
+        do {
+            let tasks = try viewContext.fetch(fetchRequest)
+            if let task = tasks.first {
+                task.minDuration = Int32(minDuration)
+                task.maxDuration = Int32(maxDuration)
+
+                try viewContext.save()
+                logger.info("Updated task '\(taskName)' duration: min=\(minDuration), max=\(maxDuration)")
+
+                onSave()
+                dismiss()
+            } else {
+                alertMessage = "Task not found in database"
+                showAlert = true
+            }
+        } catch {
+            logger.error("Failed to update task duration: \(error.localizedDescription)")
+            alertMessage = "Failed to save changes"
+            showAlert = true
         }
     }
 }

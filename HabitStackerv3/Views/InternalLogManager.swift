@@ -248,7 +248,7 @@ final class InternalLogManager: ObservableObject {
             object: nil
         )
     }
-    
+        
     @objc private func applicationWillTerminate() {
         logger.info("Application Will Terminate. Ending current session.")
         endCurrentSession(endTime: Date()) // Pass the current time as end time

@@ -569,7 +569,7 @@ struct RoutineSelectionView: View {
         // Clear the schedule after using it
         scheduleForRunFrom = nil
         
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [adjustedSchedule] in
             let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: adjustedSchedule, originalFinishingTime: self.selectedTime)
             self.runnerInstance = newRunner
             self.isLoading = false
@@ -655,7 +655,7 @@ struct RoutineSelectionView: View {
                     throw SchedulingError.routineLoadError
                 }
 
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [schedule] in
                     let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule, originalFinishingTime: self.selectedTime)
                     self.runnerInstance = newRunner
                     self.isLoading = false
@@ -699,7 +699,7 @@ struct RoutineSelectionView: View {
                 let randomizedSchedule = schedule.shuffled()
                 logger.info("Randomized schedule for routine '\(routine.name ?? "Unnamed")' - original order: \(schedule.count) tasks, randomized order applied.")
 
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [randomizedSchedule] in
                     let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: randomizedSchedule, originalFinishingTime: self.selectedTime)
                     self.runnerInstance = newRunner
                     self.isLoading = false
