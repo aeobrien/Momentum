@@ -17,7 +17,8 @@ extension CDTask {
             shouldTrackAverageTime: self.shouldTrackAverageTime,
             averageCompletionTime: self.averageCompletionTime,
             isChecklistTask: self.isChecklistTask,
-            checklistItems: self.checklistItems as? [ChecklistItem]
+            checklistItems: self.checklistItems as? [ChecklistItem],
+            prepTime: Int(self.prepTime)
         )
     }
     
@@ -48,7 +49,8 @@ extension CDTask {
         self.isSessionTask = task.isSessionTask
         self.shouldTrackAverageTime = task.shouldTrackAverageTime
         self.isChecklistTask = task.isChecklistTask
-        
+        self.prepTime = Int16(task.prepTime)
+
         // Debug checklist items
         if let checklistItems = task.checklistItems {
             logger.debug("Setting \(checklistItems.count, privacy: .public) checklist items for task '\(task.taskName, privacy: .public)'")

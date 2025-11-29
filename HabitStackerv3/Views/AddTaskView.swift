@@ -111,7 +111,10 @@ struct AddTaskView: View {
     @State private var isChecklistTask: Bool
     @State private var checklistItems: [ChecklistItem] = []
     @State private var newItemText: String = ""
-    
+
+    // Prep Time Property
+    @State private var selectedPrepTime: Int = 0
+
     // UI State
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
@@ -146,6 +149,7 @@ struct AddTaskView: View {
         let uuid: String?
         let lastCompleted: String?
         let order: Int?
+        let prepTime: Int? // Prep time in seconds
     }
 
     // MARK: - Initializer
@@ -227,6 +231,9 @@ struct AddTaskView: View {
             _repetitionInterval = State(initialValue: "")
             _selectedRepetitionUnit = State(initialValue: .days)
         }
+
+        // Set prep time
+        _selectedPrepTime = State(initialValue: task?.prepTime ?? 0)
     }
     
     // MARK: - Body
@@ -425,6 +432,27 @@ struct AddTaskView: View {
                     }
                     }
                     
+                    // --- Section 2b: Prep Time (hidden in No Timers mode) ---
+                    if !settingsManager.noTimersMode {
+                        Section(header: Text("Prep Time")) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Optional countdown before task starts")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Picker("Prep Time", selection: $selectedPrepTime) {
+                                    Text("None").tag(0)
+                                    Text("10 sec").tag(10)
+                                    Text("15 sec").tag(15)
+                                    Text("30 sec").tag(30)
+                                    Text("60 sec").tag(60)
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
                     // --- Section 3: Repetition ---
                     Section("Repetition") {
                         // Daily Reset Toggle
@@ -678,7 +706,8 @@ struct AddTaskView: View {
                             checklistItems: nil, // CSV import doesn't support checklist items
                             uuid: getValue("uuid"),
                             lastCompleted: getValue("lastCompleted"),
-                            order: Int(getValue("order")) ?? nil
+                            order: Int(getValue("order")) ?? nil,
+                            prepTime: Int(getValue("prepTime")) ?? nil
                         )
                         
                         if createTaskFromInput(task) {
@@ -727,7 +756,8 @@ struct AddTaskView: View {
             isSessionTask: input.isSessionTask ?? false,
             shouldTrackAverageTime: input.shouldTrackAverageTime ?? true,
             isChecklistTask: input.isChecklistTask ?? false,
-            checklistItems: input.checklistItems
+            checklistItems: input.checklistItems,
+            prepTime: input.prepTime ?? 0
         )
         
         // Validate required fields
@@ -857,7 +887,8 @@ struct AddTaskView: View {
             isSessionTask: isSessionTask,
             shouldTrackAverageTime: shouldTrackAverageTime,
             isChecklistTask: isChecklistTask,
-            checklistItems: finalChecklistItems
+            checklistItems: finalChecklistItems,
+            prepTime: selectedPrepTime
         )
         
         // --- Call the onSave closure ---

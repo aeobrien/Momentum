@@ -21,6 +21,7 @@
         <attribute name="maxDuration" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="minDuration" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="nextDueDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="prepTime" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="repetitionInterval" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="taskName" optional="YES" attributeType="String"/>
         <attribute name="uuid" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

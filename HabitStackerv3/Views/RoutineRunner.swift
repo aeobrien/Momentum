@@ -55,7 +55,17 @@ class RoutineRunner: ObservableObject {
     @Published var canSpendTime: Bool = false
     /// Shows the spend over-under time sheet
     @Published var showSpendTimeSheet: Bool = false
-    
+
+    // MARK: - Prep Phase Properties
+    /// Indicates if we're in the prep countdown phase before a task starts
+    @Published var isInPrepPhase: Bool = false
+    /// The remaining prep time in seconds
+    @Published var prepTimeRemaining: TimeInterval = 0
+    /// The prep time for the current task (in seconds)
+    private var currentTaskPrepTime: TimeInterval = 0
+    /// Timer for the prep phase countdown
+    private var prepTimer: AnyCancellable?
+
     // MARK: - Background Task Properties
     /// Tasks currently running in the background
     @Published var backgroundTasks: [BackgroundTaskState] = []
@@ -547,21 +557,24 @@ class RoutineRunner: ObservableObject {
         currentTaskName = task.taskName ?? "Unnamed Task"
         // IMPORTANT: Use allocatedDuration from ScheduledTask, not minDuration
         currentTaskDuration = scheduled.allocatedDuration
-        logger.info("Configuring task \(index + 1)/\(self.scheduledTasks.count): '\(self.currentTaskName, privacy: .public)', Allocated Duration: \(scheduled.allocatedDuration / 60, format: .fixed(precision: 1))m")
+        // Set prep time for the current task (prepTime is stored in seconds in Core Data)
+        currentTaskPrepTime = TimeInterval(task.prepTime)
+        logger.info("Configuring task \(index + 1)/\(self.scheduledTasks.count): '\(self.currentTaskName, privacy: .public)', Allocated Duration: \(scheduled.allocatedDuration / 60, format: .fixed(precision: 1))m, Prep Time: \(self.currentTaskPrepTime, format: .fixed(precision: 0))s")
 
         // Reset timer state variables for the new task
         timer?.cancel()
         timer = nil
+        prepTimer?.cancel()
+        prepTimer = nil
         isRunning = false
+        isInPrepPhase = false
+        prepTimeRemaining = 0
         startTime = nil
         remainingTimeOnPause = nil
         backgroundEnterTime = nil
         isOverrun = false
         lastOffsetUpdateTime = nil
-        DispatchQueue.main.async { 
-            self.isOverrun = false
-            self.taskProgressFraction = 0.0 // Reset task progress
-        }
+        taskProgressFraction = 0.0 // Reset task progress
 
         updateRemainingTimeDisplay(currentTaskDuration) // Show full (allocated) duration initially
         updateScheduleOffsetString() // Update offset string display
@@ -579,9 +592,15 @@ class RoutineRunner: ObservableObject {
 
         // Update completed duration whenever a new task is configured
         updateCompletedDuration()
-        
+
         // Update whether this task can be moved to background
         updateCanMoveToBackground()
+
+        // Auto-start prep phase if task has prep time
+        if currentTaskPrepTime > 0 {
+            logger.info("Task has prep time, auto-starting prep phase")
+            startPrepPhase()
+        }
     }
 
     /// Advances to the next task in the routine.
@@ -1116,9 +1135,10 @@ class RoutineRunner: ObservableObject {
     // MARK: - Timer Control
 
     /// Starts or resumes the timer for the current task.
+    /// If the task has prep time and we haven't started yet, begins the prep phase first.
     func startTimer() {
         logger.info("[Timer Control] StartTimer called at \(self.logTime())")
-        
+
         guard self.currentTaskIndex != -1 && !self.isRoutineComplete else {
             logger.warning("[Timer Control] Start timer called but no task active or routine complete. Index: \(self.currentTaskIndex), Complete: \(self.isRoutineComplete)")
             return
@@ -1130,7 +1150,19 @@ class RoutineRunner: ObservableObject {
 
         let task = self.scheduledTasks[self.currentTaskIndex].task // task is non-optional here
         let taskName = task.taskName ?? "Unnamed Task"
-        // let taskName = self.scheduledTasks[self.currentTaskIndex].task?.taskName ?? "Unnamed Task"
+
+        // Check if we need to start prep phase first (only for fresh starts, not resumes)
+        if remainingTimeOnPause == nil && currentTaskPrepTime > 0 && !isInPrepPhase {
+            logger.info("[Timer Control] Task '\(taskName, privacy: .public)' has \(self.currentTaskPrepTime, format: .fixed(precision: 0))s prep time. Starting prep phase.")
+            startPrepPhase()
+            return
+        }
+
+        // If we're in prep phase, don't start the main timer yet
+        if isInPrepPhase {
+            logger.info("[Timer Control] Still in prep phase, not starting main timer yet.")
+            return
+        }
 
         // Determine the time to count down from
         if let pausedTime = self.remainingTimeOnPause {
@@ -1258,14 +1290,203 @@ class RoutineRunner: ObservableObject {
         }
     }
 
-    /// Pauses the timer for the current task.
+    // MARK: - Prep Phase Control
+
+    /// Starts the prep phase countdown for the current task.
+    private func startPrepPhase() {
+        guard currentTaskPrepTime > 0 else {
+            logger.warning("[Prep Phase] startPrepPhase called but no prep time set.")
+            return
+        }
+
+        let task = self.scheduledTasks[self.currentTaskIndex].task
+        let taskName = task.taskName ?? "Unnamed Task"
+
+        logger.info("[Prep Phase] Starting prep phase for '\(taskName, privacy: .public)' with \(self.currentTaskPrepTime, format: .fixed(precision: 0))s")
+
+        // Set prep phase state
+        isInPrepPhase = true
+        prepTimeRemaining = currentTaskPrepTime
+        isRunning = true
+
+        // Start Live Activity if this is the first task
+        if currentActivity == nil {
+            logger.info("🔵 PREP PHASE: No current activity, starting new Live Activity")
+            startLiveActivity()
+        } else {
+            logger.info("🔵 PREP PHASE: Activity already exists, updating")
+            updateLiveActivity()
+        }
+
+        // Start prep timer
+        let startTime = Date()
+        prepTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+            guard let self = self, self.isInPrepPhase else {
+                self?.prepTimer?.cancel()
+                self?.prepTimer = nil
+                return
+            }
+
+            let elapsed = fireDate.timeIntervalSince(startTime)
+            let remaining = self.currentTaskPrepTime - elapsed
+
+            if remaining <= 0 {
+                // Prep phase complete, start the actual task timer
+                self.logger.info("[Prep Phase] Prep phase complete for '\(taskName, privacy: .public)'. Starting main timer.")
+                self.prepTimer?.cancel()
+                self.prepTimer = nil
+                self.isInPrepPhase = false
+                self.prepTimeRemaining = 0
+                self.isRunning = false // Will be set back to true by startActualTaskTimer
+
+                // Start the actual task timer
+                self.startActualTaskTimer()
+            } else {
+                // Update prep time remaining
+                DispatchQueue.main.async {
+                    self.prepTimeRemaining = remaining
+                }
+
+                // Log every second
+                if Int(elapsed) != Int(elapsed - 0.1) {
+                    self.logger.trace("[Prep Phase] Prep time remaining: \(remaining, format: .fixed(precision: 1))s")
+                }
+            }
+        }
+    }
+
+    /// Skips the prep phase and starts the task timer immediately.
+    func skipPrepPhase() {
+        guard isInPrepPhase else {
+            logger.warning("[Prep Phase] skipPrepPhase called but not in prep phase.")
+            return
+        }
+
+        let task = self.scheduledTasks[self.currentTaskIndex].task
+        let taskName = task.taskName ?? "Unnamed Task"
+
+        logger.info("[Prep Phase] Skipping prep phase for '\(taskName, privacy: .public)'.")
+
+        prepTimer?.cancel()
+        prepTimer = nil
+        isInPrepPhase = false
+        prepTimeRemaining = 0
+        isRunning = false
+
+        startActualTaskTimer()
+    }
+
+    /// Starts the actual task timer (called after prep phase completes or is skipped).
+    private func startActualTaskTimer() {
+        let task = self.scheduledTasks[self.currentTaskIndex].task
+        let taskName = task.taskName ?? "Unnamed Task"
+
+        logger.info("[Timer Control] Starting actual task timer for '\(taskName, privacy: .public)' for \(self.currentTaskDuration, format: .fixed(precision: 1))s.")
+
+        self.timeToCountDownAtStart = self.currentTaskDuration
+        self.startTime = Date()
+        self.lastOffsetUpdateTime = self.startTime
+        logger.info("[Timer Control] Start time: \(Self.logDateFormatter.string(from: self.startTime!)), timeToCountDownAtStart: \(self.timeToCountDownAtStart, format: .fixed(precision: 2))s")
+
+        isRunning = true
+        DispatchQueue.main.async {
+            self.isRunning = true
+        }
+
+        // Update Live Activity
+        updateLiveActivity()
+
+        // Setup the Combine timer to fire every second (same as in startTimer)
+        timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+            guard let self = self, self.isRunning else {
+                self?.logger.trace("[Timer Update] Timer fired but not running or self is nil")
+                return
+            }
+
+            let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
+            let timeRemaining = self.timeToCountDownAtStart - elapsedTime
+
+            // Log every 5 seconds to avoid spam, or when transitioning states
+            let shouldLogDetails = Int(elapsedTime) % 5 == 0 || abs(timeRemaining) < 1.0 || (self.isOverrun && self.lastOffsetUpdateTime == nil)
+
+            if shouldLogDetails {
+                self.logger.info("[Timer Update] Timer tick at \(self.logTime()) - Elapsed: \(elapsedTime, format: .fixed(precision: 2))s, Remaining: \(timeRemaining, format: .fixed(precision: 2))s, Overrun: \(self.isOverrun)")
+            }
+
+            // Update the display
+            self.updateRemainingTimeDisplay(timeRemaining)
+
+            // Update estimated finishing time on each timer tick for accuracy
+            self.updateEstimatedFinishingTimeString()
+
+            // Update Live Activity periodically (every 5 seconds to reduce updates)
+            if Int(elapsedTime) % 5 == 0 {
+                self.updateLiveActivity()
+            }
+
+            // Update task progress fraction
+            if self.currentTaskDuration > 0 {
+                let totalElapsed: TimeInterval
+                if self.timeToCountDownAtStart <= 0 {
+                    totalElapsed = self.currentTaskDuration + abs(self.timeToCountDownAtStart) + elapsedTime
+                } else {
+                    totalElapsed = self.currentTaskDuration - self.timeToCountDownAtStart + elapsedTime
+                }
+
+                let progress = totalElapsed / self.currentTaskDuration
+                DispatchQueue.main.async {
+                    self.taskProgressFraction = min(max(progress, 0.0), 1.0)
+                }
+            }
+
+            // --- Overrun Handling ---
+            if timeRemaining < 0 {
+                if !self.isOverrun {
+                    self.isOverrun = true
+                    DispatchQueue.main.async { self.isOverrun = true }
+                    self.lastOffsetUpdateTime = self.startTime?.addingTimeInterval(self.timeToCountDownAtStart) ?? fireDate
+
+                    let taskNameToLog = self.scheduledTasks[self.currentTaskIndex].task.taskName ?? "Unnamed"
+                    self.logger.warning("[Timer Update] Task '\(taskNameToLog, privacy: .public)' timer passed 0. Entering overrun state.")
+                }
+
+                if let lastUpdate = self.lastOffsetUpdateTime {
+                    self.recomputeOffsets(now: fireDate)
+                    self.lastOffsetUpdateTime = fireDate
+                }
+            } else {
+                if self.isOverrun {
+                    self.isOverrun = false
+                    DispatchQueue.main.async { self.isOverrun = false }
+                    self.lastOffsetUpdateTime = nil
+                }
+            }
+        }
+    }
+
+    /// Pauses the timer for the current task (or prep phase).
     func pauseTimer(isBackgrounding: Bool = false) {
         logger.info("[Timer Control] PauseTimer called at \(self.logTime()) (backgrounding: \(isBackgrounding))")
-        
+
         guard isRunning else {
             logger.debug("[Timer Control] Pause timer called, but timer is not running.")
             return
         }
+
+        // Handle pausing during prep phase
+        if isInPrepPhase {
+            logger.info("[Timer Control] Pausing during prep phase. \(isBackgrounding ? "(Due to backgrounding)" : "")")
+            prepTimer?.cancel()
+            prepTimer = nil
+            // We don't track prep pause state separately - prep will restart from the beginning
+            // This is intentional as prep times are short (10-60 seconds)
+            DispatchQueue.main.async {
+                self.isRunning = false
+            }
+            logger.info("[Timer Control] Prep phase paused.")
+            return
+        }
+
         logger.info("[Timer Control] Pausing timer. \(isBackgrounding ? "(Due to backgrounding)" : "")")
 
         timer?.cancel() // Stop the timer publisher
@@ -1274,13 +1495,13 @@ class RoutineRunner: ObservableObject {
         // Calculate remaining time accurately based on when it started/resumed
         let elapsed = Date().timeIntervalSince(startTime ?? Date()) // Time since last start/resume
         let remaining = timeToCountDownAtStart - elapsed // Calculate actual time left
-        
+
         logger.info("[Timer Control] Pause calculation - Elapsed: \(elapsed, format: .fixed(precision: 2))s, TimeToCountDown: \(self.timeToCountDownAtStart, format: .fixed(precision: 2))s, Remaining: \(remaining, format: .fixed(precision: 2))s")
 
         // Store the remaining time regardless of whether it's positive or negative
         // This preserves overrun state when backgrounding
         remainingTimeOnPause = remaining
-        
+
         if remaining > 0 {
             logger.debug("[Timer Control] Remaining time on pause stored: \(remaining, format: .fixed(precision: 1))s")
         } else {

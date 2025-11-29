@@ -98,8 +98,17 @@ struct TaskDetailView: View {
                              "\(cdTask.minDuration)-\(cdTask.maxDuration) minutes")
                             .foregroundColor(.secondary)
                     }
+
+                    if cdTask.prepTime > 0 {
+                        HStack {
+                            Text("Prep Time")
+                            Spacer()
+                            Text("\(cdTask.prepTime) seconds")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
-                
+
                 if cdTask.repetitionInterval > 0 {
                     HStack {
                         Text("Repeat Every")

@@ -3,6 +3,7 @@ import SwiftUI
 import Combine
 import OSLog
 import CoreData
+import AVFoundation
 
 // Temporary task model that doesn't rely on Core Data
 struct TempTask {
@@ -11,12 +12,14 @@ struct TempTask {
     let duration: Int // in minutes
     let originalTaskUUID: UUID? // Reference to original CDTask if from existing
     let isFromExisting: Bool
-    
-    init(name: String, duration: Int, originalTaskUUID: UUID? = nil, isFromExisting: Bool = false) {
+    let prepTime: Int // in seconds (0, 10, 15, 30, or 60)
+
+    init(name: String, duration: Int, originalTaskUUID: UUID? = nil, isFromExisting: Bool = false, prepTime: Int = 0) {
         self.name = name
         self.duration = duration
         self.originalTaskUUID = originalTaskUUID
         self.isFromExisting = isFromExisting
+        self.prepTime = prepTime
     }
 }
 
@@ -47,7 +50,13 @@ class TempRoutineRunner: ObservableObject {
     @Published var backgroundTasks: [TempBackgroundTaskState] = []
     @Published var canMoveToBackground: Bool = false
     @Published var completedTaskIndices: Set<Int> = []
-    
+
+    // MARK: - Prep Phase Properties
+    @Published var isInPrepPhase: Bool = false
+    @Published var prepTimeRemaining: TimeInterval = 0
+    private var currentTaskPrepTime: TimeInterval = 0
+    private var prepTimer: AnyCancellable?
+
     private(set) var tasks: [TempTask]
     private(set) var currentTaskIndex: Int = -1
     private var timer: AnyCancellable?
@@ -107,26 +116,41 @@ class TempRoutineRunner: ObservableObject {
     
     private func configureCurrentTask() {
         guard currentTaskIndex >= 0 && currentTaskIndex < tasks.count else { return }
-        
+
         let task = tasks[currentTaskIndex]
         currentTaskName = task.name
         currentTaskDuration = TimeInterval(task.duration * 60)
         remainingTime = currentTaskDuration
+        currentTaskPrepTime = TimeInterval(task.prepTime)
         isOverrun = false
+        isInPrepPhase = false
+        prepTimeRemaining = 0
         taskProgressFraction = 0.0 // Reset task progress
         remainingTimeOnPause = nil // Clear any stored pause time from previous task
-        
+
+        // Cancel any existing prep timer
+        prepTimer?.cancel()
+        prepTimer = nil
+
         updateRemainingTimeDisplay()
         updateCanMoveToBackground()
-        
+
         // Set next task name
         if currentTaskIndex < tasks.count - 1 {
             nextTaskName = tasks[currentTaskIndex + 1].name
         } else {
             nextTaskName = nil
         }
+
+        logger.info("Configured task '\(task.name)' with duration \(task.duration)m and prep time \(task.prepTime)s")
+
+        // Auto-start prep phase if task has prep time
+        if currentTaskPrepTime > 0 {
+            logger.info("Task has prep time, auto-starting prep phase")
+            startPrepPhase()
+        }
     }
-    
+
     private func updateRemainingTimeDisplay() {
         if isOverrun {
             // Show negative time during overrun
@@ -150,8 +174,21 @@ class TempRoutineRunner: ObservableObject {
     }
     
     private func startTimer() {
+        // Check if we need to start prep phase first (only for fresh starts, not resumes)
+        if remainingTimeOnPause == nil && currentTaskPrepTime > 0 && !isInPrepPhase {
+            logger.info("Task has \(self.currentTaskPrepTime)s prep time. Starting prep phase.")
+            startPrepPhase()
+            return
+        }
+
+        // If we're in prep phase, don't start the main timer yet
+        if isInPrepPhase {
+            logger.info("Still in prep phase, not starting main timer yet.")
+            return
+        }
+
         isRunning = true
-        
+
         // Check if we're resuming from a pause (including background)
         if let pausedTime = remainingTimeOnPause {
             // Resuming from pause
@@ -163,26 +200,36 @@ class TempRoutineRunner: ObservableObject {
             timeToCountDownAtStart = isOverrun ? 0 : remainingTime
             logger.debug("Starting timer fresh: \(self.timeToCountDownAtStart)s")
         }
-        
+
         startTime = Date()
-        
+
         // Setup the Combine timer to fire every second
         timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
             guard let self = self, self.isRunning else { return }
-            
+
             let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
             let timeRemaining = self.timeToCountDownAtStart - elapsedTime
-            
+
             self.remainingTime = timeRemaining
             self.timerTick()
         }
     }
     
     private func pauseTimer(isBackgrounding: Bool = false) {
+        // Handle pausing during prep phase
+        if isInPrepPhase {
+            logger.info("Pausing during prep phase.")
+            prepTimer?.cancel()
+            prepTimer = nil
+            isRunning = false
+            // Prep will restart from the beginning when resumed
+            return
+        }
+
         isRunning = false
         timer?.cancel()
         timer = nil
-        
+
         // Store the remaining time when pausing
         if !isOverrun {
             remainingTimeOnPause = remainingTime
@@ -192,11 +239,88 @@ class TempRoutineRunner: ObservableObject {
             remainingTimeOnPause = remainingTime
             logger.debug("Paused during overrun with time: \(self.remainingTime)s")
         }
-        
+
         startTime = nil
         lastOffsetUpdateTime = nil
     }
-    
+
+    // MARK: - Prep Phase Control
+
+    private func startPrepPhase() {
+        guard currentTaskPrepTime > 0 else {
+            logger.warning("startPrepPhase called but no prep time set.")
+            return
+        }
+
+        logger.info("Starting prep phase with \(self.currentTaskPrepTime)s")
+
+        isInPrepPhase = true
+        prepTimeRemaining = currentTaskPrepTime
+        isRunning = true
+
+        let startTime = Date()
+        prepTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+            guard let self = self, self.isInPrepPhase else {
+                self?.prepTimer?.cancel()
+                self?.prepTimer = nil
+                return
+            }
+
+            let elapsed = fireDate.timeIntervalSince(startTime)
+            let remaining = self.currentTaskPrepTime - elapsed
+
+            if remaining <= 0 {
+                // Prep phase complete
+                self.logger.info("Prep phase complete. Starting main timer.")
+                self.prepTimer?.cancel()
+                self.prepTimer = nil
+                self.isInPrepPhase = false
+                self.prepTimeRemaining = 0
+                self.isRunning = false
+
+                // Start the actual task timer
+                self.startActualTaskTimer()
+            } else {
+                self.prepTimeRemaining = remaining
+            }
+        }
+    }
+
+    func skipPrepPhase() {
+        guard isInPrepPhase else {
+            logger.warning("skipPrepPhase called but not in prep phase.")
+            return
+        }
+
+        logger.info("Skipping prep phase.")
+
+        prepTimer?.cancel()
+        prepTimer = nil
+        isInPrepPhase = false
+        prepTimeRemaining = 0
+        isRunning = false
+
+        startActualTaskTimer()
+    }
+
+    private func startActualTaskTimer() {
+        logger.info("Starting actual task timer for \(self.currentTaskDuration)s")
+
+        isRunning = true
+        timeToCountDownAtStart = remainingTime
+        startTime = Date()
+
+        timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect().sink { [weak self] fireDate in
+            guard let self = self, self.isRunning else { return }
+
+            let elapsedTime = fireDate.timeIntervalSince(self.startTime ?? fireDate)
+            let timeRemaining = self.timeToCountDownAtStart - elapsedTime
+
+            self.remainingTime = timeRemaining
+            self.timerTick()
+        }
+    }
+
     private func timerTick() {
         // remainingTime is already updated by the timer closure
         

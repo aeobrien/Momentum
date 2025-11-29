@@ -46,10 +46,13 @@ struct CustomTask: Identifiable, Codable, Equatable {
     
     /// Indicates if the task is a checklist task
     var isChecklistTask: Bool
-    
+
     /// Array of checklist items for checklist tasks
     var checklistItems: [ChecklistItem]?
-    
+
+    /// Prep time in seconds (0, 10, 15, 30, or 60)
+    var prepTime: Int
+
     /// Initializes a new CustomTask
     ///
     /// - Parameters:
@@ -66,6 +69,7 @@ struct CustomTask: Identifiable, Codable, Equatable {
     ///   - averageCompletionTime: Average completion time in seconds
     ///   - isChecklistTask: Indicates if the task is a checklist task (defaults to false)
     ///   - checklistItems: Array of checklist items for checklist tasks
+    ///   - prepTime: Prep time in seconds before task starts (defaults to 0)
     init(uuid: String = UUID().uuidString,
          taskName: String,
          essentiality: Int? = nil,
@@ -78,7 +82,8 @@ struct CustomTask: Identifiable, Codable, Equatable {
          shouldTrackAverageTime: Bool = true,
          averageCompletionTime: TimeInterval? = nil,
          isChecklistTask: Bool = false,
-         checklistItems: [ChecklistItem]? = nil) {
+         checklistItems: [ChecklistItem]? = nil,
+         prepTime: Int = 0) {
         self.uuid = uuid
         self.taskName = taskName
         self.essentiality = essentiality
@@ -92,5 +97,6 @@ struct CustomTask: Identifiable, Codable, Equatable {
         self.averageCompletionTime = averageCompletionTime
         self.isChecklistTask = isChecklistTask
         self.checklistItems = checklistItems
+        self.prepTime = prepTime
     }
 }

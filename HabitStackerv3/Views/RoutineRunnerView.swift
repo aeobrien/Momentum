@@ -318,39 +318,81 @@ struct RoutineRunnerView: View {
                         // Circular progress and timer (hide for checklist tasks in non-minimal mode OR when in No Timers mode)
                         if !settingsManager.noTimersMode && (!isChecklistTask || minimalMode) {
                             ZStack {
-                                ConcentricProgressView(
-                                    outerProgress: runner.progressFraction,
-                                    innerProgress: runner.taskProgressFraction,
-                                    size: 280,
-                                    innerProgressColor: runner.isOverrun ? .red : .blue
-                                )
-                                .saturation(elementSaturation(for: "progress"))
-                                .onTapGesture { 
-                                    if infoMode { 
-                                        highlightedElement = "progress" 
+                                // Show different progress view during prep phase
+                                if runner.isInPrepPhase {
+                                    // Prep phase progress circle - shows remaining time as filled portion
+                                    let prepProgress = currentTask?.prepTime ?? 0 > 0
+                                        ? runner.prepTimeRemaining / TimeInterval(currentTask?.prepTime ?? 1)
+                                        : 0
+
+                                    Circle()
+                                        .stroke(Color.orange.opacity(0.3), lineWidth: 12)
+                                        .frame(width: 280, height: 280)
+
+                                    Circle()
+                                        .trim(from: 0, to: CGFloat(prepProgress))
+                                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                                        .frame(width: 280, height: 280)
+                                        .rotationEffect(.degrees(-90))
+                                        .animation(.linear(duration: 0.1), value: runner.prepTimeRemaining)
+                                } else {
+                                    ConcentricProgressView(
+                                        outerProgress: runner.progressFraction,
+                                        innerProgress: runner.taskProgressFraction,
+                                        size: 280,
+                                        innerProgressColor: runner.isOverrun ? .red : .blue
+                                    )
+                                    .saturation(elementSaturation(for: "progress"))
+                                    .onTapGesture {
+                                        if infoMode {
+                                            highlightedElement = "progress"
+                                        }
                                     }
                                 }
-                                
-                                // Timer display - tap to pause/play
+
+                                // Timer display - shows prep countdown or regular timer
                                 ZStack {
-                                    Text(runner.remainingTimeString)
-                                        .font(.system(size: 64, weight: .light).monospacedDigit())
-                                        .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
-                                        .saturation(elementSaturation(for: "timer"))
-                                    
-                                    // Pause icon overlay when paused
-                                    if !runner.isRunning && !runner.isRoutineComplete {
-                                        Image(systemName: "pause.circle.fill")
-                                            .font(.system(size: 140))
-                                            .foregroundColor(.black)
-                                            .opacity(0.8)
+                                    if runner.isInPrepPhase {
+                                        // Prep phase display
+                                        VStack(spacing: 8) {
+                                            Text("GET READY")
+                                                .font(.system(size: 18, weight: .bold))
+                                                .foregroundColor(.orange)
+
+                                            Text(String(format: "%.0f", ceil(runner.prepTimeRemaining)))
+                                                .font(.system(size: 80, weight: .bold).monospacedDigit())
+                                                .foregroundColor(.orange)
+
+                                            // Skip prep button
+                                            Button(action: {
+                                                logger.info("Skip prep tapped")
+                                                runner.skipPrepPhase()
+                                            }) {
+                                                Text("Skip")
+                                                    .font(.system(size: 16, weight: .medium))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                    } else {
+                                        Text(runner.remainingTimeString)
+                                            .font(.system(size: 64, weight: .light).monospacedDigit())
+                                            .foregroundColor(runner.isRunning ? (runner.isOverrun ? .red : .blue) : .gray)
+                                            .saturation(elementSaturation(for: "timer"))
+
+                                        // Pause icon overlay when paused
+                                        if !runner.isRunning && !runner.isRoutineComplete {
+                                            Image(systemName: "pause.circle.fill")
+                                                .font(.system(size: 140))
+                                                .foregroundColor(.black)
+                                                .opacity(0.8)
+                                        }
                                     }
                                 }
-                                .onTapGesture { 
-                                    if infoMode { 
-                                        highlightedElement = "timer" 
-                                    } else {
-                                        // Toggle pause/play
+                                .onTapGesture {
+                                    if infoMode {
+                                        highlightedElement = "timer"
+                                    } else if !runner.isInPrepPhase {
+                                        // Toggle pause/play only when not in prep phase
                                         if runner.isRunning {
                                             logger.info("Timer tapped - pausing")
                                             runner.pauseTimer()
@@ -409,8 +451,8 @@ struct RoutineRunnerView: View {
                         }
                         
                         // Remove spacers to keep buttons higher
-                        
-                        // Action buttons
+
+                        // Action buttons - hidden during prep phase
                         HStack(spacing: 40) {
                             // Interruption - far left (only in detailed mode, hidden in No Timers mode)
                             if !settingsManager.noTimersMode {
@@ -516,7 +558,8 @@ struct RoutineRunnerView: View {
                         }
                         .padding(.vertical, 20)
                         .animation(.easeInOut(duration: 0.3), value: minimalMode)
-                        
+                        .opacity(runner.isInPrepPhase ? 0 : 1)
+
                         // Slide to complete
                         ZStack {
                             SlideToCompleteView {
@@ -532,7 +575,8 @@ struct RoutineRunnerView: View {
                                 }
                             }
                         }
-                        
+                        .opacity(runner.isInPrepPhase ? 0 : 1)
+
                         // Bottom spacing
                         Spacer().frame(height: 20)
                     }
@@ -540,10 +584,11 @@ struct RoutineRunnerView: View {
                     .background(Color(.systemGray6))
                     .onAppear {
                         // Start the timer automatically when view appears
-                        if !runner.isRunning && !runner.isRoutineComplete && runner.currentTaskIndex >= 0 {
+                        // Skip if already running (e.g., prep phase auto-started) or in prep phase
+                        if !runner.isRunning && !runner.isInPrepPhase && !runner.isRoutineComplete && runner.currentTaskIndex >= 0 {
                             runner.startTimer()
                         }
-                        
+
                         // Force detail view for checklist tasks
                         if isChecklistTask && minimalMode {
                             minimalMode = false

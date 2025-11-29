@@ -871,7 +871,8 @@ struct TempRoutineTimeAllocationViewIntegrated: View {
                 name: task.name,
                 duration: taskDurations[index],
                 originalTaskUUID: task.originalTask?.uuid,
-                isFromExisting: task.isFromExisting
+                isFromExisting: task.isFromExisting,
+                prepTime: Int(task.originalTask?.prepTime ?? 0)
             )
             tempTasks.append(tempTask)
         }

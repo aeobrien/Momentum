@@ -22,6 +22,7 @@ extension CDTask {
     @NSManaged public var maxDuration: Int32
     @NSManaged public var minDuration: Int32
     @NSManaged public var nextDueDate: Date?
+    @NSManaged public var prepTime: Int16
     @NSManaged public var repetitionInterval: Int32
     @NSManaged public var taskName: String?
     @NSManaged public var uuid: UUID?
