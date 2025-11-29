@@ -4,9 +4,11 @@ import CoreData
 struct TaskListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var viewModel: TaskViewModel
-    
+
     // Replace the filtered tasks logic with a FetchRequest
     @FetchRequest private var cdTasks: FetchedResults<CDTask>
+    @FetchRequest private var cdRoutines: FetchedResults<CDRoutine>
+
     @State private var searchText: String = ""
     @State private var showAddTask = false
     @State private var showTemplateOnboarding = false
@@ -15,14 +17,34 @@ struct TaskListView: View {
     @State private var infoMode = false
     @State private var showDeleteConfirmation = false
     @State private var taskToDelete: CDTask? = nil
-    
+
+    // Filter state
+    @State private var routineFilter: CDRoutine? = nil
+
     private let logger = AppLogger.create(subsystem: "com.app.TaskListView", category: "UI")
+
+    private var isFilterActive: Bool {
+        routineFilter != nil
+    }
     
     private var filteredAndSortedTasks: [CDTask] {
         let filtered = cdTasks.filter { cdTask in
-            searchText.isEmpty || (cdTask.taskName ?? "").localizedCaseInsensitiveContains(searchText)
+            // Search filter
+            let matchesSearch = searchText.isEmpty || (cdTask.taskName ?? "").localizedCaseInsensitiveContains(searchText)
+
+            // Routine filter
+            let matchesRoutine: Bool
+            if let routine = routineFilter {
+                let routineTaskUUIDs = (routine.taskRelations as? Set<CDRoutineTask>)?
+                    .compactMap { $0.task?.uuid } ?? []
+                matchesRoutine = cdTask.uuid != nil && routineTaskUUIDs.contains(cdTask.uuid!)
+            } else {
+                matchesRoutine = true
+            }
+
+            return matchesSearch && matchesRoutine
         }
-        
+
         return filtered.sorted { task1, task2 in
             switch sortMode {
             case .nameAsc:
@@ -43,16 +65,16 @@ struct TaskListView: View {
     
     init(viewModel: TaskViewModel) {
         self.viewModel = viewModel
-        
-        let request: NSFetchRequest<CDTask> = CDTask.fetchRequest()
-        
-        // Removed predicate - TaskListView should show ALL tasks
-        // request.predicate = NSPredicate(format: "isSessionTask == %@", NSNumber(value: false))
-        
-        // Set sort descriptors (existing code)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \CDTask.taskName, ascending: true)]
-        
-        _cdTasks = FetchRequest(fetchRequest: request, animation: .default)
+
+        // Task fetch request
+        let taskRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+        taskRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDTask.taskName, ascending: true)]
+        _cdTasks = FetchRequest(fetchRequest: taskRequest, animation: .default)
+
+        // Routine fetch request for filter menu
+        let routineRequest: NSFetchRequest<CDRoutine> = CDRoutine.fetchRequest()
+        routineRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDRoutine.name, ascending: true)]
+        _cdRoutines = FetchRequest(fetchRequest: routineRequest, animation: .default)
     }
     
     var body: some View {
@@ -62,7 +84,7 @@ struct TaskListView: View {
             VStack(spacing: 12) {
                 HStack {
                     SearchBar(text: $searchText)
-                    
+
                     Menu {
                         ForEach(SortMode.allCases, id: \.self) { mode in
                             Button(action: {
@@ -82,6 +104,35 @@ struct TaskListView: View {
                             .foregroundColor(.blue)
                             .imageScale(.large)
                     }
+
+                    Menu {
+                        ForEach(cdRoutines, id: \.objectID) { routine in
+                            Button(action: {
+                                routineFilter = routine
+                            }) {
+                                HStack {
+                                    Text(routine.name ?? "Unnamed")
+                                    if routineFilter == routine {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        // Clear filter
+                        if isFilterActive {
+                            Divider()
+                            Button(role: .destructive, action: {
+                                routineFilter = nil
+                            }) {
+                                Label("Clear Filter", systemImage: "xmark.circle")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: isFilterActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                            .foregroundColor(isFilterActive ? .orange : .blue)
+                            .imageScale(.large)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -94,16 +145,32 @@ struct TaskListView: View {
             // Tasks List
             if filteredAndSortedTasks.isEmpty {
                 VStack(spacing: 16) {
-                    Text("No tasks yet!")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                    
-                    if searchText.isEmpty {
+                    if isFilterActive || !searchText.isEmpty {
+                        Text("No matching tasks")
+                            .font(.headline)
+                            .fontWeight(.bold)
+
+                        Text("Try adjusting your search or filters")
+                            .foregroundColor(.secondary)
+
+                        if isFilterActive {
+                            Button(action: {
+                                routineFilter = nil
+                            }) {
+                                Label("Clear Filter", systemImage: "xmark.circle")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    } else {
+                        Text("No tasks yet!")
+                            .font(.headline)
+                            .fontWeight(.bold)
+
                         VStack(spacing: 4) {
                             Text("Tap the + button in the top right to add your first task, or")
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
-                            
+
                             Button(action: {
                                 showTemplateOnboarding = true
                             }) {
@@ -113,9 +180,6 @@ struct TaskListView: View {
                             }
                         }
                         .padding(.horizontal)
-                    } else {
-                        Text("Try adjusting your search")
-                            .foregroundColor(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
