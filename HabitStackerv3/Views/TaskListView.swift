@@ -13,6 +13,8 @@ struct TaskListView: View {
     @State private var showCleanup = false
     @State private var sortMode: SortMode = .nameAsc
     @State private var infoMode = false
+    @State private var showDeleteConfirmation = false
+    @State private var taskToDelete: CDTask? = nil
     
     private let logger = AppLogger.create(subsystem: "com.app.TaskListView", category: "UI")
     
@@ -127,12 +129,14 @@ struct TaskListView: View {
                         }
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                deleteTask(cdTask)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button {
+                                taskToDelete = cdTask
+                                showDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .tint(.red)
                         }
                     }
                 }
@@ -175,6 +179,19 @@ struct TaskListView: View {
         }
         .sheet(isPresented: $showCleanup) {
             TaskCleanupView()
+        }
+        .alert("Delete Task?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                taskToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let task = taskToDelete {
+                    deleteTask(task)
+                }
+                taskToDelete = nil
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(taskToDelete?.taskName ?? "this task")\"? This action cannot be undone.")
         }
     }
     

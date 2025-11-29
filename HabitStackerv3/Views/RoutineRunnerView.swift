@@ -20,6 +20,8 @@ struct RoutineRunnerView: View {
     @State private var minimalMode: Bool = true
     @State private var taskToEdit: RoutineRunner.TaskCompletionAnalytics? = nil
     @State private var showEditDurationSheet: Bool = false
+    @State private var cdTaskToEdit: CDTask? = nil
+    @State private var showTaskEditSheet: Bool = false
     
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "RoutineRunnerView")
     
@@ -848,9 +850,23 @@ struct RoutineRunnerView: View {
                                 .padding(.horizontal)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(8)
-                                .onLongPressGesture {
-                                    taskToEdit = analytics
-                                    showEditDurationSheet = true
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    logger.info("Task tapped: \(analytics.taskName)")
+                                    if let uuid = analytics.taskUUID {
+                                        logger.info("Task UUID: \(uuid)")
+                                        let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
+                                        fetchRequest.predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
+                                        fetchRequest.fetchLimit = 1
+                                        if let task = try? viewContext.fetch(fetchRequest).first {
+                                            logger.info("Found CDTask, showing edit sheet")
+                                            cdTaskToEdit = task
+                                        } else {
+                                            logger.error("Could not fetch CDTask for UUID: \(uuid)")
+                                        }
+                                    } else {
+                                        logger.error("Task UUID is nil for: \(analytics.taskName)")
+                                    }
                                 }
                             }
                         }
@@ -876,6 +892,12 @@ struct RoutineRunnerView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemBackground))
+                .fullScreenCover(item: $cdTaskToEdit) { task in
+                    AddTaskView(task: task.toDomainModel()) { updatedTask in
+                        task.updateCDTask(from: updatedTask)
+                        try? viewContext.save()
+                    }
+                }
             }
         }
         .navigationBarHidden(true)

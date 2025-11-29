@@ -105,12 +105,13 @@ class RoutineRunner: ObservableObject {
     /// Tracks analytics for completed/skipped tasks
     struct TaskCompletionAnalytics {
         let taskName: String
+        let taskUUID: UUID?
         let expectedDuration: TimeInterval
         let actualDuration: TimeInterval?  // nil if skipped
         let wasSkipped: Bool
         let averageCompletionTime: TimeInterval?  // Average time from historical data
         let completionCount: Int  // Number of times this task has been completed
-        
+
         var timeDifference: TimeInterval {
             if wasSkipped {
                 return expectedDuration  // All time was saved
@@ -833,6 +834,7 @@ class RoutineRunner: ObservableObject {
         let completionCount = (completedTask.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
         let analytics = TaskCompletionAnalytics(
             taskName: completedTaskName,
+            taskUUID: completedTask.uuid,
             expectedDuration: expectedDuration,
             actualDuration: actualDuration,
             wasSkipped: false,
@@ -948,6 +950,7 @@ class RoutineRunner: ObservableObject {
         let completionCount = (skippedTask.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
         let analytics = TaskCompletionAnalytics(
             taskName: skippedTaskName,
+            taskUUID: skippedTask.uuid,
             expectedDuration: expectedDuration,
             actualDuration: nil,  // nil indicates skipped
             wasSkipped: true,
@@ -1906,6 +1909,7 @@ class RoutineRunner: ObservableObject {
         let completionCount = (task.task.completionTimes as? Set<CDTaskCompletionTime>)?.count ?? 0
         let analytics = TaskCompletionAnalytics(
             taskName: taskName,
+            taskUUID: task.task.uuid,
             expectedDuration: expectedDuration,
             actualDuration: actualDuration,
             wasSkipped: false,

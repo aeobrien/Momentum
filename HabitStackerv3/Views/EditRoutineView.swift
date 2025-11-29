@@ -16,6 +16,7 @@ struct EditRoutineView: View {
     @State private var sortMode: SortMode = .nameAsc
     @State private var editMode: EditMode = .active
     @State private var selectedTab = 1 // Start with Routine Tasks tab
+    @State private var showAddTask = false
     
     private let logger = AppLogger.create(subsystem: "com.app.EditRoutineView", category: "UI")
     
@@ -82,7 +83,7 @@ struct EditRoutineView: View {
                 VStack(spacing: 0) {
                     HStack {
                         SearchBar(text: $searchText)
-                        
+
                         Menu {
                             ForEach(SortMode.allCases, id: \.self) { mode in
                                 Button(action: {
@@ -99,6 +100,14 @@ struct EditRoutineView: View {
                             }
                         } label: {
                             Image(systemName: "arrow.up.arrow.down.circle")
+                                .foregroundColor(.blue)
+                                .imageScale(.large)
+                        }
+
+                        Button(action: {
+                            showAddTask = true
+                        }) {
+                            Image(systemName: "plus.circle")
                                 .foregroundColor(.blue)
                                 .imageScale(.large)
                         }
@@ -178,6 +187,11 @@ struct EditRoutineView: View {
         .alert(isPresented: $showErrorAlert) {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
+        .fullScreenCover(isPresented: $showAddTask) {
+            AddTaskView { newTask in
+                createTaskAndAddToRoutine(newTask)
+            }
+        }
     }
     
     private func moveTask(from source: IndexSet, to destination: Int) {
@@ -203,6 +217,22 @@ struct EditRoutineView: View {
         relation.routine = cdRoutine
         relation.order = Int32(sortedRelations.count)
         saveContext()
+    }
+
+    private func createTaskAndAddToRoutine(_ customTask: CustomTask) {
+        // Create the new CDTask
+        let cdTask = CDTask(context: viewContext)
+        cdTask.updateCDTask(from: customTask)
+
+        // Also add it to this routine
+        let relation = CDRoutineTask(context: viewContext)
+        relation.task = cdTask
+        relation.routine = cdRoutine
+        relation.order = Int32(sortedRelations.count)
+
+        if saveContext() {
+            logger.info("Created new task '\(customTask.taskName)' and added to routine")
+        }
     }
     
     private func saveRoutine() {

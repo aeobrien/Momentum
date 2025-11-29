@@ -155,12 +155,21 @@ struct RoutineListView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
+                            Button {
                                 routineToDelete = cdRoutine
                                 showDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .tint(.red)
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                duplicateRoutine(cdRoutine)
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+                            .tint(.blue)
                         }
                     }
                 }
@@ -261,21 +270,53 @@ struct RoutineListView: View {
     
     private func deleteRoutine(_ cdRoutine: CDRoutine) {
         logger.info("Deleting routine: \(cdRoutine.name ?? "")")
-        
+
         // Remove all task relations first
         if let relations = cdRoutine.taskRelations as? Set<CDRoutineTask> {
             for relation in relations {
                 viewContext.delete(relation)
             }
         }
-        
+
         viewContext.delete(cdRoutine)
-        
+
         do {
             try viewContext.save()
         } catch {
             logger.error("Failed to delete routine", error: error)
             errorMessage = "Failed to delete routine: \(error.localizedDescription)"
+            showErrorAlert = true
+        }
+    }
+
+    private func duplicateRoutine(_ cdRoutine: CDRoutine) {
+        logger.info("Duplicating routine: \(cdRoutine.name ?? "")")
+
+        // Create new routine
+        let newRoutine = CDRoutine(context: viewContext)
+        newRoutine.uuid = UUID()
+        newRoutine.name = (cdRoutine.name ?? "Routine") + " (Duplicate)"
+        newRoutine.createdOn = Date()
+        newRoutine.lastUsed = nil
+        newRoutine.totalCompletions = 0
+        newRoutine.averageCompletionTime = 0
+
+        // Copy all task relations with their order
+        if let relations = cdRoutine.taskRelations as? Set<CDRoutineTask> {
+            for relation in relations {
+                let newRelation = CDRoutineTask(context: viewContext)
+                newRelation.routine = newRoutine
+                newRelation.task = relation.task
+                newRelation.order = relation.order
+            }
+        }
+
+        do {
+            try viewContext.save()
+            logger.info("Successfully duplicated routine: \(newRoutine.name ?? "")")
+        } catch {
+            logger.error("Failed to duplicate routine", error: error)
+            errorMessage = "Failed to duplicate routine: \(error.localizedDescription)"
             showErrorAlert = true
         }
     }
