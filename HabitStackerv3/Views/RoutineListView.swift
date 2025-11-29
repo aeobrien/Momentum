@@ -26,6 +26,8 @@ struct RoutineListView: View {
     @State private var searchText: String = ""
     @State private var sortMode: RoutineSortMode = .nameAsc
     @State private var infoMode = false
+    @State private var showDeleteConfirmation = false
+    @State private var routineToDelete: CDRoutine? = nil
     
     // State for Export/Import
     @State private var showShareSheet = false
@@ -152,9 +154,10 @@ struct RoutineListView: View {
                         }
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                deleteRoutine(cdRoutine)
+                                routineToDelete = cdRoutine
+                                showDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -233,6 +236,19 @@ struct RoutineListView: View {
         }
         .alert(isPresented: $showErrorAlert) {
             Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+        }
+        .alert("Delete Routine?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                routineToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let routine = routineToDelete {
+                    deleteRoutine(routine)
+                }
+                routineToDelete = nil
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(routineToDelete?.name ?? "this routine")\"? This action cannot be undone.")
         }
         .onReceive(viewModel.$errorMessage) { error in
             if let error = error {

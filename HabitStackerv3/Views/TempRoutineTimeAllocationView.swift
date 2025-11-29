@@ -95,7 +95,10 @@ struct TempRoutineTimeAllocationView: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showRunner) {
+            .fullScreenCover(isPresented: $showRunner, onDismiss: {
+                TempRoutineStorage.clear()
+                runnerWrapper.runner = nil
+            }) {
                 Group {
                     if let runner = runnerWrapper.runner {
                         TempRoutineRunnerView(runner: runner)

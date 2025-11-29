@@ -7,10 +7,7 @@ struct RoutineSelectionView: View {
     @ObservedObject var viewModel: RoutineViewModel
     @ObservedObject private var settingsManager = SettingsManager.shared
     
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \CDRoutine.name, ascending: true)],
-        animation: .default
-    ) private var cdRoutines: FetchedResults<CDRoutine>
+    @FetchRequest private var cdRoutines: FetchedResults<CDRoutine>
     
     @State private var selectedRoutine: CDRoutine?
     @State private var selectedTime: Date = Date()
@@ -35,6 +32,13 @@ struct RoutineSelectionView: View {
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     private let logger = AppLogger.create(subsystem: "com.app.RoutineSelectionView", category: "UI")
+
+    init(viewModel: RoutineViewModel) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        let fetchRequest: NSFetchRequest<CDRoutine> = CDRoutine.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \CDRoutine.name, ascending: true)]
+        _cdRoutines = FetchRequest(fetchRequest: fetchRequest, animation: .default)
+    }
     
     private func formatDuration(_ minutes: Int) -> String {
         if minutes < 60 {
@@ -283,6 +287,7 @@ struct RoutineSelectionView: View {
         }
         .fullScreenCover(isPresented: $showTempRunner, onDismiss: {
             logger.info("fullScreenCover dismissed")
+            TempRoutineStorage.clear()
             tempRunnerWrapper.runner = nil
         }) {
             Group {

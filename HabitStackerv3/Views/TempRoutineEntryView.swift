@@ -1,6 +1,17 @@
 import SwiftUI
 import CoreData
 
+enum TempRoutineStorage {
+    static let customTaskNamesKey = "tempRoutineCustomTaskNames"
+    static let selectedTaskIdsKey = "tempRoutineSelectedTaskIds"
+
+    static func clear() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: customTaskNamesKey)
+        defaults.removeObject(forKey: selectedTaskIdsKey)
+    }
+}
+
 enum TempRoutineFilter: CaseIterable {
     case custom
     case due
@@ -59,8 +70,8 @@ struct TempRoutineEntryView: View {
     @State private var routineTemplateTasks: [TempRoutineTask] = []
 
     // Use SceneStorage to persist custom tasks across app switches
-    @SceneStorage("tempRoutineCustomTaskNames") private var persistedCustomTaskNames: String = ""
-    @SceneStorage("tempRoutineSelectedTaskIds") private var persistedSelectedTaskIds: String = ""
+    @SceneStorage(TempRoutineStorage.customTaskNamesKey) private var persistedCustomTaskNames: String = ""
+    @SceneStorage(TempRoutineStorage.selectedTaskIdsKey) private var persistedSelectedTaskIds: String = ""
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -416,9 +427,18 @@ struct TempRoutineEntryView: View {
                             Spacer()
                             
                             Button("Change") {
+                                let templateTasksToRemove = routineTemplateTasks
+                                if !templateTasksToRemove.isEmpty {
+                                    let templateIds = Set(templateTasksToRemove.map { $0.id })
+                                    selectedTasks.removeAll { templateIds.contains($0.id) }
+                                    let templateUUIDs = templateTasksToRemove.compactMap { $0.originalTask?.uuid }
+                                    if !templateUUIDs.isEmpty {
+                                        selectedTaskIds.subtract(templateUUIDs)
+                                    }
+                                }
                                 selectedRoutine = nil
                                 routineTemplateTasks.removeAll()
-                                selectedTasks.removeAll(where: { routineTemplateTasks.contains($0) })
+                                saveCustomTasksToStorage()
                             }
                             .font(.subheadline)
                         }
@@ -644,6 +664,15 @@ struct TempRoutineEntryView: View {
     
     private func loadRoutineTemplate(_ routine: CDRoutine) {
         selectedRoutine = routine
+        let previousTemplateTasks = routineTemplateTasks
+        if !previousTemplateTasks.isEmpty {
+            let previousIds = Set(previousTemplateTasks.map { $0.id })
+            selectedTasks.removeAll { previousIds.contains($0.id) }
+            let previousUUIDs = previousTemplateTasks.compactMap { $0.originalTask?.uuid }
+            if !previousUUIDs.isEmpty {
+                selectedTaskIds.subtract(previousUUIDs)
+            }
+        }
         routineTemplateTasks.removeAll()
         
         // Load tasks from the routine through CDRoutineTask relationships

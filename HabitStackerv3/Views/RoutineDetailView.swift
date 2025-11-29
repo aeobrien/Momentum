@@ -88,15 +88,18 @@ struct RoutineDetailView: View {
                 // Tasks List
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(orderedTasks, id: \.self) { task in
-                        TaskCard(cdTask: task, isSelected: false)
-                            .padding(.horizontal)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    removeTask(task)
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
-                                }
+                        NavigationLink(destination: TaskDetailView(cdTask: task)) {
+                            TaskCard(cdTask: task, isSelected: false)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.horizontal)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                removeTask(task)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
                             }
+                        }
                     }
                 }
                 .padding(.vertical)

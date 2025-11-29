@@ -274,7 +274,7 @@ struct AddTaskView: View {
                                 }
                             }
                             Picker("", selection: $selectedEssentiality) {
-                                ForEach(Essentiality.allCases) { essentiality in
+                                ForEach(Essentiality.allCases.reversed(), id: \.self) { essentiality in
                                     HStack {
                                         Circle()
                                             .fill(essentialityColor(essentiality))
