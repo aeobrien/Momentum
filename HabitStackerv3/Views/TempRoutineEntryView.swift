@@ -155,6 +155,10 @@ struct TempRoutineEntryView: View {
                         Button("Clear All") {
                             selectedTasks.removeAll()
                             selectedTaskIds.removeAll()
+                            customTasks.removeAll()
+                            routineTemplateTasks.removeAll()
+                            selectedRoutine = nil
+                            saveCustomTasksToStorage()
                         }
                         .font(.subheadline)
                         .foregroundColor(.red)
@@ -613,6 +617,12 @@ struct TempRoutineEntryView: View {
     }
 
     private func restoreFromStorage() {
+        // Only restore if we don't already have tasks (prevents duplication)
+        guard selectedTasks.isEmpty && customTasks.isEmpty else {
+            logger.info("Skipping restore - tasks already exist (selectedTasks: \(selectedTasks.count), customTasks: \(customTasks.count))")
+            return
+        }
+
         // Restore custom tasks
         if !persistedCustomTaskNames.isEmpty {
             let taskNames = persistedCustomTaskNames.split(separator: "|").map { String($0) }
@@ -624,12 +634,32 @@ struct TempRoutineEntryView: View {
                 )
             }
             selectedTasks.append(contentsOf: customTasks)
+            logger.info("Restored \(customTasks.count) custom tasks from storage")
         }
 
         // Restore selected task IDs for existing tasks
         if !persistedSelectedTaskIds.isEmpty {
             let idStrings = persistedSelectedTaskIds.split(separator: "|").map { String($0) }
-            selectedTaskIds = Set(idStrings.compactMap { UUID(uuidString: $0) })
+            let restoredIds = Set(idStrings.compactMap { UUID(uuidString: $0) })
+
+            // Only add IDs that aren't already in selectedTaskIds
+            for id in restoredIds {
+                if !selectedTaskIds.contains(id) {
+                    selectedTaskIds.insert(id)
+
+                    // Also restore the corresponding task to selectedTasks if it exists
+                    if let cdTask = cdTasks.first(where: { $0.uuid == id }) {
+                        let tempTask = TempRoutineTask(
+                            name: cdTask.taskName ?? "",
+                            duration: Int(cdTask.minDuration),
+                            isFromExisting: true,
+                            originalTask: cdTask
+                        )
+                        selectedTasks.append(tempTask)
+                    }
+                }
+            }
+            logger.info("Restored \(restoredIds.count) selected task IDs from storage")
         }
     }
     
@@ -676,12 +706,13 @@ struct TempRoutineEntryView: View {
         routineTemplateTasks.removeAll()
         
         // Load tasks from the routine through CDRoutineTask relationships
+        // Only include tasks that are due for completion
         if let routineTasks = routine.taskRelations?.allObjects as? [CDRoutineTask] {
             // Sort by order
             let sortedRoutineTasks = routineTasks.sorted { $0.order < $1.order }
-            
+
             for routineTask in sortedRoutineTasks {
-                if let task = routineTask.task {
+                if let task = routineTask.task, isDueForCompletion(task) {
                     let tempTask = TempRoutineTask(
                         name: task.taskName ?? "",
                         duration: Int(task.minDuration),

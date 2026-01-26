@@ -109,37 +109,61 @@ struct MomentumApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     static var orientationLock = UIInterfaceOrientationMask.all
-    // Remove logger if it's only used for the deleted migration service
-    // private let logger = AppLogger.create(subsystem: "com.app.AppDelegate", category: "Migration")
-    
+    private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Perform automatic migration if needed (before Core Data initialization)
         AutomaticMigration.shared.performMigrationIfNeeded()
-        
+
         // Initialize iCloud backup manager and schedule automatic backups
         _ = iCloudBackupManager.shared
         iCloudBackupManager.shared.scheduleAutomaticBackup()
-        
+
         // Setup Live Activities (this also cleans up stale ones)
         if #available(iOS 16.1, *) {
             LiveActivityManager.shared.setupLiveActivities()
         }
-        
+
         return true
     }
-    
+
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return AppDelegate.orientationLock
     }
-    
+
     func applicationDidEnterBackground(_ application: UIApplication) {
         print("🔵 APP LIFECYCLE: applicationDidEnterBackground called")
+
+        // Request extended background execution time
+        // This gives us up to ~30 seconds (or more on some devices) to keep running
+        backgroundTaskIdentifier = application.beginBackgroundTask(withName: "RoutineBackgroundTask") { [weak self] in
+            // This closure is called when time is about to expire
+            print("🔵 APP LIFECYCLE: Background task time expired")
+            self?.endBackgroundTask(application)
+        }
+
+        print("🔵 APP LIFECYCLE: Started background task, remaining time: \(application.backgroundTimeRemaining)s")
+
         // Don't end activities here - let them continue in background
     }
-    
+
     func applicationWillResignActive(_ application: UIApplication) {
         print("🔵 APP LIFECYCLE: applicationWillResignActive called")
         // This is called when app is about to move from active to inactive state
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        print("🔵 APP LIFECYCLE: applicationDidBecomeActive called")
+        // End the background task if we have one running
+        endBackgroundTask(application)
+    }
+
+    private func endBackgroundTask(_ application: UIApplication) {
+        if backgroundTaskIdentifier != .invalid {
+            print("🔵 APP LIFECYCLE: Ending background task")
+            application.endBackgroundTask(backgroundTaskIdentifier)
+            backgroundTaskIdentifier = .invalid
+        }
     }
     
     

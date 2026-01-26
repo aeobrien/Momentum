@@ -728,49 +728,77 @@ struct TempRoutineRunnerDetailView: View {
     }
 }
 
-// Background tasks bar for temporary routines
+// Background tasks bar for temporary routines - matches BackgroundTasksBar design
 struct TempBackgroundTasksBar: View {
     @ObservedObject var runner: TempRoutineRunner
-    
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(runner.backgroundTasks.indices, id: \.self) { index in
-                    let backgroundTask = runner.backgroundTasks[index]
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.uturn.down.circle.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                        
-                        Text(backgroundTask.task.name)
-                            .font(.caption)
-                            .lineLimit(1)
-                        
-                        Text(formatTime(backgroundTask.remainingTime))
-                            .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
-                        
-                        Button(action: {
-                            runner.completeBackgroundTask(at: index)
-                        }) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(.systemGray5))
-                    .cornerRadius(16)
+        if let firstTask = runner.backgroundTasks.first {
+            TempBackgroundTaskPill(
+                task: firstTask,
+                onTap: {
+                    runner.switchBackgroundTaskToForeground(at: 0)
+                },
+                onComplete: {
+                    runner.completeBackgroundTask(at: 0)
                 }
-            }
-            .padding(.horizontal)
+            )
+            .padding(.horizontal, 50) // Padding to stay between X and info buttons
         }
     }
-    
-    private func formatTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
+}
+
+// Background Task Pill for temporary routines - matches BackgroundTaskPill design
+struct TempBackgroundTaskPill: View {
+    let task: TempBackgroundTaskState
+    let onTap: () -> Void
+    let onComplete: () -> Void
+
+    private var remainingTimeString: String {
+        let minutes = Int(task.remainingTime) / 60
+        let seconds = Int(task.remainingTime) % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // Task name
+            Text(task.task.name)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .layoutPriority(1)
+
+            // Time remaining
+            Text(remainingTimeString)
+                .font(.caption)
+                .foregroundColor(task.remainingTime <= 0 ? .red : .white.opacity(0.8))
+                .fontWeight(task.remainingTime <= 0 ? .bold : .regular)
+                .monospacedDigit()
+
+            // Complete button
+            Button {
+                onComplete()
+            } label: {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 16))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .frame(height: 30) // Same height as top bar buttons
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.7))
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                )
+        )
+        .onTapGesture {
+            onTap()
+        }
     }
 }

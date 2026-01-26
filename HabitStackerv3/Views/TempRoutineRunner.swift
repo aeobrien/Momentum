@@ -6,8 +6,8 @@ import CoreData
 import AVFoundation
 
 // Temporary task model that doesn't rely on Core Data
-struct TempTask {
-    let id = UUID()
+struct TempTask: Codable, Identifiable {
+    let id: UUID
     let name: String
     let duration: Int // in minutes
     let originalTaskUUID: UUID? // Reference to original CDTask if from existing
@@ -15,6 +15,17 @@ struct TempTask {
     let prepTime: Int // in seconds (0, 10, 15, 30, or 60)
 
     init(name: String, duration: Int, originalTaskUUID: UUID? = nil, isFromExisting: Bool = false, prepTime: Int = 0) {
+        self.id = UUID()
+        self.name = name
+        self.duration = duration
+        self.originalTaskUUID = originalTaskUUID
+        self.isFromExisting = isFromExisting
+        self.prepTime = prepTime
+    }
+
+    // Custom init for restoration with specific ID
+    init(id: UUID, name: String, duration: Int, originalTaskUUID: UUID? = nil, isFromExisting: Bool = false, prepTime: Int = 0) {
+        self.id = id
         self.name = name
         self.duration = duration
         self.originalTaskUUID = originalTaskUUID
@@ -31,6 +42,84 @@ struct TempBackgroundTaskState: Identifiable {
     var remainingTime: TimeInterval
     var isRunning: Bool = true
     var timer: Timer?
+}
+
+// MARK: - State Persistence for TempRoutineRunner
+
+/// Codable state snapshot for persisting TempRoutineRunner state
+struct TempRoutineRunnerState: Codable {
+    let tasks: [TempTask]
+    let currentTaskIndex: Int
+    let remainingTime: TimeInterval
+    let currentTaskDuration: TimeInterval
+    let scheduleOffset: TimeInterval
+    let totalRoutineDuration: TimeInterval
+    let completedDuration: TimeInterval
+    let originalFinishingTime: Date
+    let completedTaskIndices: [Int]
+    let isOverrun: Bool
+    let isRoutineComplete: Bool
+    let savedAt: Date
+
+    // Background tasks state (simplified - we save basic info, timer will restart)
+    let backgroundTasksInfo: [BackgroundTaskInfo]
+
+    struct BackgroundTaskInfo: Codable {
+        let task: TempTask
+        let taskIndex: Int
+        let remainingTime: TimeInterval
+    }
+
+    static let userDefaultsKey = "TempRoutineRunnerSavedState"
+
+    static func save(_ state: TempRoutineRunnerState) {
+        do {
+            let data = try JSONEncoder().encode(state)
+            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+            print("🔵 TempRoutineState: Saved state with \(state.tasks.count) tasks at index \(state.currentTaskIndex)")
+        } catch {
+            print("🔴 TempRoutineState: Failed to save state: \(error)")
+        }
+    }
+
+    static func load() -> TempRoutineRunnerState? {
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
+            print("🔵 TempRoutineState: No saved state found")
+            return nil
+        }
+
+        do {
+            let state = try JSONDecoder().decode(TempRoutineRunnerState.self, from: data)
+            print("🔵 TempRoutineState: Loaded state with \(state.tasks.count) tasks at index \(state.currentTaskIndex)")
+            return state
+        } catch {
+            print("🔴 TempRoutineState: Failed to load state: \(error)")
+            return nil
+        }
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+        print("🔵 TempRoutineState: Cleared saved state")
+    }
+
+    /// Check if saved state is still valid (not too old and not complete)
+    func isValid() -> Bool {
+        // Don't restore completed routines
+        if isRoutineComplete {
+            print("🔵 TempRoutineState: State invalid - routine was complete")
+            return false
+        }
+
+        // Don't restore states older than 4 hours
+        let maxAge: TimeInterval = 4 * 60 * 60
+        if Date().timeIntervalSince(savedAt) > maxAge {
+            print("🔵 TempRoutineState: State invalid - too old (saved \(Date().timeIntervalSince(savedAt)/60) minutes ago)")
+            return false
+        }
+
+        return true
+    }
 }
 
 // Modified RoutineRunner for temporary routines
@@ -420,6 +509,7 @@ class TempRoutineRunner: ObservableObject {
             isRoutineComplete = true
             currentTaskName = "Routine Complete"
             remainingTimeString = "00:00"
+            TempRoutineRunnerState.clear() // Clear saved state since routine is complete
         } else {
             configureCurrentTask()
             // Resume timer if it was running
@@ -504,6 +594,7 @@ class TempRoutineRunner: ObservableObject {
         isRoutineComplete = true
         currentTaskName = "Routine Ended"
         remainingTimeString = "00:00"
+        TempRoutineRunnerState.clear() // Clear saved state since routine is ended
     }
     
     func reorderTasks(from source: IndexSet, to destination: Int) {
@@ -649,11 +740,83 @@ class TempRoutineRunner: ObservableObject {
     
     func completeBackgroundTask(at index: Int) {
         guard index >= 0 && index < backgroundTasks.count else { return }
-        
+
         backgroundTasks[index].timer?.invalidate()
         backgroundTasks.remove(at: index)
-        
+
         updateCanMoveToBackground()
+    }
+
+    /// State to return to after completing a background task brought to foreground
+    private var returnToTaskState: (index: Int, remainingTime: TimeInterval)?
+
+    /// Switches a background task back to foreground
+    func switchBackgroundTaskToForeground(at backgroundIndex: Int) {
+        logger.info("switchBackgroundTaskToForeground called for index \(backgroundIndex)")
+
+        guard backgroundIndex >= 0 && backgroundIndex < backgroundTasks.count else {
+            logger.warning("Invalid background task index: \(backgroundIndex), count: \(self.backgroundTasks.count)")
+            return
+        }
+
+        let backgroundTask = backgroundTasks[backgroundIndex]
+        logger.info("Switching background task '\(backgroundTask.task.name)' (index: \(backgroundTask.taskIndex)) to foreground. Remaining time: \(backgroundTask.remainingTime)s")
+
+        // First, pause the current task if it's running
+        if isRunning {
+            logger.info("Pausing current task before switch")
+            pauseTimer()
+        }
+
+        // Stop background timer
+        backgroundTasks[backgroundIndex].timer?.invalidate()
+
+        // Save the current task state to return to later (only if we don't already have a saved state)
+        if returnToTaskState == nil && currentTaskIndex >= 0 && currentTaskIndex < tasks.count && !isRoutineComplete {
+            // Calculate remaining time for current task
+            var currentRemainingTime: TimeInterval = currentTaskDuration
+            if let pauseTime = remainingTimeOnPause {
+                currentRemainingTime = pauseTime
+            } else if let start = startTime {
+                let elapsed = Date().timeIntervalSince(start)
+                currentRemainingTime = timeToCountDownAtStart - elapsed
+            }
+
+            returnToTaskState = (index: currentTaskIndex, remainingTime: currentRemainingTime)
+            logger.info("Saving return state: task at index \(self.currentTaskIndex) with \(currentRemainingTime)s remaining")
+        }
+
+        // Get the remaining time from the background task before removing it
+        let bgRemainingTime = backgroundTask.remainingTime
+        let bgTaskIndex = backgroundTask.taskIndex
+
+        // Remove the task we're bringing to foreground from background tasks
+        backgroundTasks.remove(at: backgroundIndex)
+
+        // Jump to the background task's original position
+        currentTaskIndex = bgTaskIndex
+
+        // Configure the task
+        configureCurrentTask()
+
+        // Set the remaining time from the background task
+        remainingTime = bgRemainingTime
+        remainingTimeOnPause = bgRemainingTime
+        updateRemainingTimeDisplay()
+
+        // Update task progress fraction
+        if currentTaskDuration > 0 {
+            let elapsed = currentTaskDuration - bgRemainingTime
+            taskProgressFraction = min(max(elapsed / currentTaskDuration, 0.0), 1.0)
+        }
+
+        // Start the timer
+        startTimer()
+
+        // Update can move to background
+        updateCanMoveToBackground()
+
+        logger.info("Activated background task at its original position \(bgTaskIndex)")
     }
     
     private func updateCanMoveToBackground() {
@@ -750,32 +913,174 @@ class TempRoutineRunner: ObservableObject {
                 backgroundEnterTime = Date()
                 logger.debug("App entered background while timer was paused")
             }
-            
+
+            // Save state when entering background (in case app is terminated)
+            saveState()
+
         @unknown default:
             logger.warning("Unknown scene phase encountered")
             break
         }
     }
-    
+
+    // MARK: - State Persistence
+
+    /// Save current state for restoration if app is terminated
+    func saveState() {
+        guard !isRoutineComplete else {
+            // Don't save completed routines, clear any existing state
+            TempRoutineRunnerState.clear()
+            return
+        }
+
+        // Calculate current remaining time
+        var currentRemainingTime = remainingTime
+        if let pauseTime = remainingTimeOnPause {
+            currentRemainingTime = pauseTime
+        } else if isRunning, let start = startTime {
+            let elapsed = Date().timeIntervalSince(start)
+            currentRemainingTime = timeToCountDownAtStart - elapsed
+        }
+
+        // Convert background tasks to saveable format
+        let bgTasksInfo = backgroundTasks.map { bgTask in
+            TempRoutineRunnerState.BackgroundTaskInfo(
+                task: bgTask.task,
+                taskIndex: bgTask.taskIndex,
+                remainingTime: bgTask.remainingTime
+            )
+        }
+
+        let state = TempRoutineRunnerState(
+            tasks: tasks,
+            currentTaskIndex: currentTaskIndex,
+            remainingTime: currentRemainingTime,
+            currentTaskDuration: currentTaskDuration,
+            scheduleOffset: scheduleOffset,
+            totalRoutineDuration: totalRoutineDuration,
+            completedDuration: completedDuration,
+            originalFinishingTime: originalFinishingTime,
+            completedTaskIndices: Array(completedTaskIndices),
+            isOverrun: isOverrun,
+            isRoutineComplete: isRoutineComplete,
+            savedAt: Date(),
+            backgroundTasksInfo: bgTasksInfo
+        )
+
+        TempRoutineRunnerState.save(state)
+        logger.info("Saved routine state: task \(self.currentTaskIndex + 1)/\(self.tasks.count), remaining: \(currentRemainingTime)s")
+    }
+
+    /// Restore runner from saved state (called after app restart)
+    static func restoreFromSavedState() -> TempRoutineRunner? {
+        guard let state = TempRoutineRunnerState.load() else {
+            return nil
+        }
+
+        guard state.isValid() else {
+            TempRoutineRunnerState.clear()
+            return nil
+        }
+
+        // Calculate time elapsed since state was saved
+        let timeElapsed = Date().timeIntervalSince(state.savedAt)
+
+        // Create runner from saved state
+        let runner = TempRoutineRunner(restoringFrom: state, timeElapsed: timeElapsed)
+        return runner
+    }
+
+    /// Private initializer for restoration
+    private init(restoringFrom state: TempRoutineRunnerState, timeElapsed: TimeInterval) {
+        logger.info("Restoring TempRoutineRunner from saved state (elapsed: \(timeElapsed)s)")
+
+        self.tasks = state.tasks
+        self.currentTaskIndex = state.currentTaskIndex
+        self.currentTaskDuration = state.currentTaskDuration
+        self.scheduleOffset = state.scheduleOffset
+        self.totalRoutineDuration = state.totalRoutineDuration
+        self.completedDuration = state.completedDuration
+        self.originalFinishingTime = state.originalFinishingTime
+        self.completedTaskIndices = Set(state.completedTaskIndices)
+
+        // Adjust remaining time for time elapsed while app was terminated
+        var adjustedRemainingTime = state.remainingTime - timeElapsed
+
+        if adjustedRemainingTime <= 0 {
+            // Task went into overrun while app was terminated
+            self.isOverrun = true
+            self.remainingTime = adjustedRemainingTime // Negative value indicates overrun
+            self.scheduleOffset += abs(adjustedRemainingTime)
+            logger.info("Task went into overrun while terminated: \(adjustedRemainingTime)s")
+        } else {
+            self.isOverrun = state.isOverrun
+            self.remainingTime = adjustedRemainingTime
+        }
+
+        // Update displays
+        if currentTaskIndex >= 0 && currentTaskIndex < tasks.count {
+            currentTaskName = tasks[currentTaskIndex].name
+
+            if currentTaskIndex < tasks.count - 1 {
+                nextTaskName = tasks[currentTaskIndex + 1].name
+            }
+        }
+
+        // Update task progress
+        if currentTaskDuration > 0 {
+            let elapsed = currentTaskDuration - (isOverrun ? 0 : remainingTime)
+            taskProgressFraction = min(max(elapsed / currentTaskDuration, 0.0), 1.0)
+        }
+
+        updateRemainingTimeDisplay()
+        updateScheduleOffsetString()
+        updateEstimatedFinishingTimeString()
+        updateCanMoveToBackground()
+
+        // Restore background tasks (their timers will be restarted)
+        for bgInfo in state.backgroundTasksInfo {
+            var adjustedBgTime = bgInfo.remainingTime - timeElapsed
+            if adjustedBgTime < 0 { adjustedBgTime = 0 }
+
+            var bgTask = TempBackgroundTaskState(
+                task: bgInfo.task,
+                taskIndex: bgInfo.taskIndex,
+                remainingTime: adjustedBgTime
+            )
+            startBackgroundTimer(for: &bgTask)
+            backgroundTasks.append(bgTask)
+        }
+
+        // Clear the saved state since we've restored
+        TempRoutineRunnerState.clear()
+
+        logger.info("Restored routine at task \(self.currentTaskIndex + 1)/\(self.tasks.count), adjusted remaining: \(self.remainingTime)s")
+    }
+
+    /// Clear saved state (call when routine completes or is dismissed)
+    static func clearSavedState() {
+        TempRoutineRunnerState.clear()
+    }
+
     // MARK: - Core Data Integration
-    
+
     private func markOriginalTaskComplete(uuid: UUID) {
         // Use the DataStoreManager's context
         let context = DataStoreManager.shared.viewContext
-        
+
         // Fetch the task with the given UUID
         let fetchRequest: NSFetchRequest<CDTask> = CDTask.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
-        
+
         do {
             let tasks = try context.fetch(fetchRequest)
             if let task = tasks.first {
                 // Mark the task as completed
                 task.lastCompleted = Date()
-                
+
                 // Save the context
                 try context.save()
-                
+
                 logger.info("Marked original task '\(task.taskName ?? "")' as completed")
             } else {
                 logger.warning("Could not find task with UUID: \(uuid)")

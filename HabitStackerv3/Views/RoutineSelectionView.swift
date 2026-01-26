@@ -26,6 +26,8 @@ struct RoutineSelectionView: View {
     @State private var infoMode = false
     @StateObject private var tempRunnerWrapper = TempRunnerWrapper()
     @State private var showTempRunner = false
+    @State private var showRestoreAlert = false
+    @State private var hasPendingRestore = false
     
     @State private var runnerInstance: RoutineRunner? = nil
     
@@ -288,6 +290,7 @@ struct RoutineSelectionView: View {
         .fullScreenCover(isPresented: $showTempRunner, onDismiss: {
             logger.info("fullScreenCover dismissed")
             TempRoutineStorage.clear()
+            TempRoutineRunner.clearSavedState() // Clear saved state when routine is dismissed
             tempRunnerWrapper.runner = nil
         }) {
             Group {
@@ -336,12 +339,43 @@ struct RoutineSelectionView: View {
                 selectedRoutine = getDefaultRoutine()
                 logger.info("Selected default routine: \(selectedRoutine?.name ?? "None")")
             }
-            
+
             // Set default time to 1 hour from now if not already set
             if selectedTime <= Date() {
                 selectedTime = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
                 logger.info("Set default time to 1 hour from now")
             }
+
+            // Check for saved temporary routine state that can be restored
+            if !hasPendingRestore && !showTempRunner {
+                if let savedState = TempRoutineRunnerState.load(), savedState.isValid() {
+                    logger.info("Found restorable temporary routine state")
+                    hasPendingRestore = true
+                    showRestoreAlert = true
+                }
+            }
+        }
+        .alert("Resume Temporary Routine?", isPresented: $showRestoreAlert) {
+            Button("Resume") {
+                if let restoredRunner = TempRoutineRunner.restoreFromSavedState() {
+                    logger.info("Restored temporary routine runner")
+                    tempRunnerWrapper.runner = restoredRunner
+                    showTempRunner = true
+                } else {
+                    logger.error("Failed to restore temporary routine")
+                }
+                hasPendingRestore = false
+            }
+            Button("Discard", role: .destructive) {
+                TempRoutineRunner.clearSavedState()
+                hasPendingRestore = false
+                logger.info("User discarded saved temporary routine")
+            }
+            Button("Cancel", role: .cancel) {
+                hasPendingRestore = false
+            }
+        } message: {
+            Text("You have an unfinished temporary routine. Would you like to resume where you left off?")
         }
         .onReceive(timer) { _ in
             updateTimeToNow()
