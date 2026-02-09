@@ -4,6 +4,7 @@ import OSLog
 
 struct RoutineSelectionView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var syncService: SyncService
     @ObservedObject var viewModel: RoutineViewModel
     @ObservedObject private var settingsManager = SettingsManager.shared
     
@@ -610,6 +611,7 @@ struct RoutineSelectionView: View {
         
         DispatchQueue.main.async { [adjustedSchedule] in
             let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: adjustedSchedule, originalFinishingTime: self.selectedTime)
+            newRunner.syncService = self.syncService
             self.runnerInstance = newRunner
             self.isLoading = false
             self.navigateToRunner = true
@@ -696,6 +698,7 @@ struct RoutineSelectionView: View {
 
                 DispatchQueue.main.async { [schedule] in
                     let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: schedule, originalFinishingTime: self.selectedTime)
+                    newRunner.syncService = self.syncService
                     self.runnerInstance = newRunner
                     self.isLoading = false
                     self.navigateToRunner = true
@@ -740,6 +743,7 @@ struct RoutineSelectionView: View {
 
                 DispatchQueue.main.async { [randomizedSchedule] in
                     let newRunner = RoutineRunner(context: self.viewContext, routine: routine, schedule: randomizedSchedule, originalFinishingTime: self.selectedTime)
+                    newRunner.syncService = self.syncService
                     self.runnerInstance = newRunner
                     self.isLoading = false
                     self.navigateToRunner = true

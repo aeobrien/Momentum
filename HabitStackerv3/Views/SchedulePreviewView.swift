@@ -9,6 +9,7 @@ struct SchedulePreviewView: View {
     @Environment(\.dismiss) private var dismiss // To close the modal sheet
     // Access Core Data context directly. Ensure this is the correct context.
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var syncService: SyncService
     @ObservedObject private var settingsManager = SettingsManager.shared
 
     private let logger = AppLogger.create(subsystem: "com.app.SchedulePreviewView", category: "UI")
@@ -240,6 +241,7 @@ struct SchedulePreviewView: View {
         // Create the RoutineRunner with the modified schedule and adjusted finishing time
         // Using the confirmed correct initializer
         let newRunner = RoutineRunner(context: viewContext, routine: routine, schedule: currentSchedule, originalFinishingTime: adjustedFinishingTime)
+        newRunner.syncService = syncService
 
         // Update the parent view's state via bindings
         runnerInstance = newRunner

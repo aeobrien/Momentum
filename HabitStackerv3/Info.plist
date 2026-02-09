@@ -11,5 +11,7 @@
 	<true/>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Momentum uses the microphone to record voice input for adding tasks to temporary routines.</string>
 </dict>
 </plist>

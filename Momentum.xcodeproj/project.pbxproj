@@ -12,6 +12,7 @@
 		4A65B470B02F4D9ABB48D859 /* BackupData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */; };
 		51A29F7609D94E0E835C1840 /* BackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F746B448122346998D7F6199 /* BackupRestoreView.swift */; };
 		AB7B0934618B40EA8D804D23 /* iCloudBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */; };
+		A1B2C3D4E5F6A7B800112234 /* RoutineRunStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */; };
 		B4354DC99ECB4B2DA76962C8 /* MomentumBackupDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */; };
 		DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */; };
 		DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */; };
@@ -19,6 +20,8 @@
 		DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C42CDCCF6F008B839C /* TaskCard.swift */; };
 		DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C62CDCCF7B008B839C /* SearchBar.swift */; };
 		DD4222C92CDCD342008B839C /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C82CDCD342008B839C /* DateExtensions.swift */; };
+		DD43C33B2F38A7AF00ED227E /* SyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */; };
+		DD43C33C2F38A7AF00ED227E /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD43C3392F38A7AF00ED227E /* SyncService.swift */; };
 		DD4ED5222E75999F00B195CA /* TaskCleanupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */; };
 		DD5902B02CDD1CFA005F040A /* ToDoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902AF2CDD1CFA005F040A /* ToDoView.swift */; };
 		DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */; };
@@ -184,6 +187,7 @@
 		4FAB675999AA484797121287 /* BackupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupDetailView.swift; sourceTree = "<group>"; };
 		982602432B884C5290157ADB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumBackupDocument.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineRunStore.swift; sourceTree = "<group>"; };
 		CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupData.swift; sourceTree = "<group>"; };
 		DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Momentum.xcdatamodel; sourceTree = "<group>"; };
 		DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableDurationTaskScheduling.swift; sourceTree = "<group>"; };
@@ -191,6 +195,8 @@
 		DD4222C42CDCCF6F008B839C /* TaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCard.swift; sourceTree = "<group>"; };
 		DD4222C62CDCCF7B008B839C /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
 		DD4222C82CDCD342008B839C /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
+		DD43C3392F38A7AF00ED227E /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncSettingsView.swift; sourceTree = "<group>"; };
 		DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCleanupView.swift; sourceTree = "<group>"; };
 		DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		DD5902AF2CDD1CFA005F040A /* ToDoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoView.swift; sourceTree = "<group>"; };
@@ -410,6 +416,8 @@
 		DDF227E12CC957B20014505A = {
 			isa = PBXGroup;
 			children = (
+				DD43C3392F38A7AF00ED227E /* SyncService.swift */,
+				DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */,
 				DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */,
 				DDF227EC2CC957B30014505A /* HabitStackerv3 */,
 				DDF227FD2CC957B50014505A /* HabitStackerv3Tests */,
@@ -443,6 +451,7 @@
 				DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */,
 				DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */,
 				DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */,
+				A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */,
 				DD9480012CDC17730014A929 /* CDTask+Extensions.swift */,
 				DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */,
 				DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */,
@@ -841,6 +850,8 @@
 				DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */,
 				DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */,
 				DDF228902CC95DF60014505A /* TaskStorage.swift in Sources */,
+				DD43C33B2F38A7AF00ED227E /* SyncSettingsView.swift in Sources */,
+				DD43C33C2F38A7AF00ED227E /* SyncService.swift in Sources */,
 				DDF228A82CC96C0D0014505A /* RoutineViewModel.swift in Sources */,
 				DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */,
 				DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */,
@@ -906,6 +917,7 @@
 				DDF228D82CCEC0160014505A /* LogsView.swift in Sources */,
 				DDF228AE2CC96C3A0014505A /* CreateRoutineView.swift in Sources */,
 				DD9480082CDC18CE0014A929 /* RoutineStorageCoreData.swift in Sources */,
+				A1B2C3D4E5F6A7B800112234 /* RoutineRunStore.swift in Sources */,
 				DDF228C22CC9A06B0014505A /* ResultExtensions.swift in Sources */,
 				DDF228DE2CCEE3220014505A /* LogSession.swift in Sources */,
 			);

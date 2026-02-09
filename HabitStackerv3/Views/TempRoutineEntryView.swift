@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import AVFoundation
 
 enum TempRoutineStorage {
     static let customTaskNamesKey = "tempRoutineCustomTaskNames"
@@ -66,8 +67,8 @@ struct TempRoutineEntryView: View {
     @State private var bulkTaskText: String = ""
     @State private var showBulkEntry: Bool = false
     @State private var navigationPath = NavigationPath()
-    @State private var selectedRoutine: CDRoutine? = nil
-    @State private var routineTemplateTasks: [TempRoutineTask] = []
+    @State private var expandedRoutineIds: Set<UUID> = []
+    @State private var routineSearchText: String = ""
 
     // Use SceneStorage to persist custom tasks across app switches
     @SceneStorage(TempRoutineStorage.customTaskNamesKey) private var persistedCustomTaskNames: String = ""
@@ -156,8 +157,7 @@ struct TempRoutineEntryView: View {
                             selectedTasks.removeAll()
                             selectedTaskIds.removeAll()
                             customTasks.removeAll()
-                            routineTemplateTasks.removeAll()
-                            selectedRoutine = nil
+                            expandedRoutineIds.removeAll()
                             saveCustomTasksToStorage()
                         }
                         .font(.subheadline)
@@ -181,6 +181,7 @@ struct TempRoutineEntryView: View {
                 .onChange(of: selectedFilter) { _ in
                     // Clear search when switching tabs
                     searchText = ""
+                    routineSearchText = ""
                 }
                 
                 // Content based on selected tab
@@ -298,7 +299,7 @@ struct TempRoutineEntryView: View {
                                 
                                 Spacer()
                                 
-                                Text("10 min")
+                                Text("\(task.duration) min")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 
@@ -382,141 +383,184 @@ struct TempRoutineEntryView: View {
         }
     }
     
+    private func filteredRoutines() -> [CDRoutine] {
+        if routineSearchText.isEmpty {
+            return Array(cdRoutines)
+        }
+        return cdRoutines.filter { routine in
+            routine.name?.localizedCaseInsensitiveContains(routineSearchText) ?? false
+        }
+    }
+
+    private func sortedTasks(for routine: CDRoutine) -> [CDRoutineTask] {
+        guard let routineTasks = routine.taskRelations?.allObjects as? [CDRoutineTask] else { return [] }
+        return routineTasks.sorted { $0.order < $1.order }
+    }
+
+    private func dueTaskCount(for routine: CDRoutine) -> Int {
+        sortedTasks(for: routine).filter { rt in
+            guard let task = rt.task else { return false }
+            return isDueForCompletion(task)
+        }.count
+    }
+
+    private func addAllDueTasks(from routine: CDRoutine) {
+        for routineTask in sortedTasks(for: routine) {
+            guard let task = routineTask.task, isDueForCompletion(task) else { continue }
+            guard let taskId = task.uuid, !selectedTaskIds.contains(taskId) else { continue }
+            selectedTaskIds.insert(taskId)
+            let tempTask = TempRoutineTask(
+                name: task.taskName ?? "",
+                duration: Int(task.minDuration),
+                isFromExisting: true,
+                originalTask: task
+            )
+            selectedTasks.append(tempTask)
+        }
+    }
+
+    @ViewBuilder
+    private func routineTaskRow(for task: CDTask) -> some View {
+        let isDue = isDueForCompletion(task)
+        let isSelected = selectedTaskIds.contains(task.uuid ?? UUID())
+
+        HStack {
+            Button(action: {
+                toggleTaskSelection(task)
+            }) {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .foregroundColor(.blue)
+                    .imageScale(.large)
+            }
+            .buttonStyle(BorderlessButtonStyle())
+
+            VStack(alignment: .leading) {
+                Text(task.taskName ?? "")
+                    .font(.body)
+
+                HStack(spacing: 8) {
+                    Text(isDue ? "Due" : "Not due")
+                        .font(.caption)
+                        .foregroundColor(isDue ? .green : .orange)
+
+                    Text("\(Int(task.minDuration)) min")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Circle()
+                .fill(essentialityColor(task.essentiality))
+                .frame(width: 8, height: 8)
+        }
+        .padding(.horizontal)
+        .padding(.leading, 16)
+        .padding(.vertical, 6)
+        .opacity(isDue ? 1.0 : 0.6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            toggleTaskSelection(task)
+        }
+    }
+
+    @ViewBuilder
+    private func routineSection(for routine: CDRoutine) -> some View {
+        let routineUUID = routine.uuid ?? UUID()
+        let isExpanded = expandedRoutineIds.contains(routineUUID)
+        let tasks = sortedTasks(for: routine)
+        let totalCount = tasks.count
+        let dueCount = dueTaskCount(for: routine)
+
+        VStack(spacing: 0) {
+            // Header
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isExpanded {
+                        expandedRoutineIds.remove(routineUUID)
+                    } else {
+                        expandedRoutineIds.insert(routineUUID)
+                    }
+                }
+            }) {
+                HStack {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .foregroundColor(.secondary)
+                        .frame(width: 20)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(routine.name ?? "")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+
+                        Text("\(totalCount) tasks • \(dueCount) due")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    if dueCount > 0 {
+                        Button(action: {
+                            addAllDueTasks(from: routine)
+                        }) {
+                            Text("Add All Due")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.green)
+                                .cornerRadius(12)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal)
+
+            // Expanded tasks
+            if isExpanded {
+                ForEach(tasks, id: \.objectID) { routineTask in
+                    if let task = routineTask.task {
+                        routineTaskRow(for: task)
+                    }
+                }
+            }
+        }
+    }
+
     private var routineTemplateView: some View {
         VStack(spacing: 0) {
+            // Search bar for routines
+            SearchBar(text: $routineSearchText)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Select a routine as template:")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Browse routines:")
                         .font(.headline)
                         .padding(.horizontal)
                         .padding(.top)
-                    
-                    if selectedRoutine == nil {
-                        // Show routine picker
-                        ForEach(cdRoutines) { routine in
-                            Button(action: {
-                                loadRoutineTemplate(routine)
-                            }) {
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(routine.name ?? "")
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                        
-                                        if let tasks = routine.taskRelations?.allObjects as? [CDRoutineTask] {
-                                            Text("\(tasks.count) tasks")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
-                            }
-                            .padding(.horizontal)
-                        }
-                    } else {
-                        // Show selected routine tasks
-                        HStack {
-                            Text("Template: \(selectedRoutine?.name ?? "")")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button("Change") {
-                                let templateTasksToRemove = routineTemplateTasks
-                                if !templateTasksToRemove.isEmpty {
-                                    let templateIds = Set(templateTasksToRemove.map { $0.id })
-                                    selectedTasks.removeAll { templateIds.contains($0.id) }
-                                    let templateUUIDs = templateTasksToRemove.compactMap { $0.originalTask?.uuid }
-                                    if !templateUUIDs.isEmpty {
-                                        selectedTaskIds.subtract(templateUUIDs)
-                                    }
-                                }
-                                selectedRoutine = nil
-                                routineTemplateTasks.removeAll()
-                                saveCustomTasksToStorage()
-                            }
-                            .font(.subheadline)
-                        }
-                        .padding(.horizontal)
-                        
-                        Text("Tasks from routine (tap to toggle):")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        
-                        ForEach(routineTemplateTasks) { task in
-                            HStack {
-                                Button(action: {
-                                    toggleTemplateTaskSelection(task)
-                                }) {
-                                    Image(systemName: selectedTasks.contains(where: { $0.id == task.id }) ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(.blue)
-                                        .imageScale(.large)
-                                }
-                                .buttonStyle(BorderlessButtonStyle())
-                                
-                                VStack(alignment: .leading) {
-                                    Text(task.name)
-                                        .font(.body)
-                                    
-                                    HStack {
-                                        Text("\(task.duration) min")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        
-                                        if task.isFromExisting {
-                                            Text("• Tracked")
-                                                .font(.caption)
-                                                .foregroundColor(.green)
-                                        }
-                                    }
-                                }
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                toggleTemplateTaskSelection(task)
-                            }
-                        }
-                        
-                        // Allow adding custom tasks to template
-                        Divider()
-                            .padding(.vertical)
-                        
-                        Text("Add custom tasks to template:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        
-                        HStack {
-                            TextField("Enter task name", text: $customTaskText)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onSubmit {
-                                    addCustomTask()
-                                }
-                            
-                            Button(action: addCustomTask) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.blue)
-                                    .imageScale(.large)
-                            }
-                            .disabled(customTaskText.isEmpty)
-                        }
-                        .padding(.horizontal)
+
+                    ForEach(filteredRoutines(), id: \.objectID) { routine in
+                        routineSection(for: routine)
                     }
-                    
+
+                    if filteredRoutines().isEmpty && !routineSearchText.isEmpty {
+                        Text("No routines found matching '\(routineSearchText)'")
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }
+
                     Spacer(minLength: 20)
                 }
             }
@@ -607,9 +651,12 @@ struct TempRoutineEntryView: View {
     }
 
     private func saveCustomTasksToStorage() {
-        // Save custom task names as a pipe-separated string
-        let customTaskNames = customTasks.map { $0.name }.joined(separator: "|")
-        persistedCustomTaskNames = customTaskNames
+        // Save custom tasks as JSON array with name and duration
+        let taskDicts = customTasks.map { ["name": $0.name, "duration": "\($0.duration)"] }
+        if let jsonData = try? JSONSerialization.data(withJSONObject: taskDicts),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            persistedCustomTaskNames = jsonString
+        }
 
         // Save all selected task IDs (both custom and from existing)
         let selectedIds = selectedTaskIds.map { $0.uuidString }.joined(separator: "|")
@@ -625,13 +672,28 @@ struct TempRoutineEntryView: View {
 
         // Restore custom tasks
         if !persistedCustomTaskNames.isEmpty {
-            let taskNames = persistedCustomTaskNames.split(separator: "|").map { String($0) }
-            customTasks = taskNames.map { name in
-                TempRoutineTask(
-                    name: name,
-                    duration: 10,
-                    isFromExisting: false
-                )
+            let stored = persistedCustomTaskNames.trimmingCharacters(in: .whitespacesAndNewlines)
+            if stored.hasPrefix("["),
+               let jsonData = stored.data(using: .utf8),
+               let arr = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: String]] {
+                // New JSON format
+                customTasks = arr.map { dict in
+                    TempRoutineTask(
+                        name: dict["name"] ?? "",
+                        duration: Int(dict["duration"] ?? "10") ?? 10,
+                        isFromExisting: false
+                    )
+                }
+            } else {
+                // Legacy pipe-separated format
+                let taskNames = stored.split(separator: "|").map { String($0) }
+                customTasks = taskNames.map { name in
+                    TempRoutineTask(
+                        name: name,
+                        duration: 10,
+                        isFromExisting: false
+                    )
+                }
             }
             selectedTasks.append(contentsOf: customTasks)
             logger.info("Restored \(customTasks.count) custom tasks from storage")
@@ -663,23 +725,68 @@ struct TempRoutineEntryView: View {
         }
     }
     
+    private func parseBulkTaskLine(_ line: String) -> (name: String, duration: Int) {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Match parenthetical time at end of line
+        // Patterns: (15), (15 min), (15m), (2 hours), (2h), (1h30m), (1h 30m), (90 min), (90m)
+        let pattern = #"\(\s*(?:(\d+)\s*h(?:ours?)?(?:\s*(\d+)\s*m(?:in(?:utes?)?)?)?|(\d+)\s*(?:hours?)|(\d+)\s*m(?:in(?:utes?)?)?|(\d+))\s*\)\s*$"#
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return (trimmed, 10)
+        }
+
+        let range = NSRange(trimmed.startIndex..., in: trimmed)
+        guard let match = regex.firstMatch(in: trimmed, range: range) else {
+            return (trimmed, 10)
+        }
+
+        var duration = 10
+
+        // Group 1: hours in compound (e.g., "1h30m" -> group1=1, group2=30)
+        // Group 2: minutes in compound
+        // Group 3: standalone hours (e.g., "2 hours")
+        // Group 4: standalone minutes (e.g., "15 min", "90m")
+        // Group 5: bare number (e.g., "15")
+
+        if let g1Range = Range(match.range(at: 1), in: trimmed), let hours = Int(trimmed[g1Range]) {
+            duration = hours * 60
+            if let g2Range = Range(match.range(at: 2), in: trimmed), let mins = Int(trimmed[g2Range]) {
+                duration += mins
+            }
+        } else if let g3Range = Range(match.range(at: 3), in: trimmed), let hours = Int(trimmed[g3Range]) {
+            duration = hours * 60
+        } else if let g4Range = Range(match.range(at: 4), in: trimmed), let mins = Int(trimmed[g4Range]) {
+            duration = mins
+        } else if let g5Range = Range(match.range(at: 5), in: trimmed), let mins = Int(trimmed[g5Range]) {
+            duration = mins
+        }
+
+        // Strip the parenthetical from the task name
+        let matchRange = Range(match.range, in: trimmed)!
+        let name = String(trimmed[trimmed.startIndex..<matchRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return (name.isEmpty ? trimmed : name, max(1, duration))
+    }
+
     private func processBulkTasks() {
         // Split the bulk text by newlines and process each non-empty line as a task
         let lines = bulkTaskText.split(separator: "\n")
-        
+
         for line in lines {
-            let taskName = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !taskName.isEmpty {
+            let lineStr = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !lineStr.isEmpty {
+                let parsed = parseBulkTaskLine(lineStr)
                 let tempTask = TempRoutineTask(
-                    name: taskName,
-                    duration: 10, // Default 10 minutes for bulk-added tasks
+                    name: parsed.name,
+                    duration: parsed.duration,
                     isFromExisting: false
                 )
                 customTasks.append(tempTask)
                 selectedTasks.append(tempTask)
             }
         }
-        
+
         // Clear the bulk text after processing
         bulkTaskText = ""
         showBulkEntry = false
@@ -690,50 +797,6 @@ struct TempRoutineEntryView: View {
     
     private func proceedToTimeAllocation() {
         navigationPath.append("timeAllocation")
-    }
-    
-    private func loadRoutineTemplate(_ routine: CDRoutine) {
-        selectedRoutine = routine
-        let previousTemplateTasks = routineTemplateTasks
-        if !previousTemplateTasks.isEmpty {
-            let previousIds = Set(previousTemplateTasks.map { $0.id })
-            selectedTasks.removeAll { previousIds.contains($0.id) }
-            let previousUUIDs = previousTemplateTasks.compactMap { $0.originalTask?.uuid }
-            if !previousUUIDs.isEmpty {
-                selectedTaskIds.subtract(previousUUIDs)
-            }
-        }
-        routineTemplateTasks.removeAll()
-        
-        // Load tasks from the routine through CDRoutineTask relationships
-        // Only include tasks that are due for completion
-        if let routineTasks = routine.taskRelations?.allObjects as? [CDRoutineTask] {
-            // Sort by order
-            let sortedRoutineTasks = routineTasks.sorted { $0.order < $1.order }
-
-            for routineTask in sortedRoutineTasks {
-                if let task = routineTask.task, isDueForCompletion(task) {
-                    let tempTask = TempRoutineTask(
-                        name: task.taskName ?? "",
-                        duration: Int(task.minDuration),
-                        isFromExisting: true,
-                        originalTask: task
-                    )
-                    routineTemplateTasks.append(tempTask)
-                    selectedTasks.append(tempTask)
-                }
-            }
-        }
-        
-        logger.info("Loaded routine template '\(routine.name ?? "")' with \(routineTemplateTasks.count) tasks")
-    }
-    
-    private func toggleTemplateTaskSelection(_ task: TempRoutineTask) {
-        if let index = selectedTasks.firstIndex(where: { $0.id == task.id }) {
-            selectedTasks.remove(at: index)
-        } else {
-            selectedTasks.append(task)
-        }
     }
     
     private func essentialityColor(_ value: Int16) -> Color {
@@ -916,25 +979,158 @@ struct TempRoutineTimeAllocationViewIntegrated: View {
     }
 }
 
-// Bulk task entry view
+// MARK: - OpenAI Service
+
+actor OpenAIService {
+    enum OpenAIError: LocalizedError {
+        case noAPIKey
+        case networkError(String)
+        case emptyTranscription
+        case invalidResponse
+
+        var errorDescription: String? {
+            switch self {
+            case .noAPIKey: return "No OpenAI API key configured. Add one in Settings > AI Features."
+            case .networkError(let msg): return "Network error: \(msg)"
+            case .emptyTranscription: return "No speech was detected in the recording."
+            case .invalidResponse: return "Received an invalid response from OpenAI."
+            }
+        }
+    }
+
+    func transcribe(audioURL: URL, apiKey: String) async throws -> String {
+        guard !apiKey.isEmpty else { throw OpenAIError.noAPIKey }
+
+        let url = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        let audioData = try Data(contentsOf: audioURL)
+
+        // model field
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
+        body.append("whisper-1\r\n".data(using: .utf8)!)
+
+        // file field
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"recording.m4a\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n".data(using: .utf8)!)
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw OpenAIError.networkError(errorText)
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let text = json["text"] as? String, !text.isEmpty else {
+            throw OpenAIError.emptyTranscription
+        }
+
+        return text
+    }
+
+    func formatAsTaskList(transcription: String, apiKey: String) async throws -> String {
+        guard !apiKey.isEmpty else { throw OpenAIError.noAPIKey }
+
+        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15
+
+        let systemPrompt = """
+        You are a task list formatter. Convert the user's spoken input into a clean task list.
+        Rules:
+        - One task per line
+        - If the user mentions a time estimate, put it in parentheses as minutes at the end of the line
+        - Convert hours to minutes: "2 hours" -> (120), "1 hour 30 minutes" -> (90)
+        - If no time is mentioned for a task, omit the parenthetical
+        - Capitalize the first letter of each task
+        - Remove filler words like "um", "uh", "like", "so"
+        - Do not add any extra text, headers, or numbering
+        Example input: "buy groceries about 30 minutes, clean the house two hours, call mom"
+        Example output:
+        Buy groceries (30)
+        Clean the house (120)
+        Call mom
+        """
+
+        let body: [String: Any] = [
+            "model": "gpt-4o-mini",
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": transcription]
+            ],
+            "temperature": 0.3
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw OpenAIError.networkError(errorText)
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let first = choices.first,
+              let message = first["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            throw OpenAIError.invalidResponse
+        }
+
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+// MARK: - Bulk Task Entry View
+
 struct BulkTaskEntryView: View {
     @Binding var bulkTaskText: String
     let onConfirm: () -> Void
     @Environment(\.dismiss) private var dismiss
-    
+    @StateObject private var settingsManager = SettingsManager.shared
+
+    // Voice recording state
+    @State private var isRecording = false
+    @State private var isProcessing = false
+    @State private var audioRecorder: AVAudioRecorder?
+    @State private var recordingURL: URL?
+    @State private var errorMessage: String?
+    @State private var showError = false
+
+    private let openAIService = OpenAIService()
+
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
                 Text("Enter tasks, one per line:")
                     .font(.headline)
                     .padding(.top)
-                
-                Text("Each task will be added with a default duration of 10 minutes. You can adjust durations later.")
+
+                Text("Add time in parentheses: (15) = 15 min, (2h) = 2 hours, (1h30m) = 90 min. No time = 10 min default.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
-                
+
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $bulkTaskText)
                         .padding(8)
@@ -942,10 +1138,10 @@ struct BulkTaskEntryView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                         )
-                    
+
                     // Placeholder text when empty
                     if bulkTaskText.isEmpty {
-                        Text("Task 1\nTask 2\nTask 3\n...")
+                        Text("Buy groceries (30)\nClean house (2 hours)\nCall mom\n...")
                             .foregroundColor(.gray.opacity(0.5))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 16)
@@ -953,16 +1149,67 @@ struct BulkTaskEntryView: View {
                     }
                 }
                 .padding(.horizontal)
-                
-                Spacer()
-                
+
+                // Voice input section
+                VStack(spacing: 8) {
+                    if settingsManager.openAIAPIKey.isEmpty {
+                        HStack {
+                            Image(systemName: "mic.slash")
+                                .foregroundColor(.secondary)
+                            Text("Voice input requires an OpenAI API key (Settings > AI Features)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                if isRecording {
+                                    stopRecording()
+                                } else {
+                                    startRecording()
+                                }
+                            }) {
+                                HStack {
+                                    if isProcessing {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    } else {
+                                        Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                                            .imageScale(.large)
+                                    }
+                                    Text(isRecording ? "Stop Recording" : isProcessing ? "Processing..." : "Voice Input")
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(isRecording ? Color.red : isProcessing ? Color.orange : Color.purple)
+                                .cornerRadius(20)
+                            }
+                            .disabled(isProcessing)
+
+                            if isRecording {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 12, height: 12)
+                                    .opacity(isRecording ? 1 : 0)
+                                    .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: isRecording)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+
                 HStack(spacing: 16) {
                     Button("Cancel") {
+                        cleanupRecording()
                         dismiss()
                     }
                     .foregroundColor(.red)
-                    
+
                     Button(action: {
+                        cleanupRecording()
                         onConfirm()
                         dismiss()
                     }) {
@@ -981,7 +1228,129 @@ struct BulkTaskEntryView: View {
             }
             .navigationTitle("Bulk Add Tasks")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Voice Input Error", isPresented: $showError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage ?? "An unknown error occurred.")
+            }
+            .onDisappear {
+                cleanupRecording()
+            }
         }
+    }
+
+    private func startRecording() {
+        let session = AVAudioSession.sharedInstance()
+
+        // Check/request microphone permission
+        switch session.recordPermission {
+        case .denied:
+            errorMessage = "Microphone access denied. Please enable it in Settings > Privacy > Microphone."
+            showError = true
+            return
+        case .undetermined:
+            session.requestRecordPermission { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.beginRecording()
+                    } else {
+                        self.errorMessage = "Microphone access is required for voice input."
+                        self.showError = true
+                    }
+                }
+            }
+            return
+        case .granted:
+            break
+        @unknown default:
+            break
+        }
+
+        beginRecording()
+    }
+
+    private func beginRecording() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setActive(true)
+        } catch {
+            errorMessage = "Failed to configure audio session: \(error.localizedDescription)"
+            showError = true
+            return
+        }
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let url = tempDir.appendingPathComponent("voice_task_\(UUID().uuidString).m4a")
+        recordingURL = url
+
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44100.0,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+
+        do {
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.record()
+            audioRecorder = recorder
+            isRecording = true
+        } catch {
+            errorMessage = "Failed to start recording: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+
+    private func stopRecording() {
+        audioRecorder?.stop()
+        audioRecorder = nil
+        isRecording = false
+
+        guard let url = recordingURL else { return }
+
+        isProcessing = true
+        let apiKey = settingsManager.openAIAPIKey
+
+        Task {
+            do {
+                let transcription = try await openAIService.transcribe(audioURL: url, apiKey: apiKey)
+                let formatted = try await openAIService.formatAsTaskList(transcription: transcription, apiKey: apiKey)
+
+                await MainActor.run {
+                    // Append to existing text
+                    if !bulkTaskText.isEmpty && !bulkTaskText.hasSuffix("\n") {
+                        bulkTaskText += "\n"
+                    }
+                    bulkTaskText += formatted
+                    isProcessing = false
+                    deleteRecordingFile(url)
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    isProcessing = false
+                    deleteRecordingFile(url)
+                }
+            }
+        }
+    }
+
+    private func cleanupRecording() {
+        if isRecording {
+            audioRecorder?.stop()
+            audioRecorder = nil
+            isRecording = false
+        }
+        if let url = recordingURL {
+            deleteRecordingFile(url)
+        }
+    }
+
+    private func deleteRecordingFile(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
+        recordingURL = nil
     }
 }
 

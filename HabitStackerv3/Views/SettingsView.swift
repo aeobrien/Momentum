@@ -12,6 +12,7 @@ struct SettingsView: View {
     }
     
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var syncService: SyncService
     @StateObject private var backupManager = iCloudBackupManager.shared
     @StateObject private var dataStoreManager = DataStoreManager.shared
     @StateObject private var settingsManager = SettingsManager.shared
@@ -31,7 +32,7 @@ struct SettingsView: View {
         List {
             // MARK: Data Management
             Section(header: Text("Data Management")) {
-                    
+
                     Button {
                         showBackupRestoreView = true
                     } label: {
@@ -43,6 +44,23 @@ struct SettingsView: View {
                             Spacer()
                             if let lastBackup = backupManager.lastBackupDate {
                                 Text(lastBackup, style: .relative)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
+                    NavigationLink {
+                        SyncSettingsView(syncService: syncService)
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            Text("LifePlanner Sync")
+                            Spacer()
+                            if let lastSync = syncService.lastSyncDate {
+                                Text(lastSync, style: .relative)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -188,6 +206,43 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
                 
+                // MARK: AI Features
+                Section(header: Text("AI Features")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "waveform.circle")
+                                .foregroundColor(.purple)
+                                .frame(width: 30)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("OpenAI API Key")
+                                    .font(.body)
+                                Text("Used for voice-to-task input in temporary routines")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        SecureField("sk-...", text: $settingsManager.openAIAPIKey)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .padding(.leading, 38)
+
+                        if !settingsManager.openAIAPIKey.isEmpty {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("API key configured")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 38)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 // MARK: Import Instructions
                 Section {
                     VStack(alignment: .leading, spacing: 12) {

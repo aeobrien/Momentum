@@ -8,7 +8,8 @@ import UserNotifications
 struct MomentumApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var dataStoreManager = DataStoreManager.shared
-    
+    @StateObject private var syncService = SyncService(context: DataStoreManager.shared.viewContext)
+
     init() {
         UINavigationBar.appearance().prefersLargeTitles = false
         
@@ -24,6 +25,7 @@ struct MomentumApp: App {
             SplashScreenView()
                 .environment(\.managedObjectContext, dataStoreManager.viewContext)
                 .environmentObject(dataStoreManager)
+                .environmentObject(syncService)
                 .id(dataStoreManager.storeChangeID)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
                     print("🔵 APP WILL TERMINATE: Notification received")

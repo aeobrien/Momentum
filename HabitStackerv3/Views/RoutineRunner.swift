@@ -182,6 +182,8 @@ class RoutineRunner: ObservableObject {
     let context: NSManagedObjectContext
     /// The specific routine being run. (No longer the primary source of tasks)
     let routine: CDRoutine // Changed back from private let
+    /// Optional reference to the LifePlanner sync service for auto-sync on completion.
+    var syncService: SyncService?
     /// The pre-processed, ordered list of tasks to run with their allocated durations.
     var scheduledTasks: [ScheduledTask]
     /// The list of tasks (CDRoutineTask) in the current routine, sorted by order.
@@ -691,6 +693,12 @@ class RoutineRunner: ObservableObject {
         // SAVE context ONCE after all updates
         self.saveContext()
 
+        // Save routine run data for LifePlanner catch-up workflow
+        saveRoutineRunForLP()
+
+        // Auto-sync to LifePlanner if enabled
+        syncService?.autoSyncIfEnabled()
+
         // Update published properties on the main thread
         DispatchQueue.main.async {
             // ... existing UI updates ...
@@ -716,6 +724,56 @@ class RoutineRunner: ObservableObject {
         // }
     }
 
+
+    // MARK: - LifePlanner Routine Run Tracking
+
+    /// Builds an LPRoutineRun from the current run state and saves it for sync.
+    private func saveRoutineRunForLP() {
+        guard let routineUUID = routine.uuid else { return }
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+
+        let endedAt = iso.string(from: Date())
+        let startedAt = iso.string(from: runStart)
+
+        // All scheduled task UUIDs
+        let scheduledIds = scheduledTasks.compactMap { $0.task.uuid?.uuidString }
+
+        // Completed vs skipped from taskAnalytics
+        var completedIds: [String] = []
+        var skippedIds: [String] = []
+        var analyticsUUIDs = Set<String>()
+
+        for analytics in taskAnalytics {
+            guard let uuid = analytics.taskUUID?.uuidString else { continue }
+            analyticsUUIDs.insert(uuid)
+            if analytics.wasSkipped {
+                skippedIds.append(uuid)
+            } else {
+                completedIds.append(uuid)
+            }
+        }
+
+        // Tasks in scheduledTasks that are neither completed nor skipped = not_reached (early exit)
+        let earlyExit = scheduledIds.contains { !analyticsUUIDs.contains($0) }
+        // not_reached tasks go into skipped for LP's purposes
+        for id in scheduledIds where !analyticsUUIDs.contains(id) {
+            skippedIds.append(id)
+        }
+
+        let run = LPRoutineRun(
+            routine_source_id: routineUUID.uuidString,
+            started_at: startedAt,
+            ended_at: endedAt,
+            scheduled_task_source_ids: scheduledIds,
+            completed_task_source_ids: completedIds,
+            skipped_task_source_ids: skippedIds,
+            early_exit: earlyExit
+        )
+        RoutineRunStore.shared.save(run)
+        logger.info("Saved LifePlanner routine run: \(completedIds.count) completed, \(skippedIds.count) skipped, earlyExit=\(earlyExit)")
+    }
 
     // MARK: - User Actions
 
