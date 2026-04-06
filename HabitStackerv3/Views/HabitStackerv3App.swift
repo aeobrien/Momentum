@@ -119,6 +119,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ = iCloudBackupManager.shared
         iCloudBackupManager.shared.scheduleAutomaticBackup()
 
+        // Initialize shared data store (starts observing Core Data saves)
+        _ = SharedDataStore.shared
+
         // Setup Live Activities (this also cleans up stale ones)
         if #available(iOS 16.1, *) {
             LiveActivityManager.shared.setupLiveActivities()
@@ -133,6 +136,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func applicationDidEnterBackground(_ application: UIApplication) {
         print("🔵 APP LIFECYCLE: applicationDidEnterBackground called")
+
+        // Flush any pending shared data writes immediately
+        SharedDataStore.shared.saveCurrentStateImmediately(context: DataStoreManager.shared.viewContext)
 
         // Request extended background execution time
         // This gives us up to ~30 seconds (or more on some devices) to keep running
