@@ -92,7 +92,7 @@ class CoreDataStack {
             }
         }
     }
-    
+
     // Save a specific context
     func save(_ context: NSManagedObjectContext) {
         if context.hasChanges {
