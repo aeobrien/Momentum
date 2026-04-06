@@ -7,6 +7,7 @@ struct MomentumSharedData: Codable {
     var tasks: [SharedTask]
     var routines: [SharedRoutine]
     var completionHistory: [SharedCompletionEntry]
+    var healthSummary: HealthSummary?
     var lastModified: Date
     var lastModifiedBy: String  // "app"
 }
@@ -116,15 +117,24 @@ final class SharedDataStore {
     }
 
     private func performSave(context: NSManagedObjectContext) {
-        context.perform { [weak self] in
+        // Fetch health data first (async), then build and write the full JSON
+        HealthKitReader.shared.fetchLast30Days { [weak self] healthDays in
             guard let self = self else { return }
 
-            do {
-                let sharedData = try self.buildSharedData(from: context)
-                try self.writeToiCloud(sharedData)
-                self.logger.info("Successfully wrote shared data to iCloud")
-            } catch {
-                self.logger.error("Failed to save shared data: \(error.localizedDescription)")
+            let healthSummary = HealthSummary(
+                lastUpdated: Date(),
+                last30Days: healthDays
+            )
+
+            context.perform {
+                do {
+                    var sharedData = try self.buildSharedData(from: context)
+                    sharedData.healthSummary = healthSummary
+                    try self.writeToiCloud(sharedData)
+                    self.logger.info("Successfully wrote shared data to iCloud (with health summary)")
+                } catch {
+                    self.logger.error("Failed to save shared data: \(error.localizedDescription)")
+                }
             }
         }
     }

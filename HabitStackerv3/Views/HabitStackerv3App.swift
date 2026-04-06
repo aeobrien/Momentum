@@ -122,6 +122,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Initialize shared data store (starts observing Core Data saves)
         _ = SharedDataStore.shared
 
+        // Request HealthKit read authorization
+        HealthKitReader.shared.requestAuthorization { success, error in
+            if success {
+                print("HealthKit authorization granted")
+            } else if let error = error {
+                print("HealthKit authorization failed: \(error.localizedDescription)")
+            }
+        }
+
         // Setup Live Activities (this also cleans up stale ones)
         if #available(iOS 16.1, *) {
             LiveActivityManager.shared.setupLiveActivities()
