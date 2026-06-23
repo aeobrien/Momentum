@@ -7,6 +7,8 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Momentum reads your meditation and exercise data to help track wellness alongside your daily routines.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
     <key>CFBundleIconName</key>

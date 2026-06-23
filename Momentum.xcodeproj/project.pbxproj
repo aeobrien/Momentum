@@ -45,6 +45,9 @@
 		DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */; };
 		DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */; };
 		DD947FEE2CDC155E0014A929 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FED2CDC155E0014A929 /* CoreDataStack.swift */; };
+		EE1A2B3C2E02F00000AABB01 /* SharedDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */; };
+		FF2A3B4C2E82A00000CCDD01 /* HealthKitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */; };
+		FF2A3B4E2E82A00000CCDD02 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */; };
 		DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */; };
 		DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */; };
 		DD947FFF2CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */; };
@@ -221,6 +224,9 @@
 		DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD947FED2CDC155E0014A929 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataStore.swift; sourceTree = "<group>"; };
+		FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitReader.swift; sourceTree = "<group>"; };
+		FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataClass.swift"; sourceTree = "<group>"; };
 		DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutineTask+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -351,6 +357,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FF2A3B4E2E82A00000CCDD02 /* HealthKit.framework in Frameworks */,
 				DDF2283B2CC95C120014505A /* AsyncAlgorithms in Frameworks */,
 				DDF228D42CCE9F240014505A /* SwiftSoup in Frameworks */,
 			);
@@ -407,6 +414,7 @@
 		DDE150582E32536700AB9088 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */,
 				DDE150592E32536700AB9088 /* WidgetKit.framework */,
 				DDE1505B2E32536700AB9088 /* SwiftUI.framework */,
 			);
@@ -525,6 +533,7 @@
 				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
 				DD947FED2CDC155E0014A929 /* CoreDataStack.swift */,
 				DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */,
+				EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */,
 				DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */,
 				DDF228182CC958890014505A /* CustomTask.swift */,
 				DD70B69D2E213A7100673D79 /* DataStoreManager.swift */,
@@ -533,6 +542,7 @@
 				DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */,
 				DDF228B32CC98DEA0014505A /* EditRoutineView.swift */,
 				DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */,
+				FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */,
 				DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */,
 				DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */,
 				DDF228D52CCEBFDA0014505A /* LogRecord.swift */,
@@ -814,6 +824,8 @@
 				DDF228B82CC99C2E0014505A /* ScheduleStructs.swift in Sources */,
 				DDF228892CC95DF60014505A /* AddTaskView.swift in Sources */,
 				DD947FEE2CDC155E0014A929 /* CoreDataStack.swift in Sources */,
+				EE1A2B3C2E02F00000AABB01 /* SharedDataStore.swift in Sources */,
+				FF2A3B4C2E82A00000CCDD01 /* HealthKitReader.swift in Sources */,
 				DDF228E22CCFB7070014505A /* SlideToCompleteView.swift in Sources */,
 				DDF2288A2CC95DF60014505A /* CustomTask.swift in Sources */,
 				DDF2288B2CC95DF60014505A /* VersionManager.swift in Sources */,
