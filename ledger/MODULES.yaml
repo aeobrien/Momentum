@@ -9,11 +9,11 @@ modules:
     project: Momentum
     subsystem: Task Scheduling
     name: Priority Scoring
-    capability: Calculates which routine tasks are most urgent based on essentiality, elapsed time, and position in the routine.
+    capability: Calculates which routine tasks are most urgent based on essentiality, the routine's shared last-used timestamp as an elapsed-time proxy, and position in the routine.
     status: working
     approach: Uses custom Swift scoring logic over Core Data-backed task metadata, then sorts and trims tasks to fit the available window.
     tech: [Foundation, CoreData]
-    io: { in: "Routine task UUIDs, last completion dates, repetition intervals, available time", out: "Ordered subset of selected routine tasks" }
+    io: { in: "Routine task UUIDs, the routine's last-used date, repetition intervals, available time", out: "Ordered subset of selected routine tasks" }
     code_refs: ["HabitStackerv3/Views/TaskSelectionProcess.swift", "HabitStackerv3/Views/PriorityCalculator.swift"]
     known_gaps: ["Task dependencies are explicitly not implemented.", "Selection uses a simple formula and time-fit pass rather than learned or constraint-based ranking."]
     match_keywords: ["task prioritization", "urgency scoring", "habit scheduling", "overdue ranking"]
@@ -28,7 +28,7 @@ modules:
     tech: [Foundation, OSLog]
     io: { in: "Ordered CDTask list and available minutes", out: "Scheduled tasks plus per-task allocated durations" }
     code_refs: ["HabitStackerv3/Views/VariableDurationTaskScheduling.swift", "HabitStackerv3/Views/CoreDataTaskScheduler.swift", "HabitStackerv3/Views/OptimisationSystem.swift", "HabitStackerv3/Views/ScheduleStructs.swift"]
-    known_gaps: ["Scheduling is heuristic and greedy rather than globally optimized.", "Result logging includes a hard-coded `105m` total in the final summary."]
+    known_gaps: ["Scheduling is heuristic and greedy rather than globally optimized.", "Result logging includes a hard-coded `105m` total in the final summary (`HabitStackerv3/Views/VariableDurationTaskScheduling.swift:409`)."]
     match_keywords: ["time blocking", "duration-aware scheduling", "greedy scheduler", "routine planner"]
 
   - id: momentum.routine-system.routine-authoring
