@@ -1,0 +1,38 @@
+[
+  {
+    "add": "",
+    "dropped": [],
+    "kept": [
+      {
+        "effort": "exists",
+        "label": "Read status",
+        "surface": "cli",
+        "what": "Run the existing CLI to retrieve a quick overview of overdue tasks, upcoming tasks, and routine usage.",
+        "why": "the `momentum-cli` package already ships a `status` subcommand"
+      },
+      {
+        "effort": "exists",
+        "label": "Export task data",
+        "surface": "cli",
+        "what": "Dump the app's underlying task, routine, and completion data as JSON for another system to ingest.",
+        "why": "the CLI has an `export` subcommand that pretty-prints the raw JSON"
+      },
+      {
+        "effort": "exists",
+        "label": "Read shared snapshot",
+        "surface": "file",
+        "what": "Consume the app's shared JSON data file directly to mirror task and routine state in another tool.",
+        "why": "the ledger calls out `SharedDataStore.swift` and a shared `MomentumData.json` layer"
+      },
+      {
+        "effort": "wrapper",
+        "label": "Embed scheduler logic",
+        "surface": "import",
+        "what": "Import the scheduling and priority-calculation code into another Apple-side app or tool to compute due-task ordering.",
+        "why": "core logic like `PriorityCalculator` and `TaskSelectionProcess` already exists in Swift code"
+      }
+    ],
+    "project": "Momentum",
+    "tier": 3
+  }
+]
