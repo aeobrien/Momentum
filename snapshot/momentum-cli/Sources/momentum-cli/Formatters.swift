@@ -75,6 +75,12 @@ enum Formatters {
         return f
     }()
 
+    static let dateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "dd MMM yyyy, HH:mm"
+        return f
+    }()
+
     static func formatDate(_ date: Date) -> String {
         shortDateFormatter.string(from: date)
     }
@@ -85,6 +91,10 @@ enum Formatters {
 
     static func formatTime(_ date: Date) -> String {
         timeFormatter.string(from: date)
+    }
+
+    static func formatDateTime(_ date: Date) -> String {
+        dateTimeFormatter.string(from: date)
     }
 
     /// "3 days ago", "today", "in 2 days"

@@ -6,7 +6,7 @@ struct MomentumCLI: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "momentum-cli",
         abstract: "Read-only CLI for Momentum habit tracker data.",
-        subcommands: [Status.self, Routines.self, History.self, Overdue.self, Export.self]
+        subcommands: [Status.self, Routines.self, History.self, Overdue.self, Health.self, Export.self]
     )
 }
 
@@ -102,6 +102,11 @@ struct Status: ParsableCommand {
             }
         }
 
+        if let latestHealthDay = data.healthSummary?.last30Days.max(by: { $0.date < $1.date }) {
+            print("\n\u{1B}[1;35mLatest HealthKit day\u{1B}[0m")
+            printHealthLine(latestHealthDay)
+        }
+
         print()
     }
 
@@ -110,6 +115,46 @@ struct Status: ParsableCommand {
         let daysStr = days == 0 ? "today" : "\(days)d overdue"
         let interval = Formatters.formatInterval(t.repetitionInterval)
         print("    \(Formatters.padRight(Formatters.truncate(t.taskName, to: 35), to: 37)) \(Formatters.padRight(daysStr, to: 14)) \(interval)")
+    }
+}
+
+// MARK: - Health
+
+struct Health: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Show the HealthKit summary exported by Momentum."
+    )
+
+    @Option(name: .long, help: "Number of days to show (default: 7)")
+    var days: Int = 7
+
+    func run() throws {
+        let data = try DataLoader.load()
+        printSourceBanner(data)
+
+        guard let health = data.healthSummary else {
+            print("\nNo HealthKit summary is available in this data source.")
+            if data.source == .backup {
+                print("Momentum backups do not currently include the HealthKit summary.")
+            }
+            print()
+            return
+        }
+
+        if let updated = health.lastUpdated {
+            print("\nHealthKit last updated: \(Formatters.formatDateTime(updated))")
+        }
+
+        let requestedDays = max(1, days)
+        let recent = health.last30Days
+            .sorted { $0.date > $1.date }
+            .prefix(requestedDays)
+
+        print("\n\u{1B}[1mHealthKit summary (latest \(recent.count) days)\u{1B}[0m")
+        for day in recent {
+            printHealthLine(day)
+        }
+        print()
     }
 }
 
@@ -312,4 +357,16 @@ func printSourceBanner(_ data: MomentumData) {
         sourceInfo = data.source.rawValue
     }
     print("\u{1B}[2mSource: \(sourceInfo) | \(data.tasks.count) tasks, \(data.routines.count) routines, \(data.completionHistory.count) completions\u{1B}[0m")
+
+    if let date = data.sourceDate,
+       Date().timeIntervalSince(date) > 24 * 60 * 60 {
+        print("\u{1B}[1;31mWarning: this Momentum snapshot is more than 24 hours old (last changed \(Formatters.formatDateTime(date))).\u{1B}[0m")
+    }
+}
+
+func printHealthLine(_ day: HealthDaySummary) {
+    let date = Formatters.formatDay(day.date)
+    let distance = String(format: "%.1f km", day.walkingDistanceKm)
+    let sleep = day.sleepMinutes.map { ", \(Formatters.formatDuration(Double($0 * 60))) sleep" } ?? ""
+    print("  \(date): \(day.steps) steps, \(distance) walking, \(day.exerciseMinutes)m exercise, \(day.activeEnergyKcal) kcal active, \(day.meditationMinutes)m meditation (\(day.meditationSessions) sessions)\(sleep)")
 }
