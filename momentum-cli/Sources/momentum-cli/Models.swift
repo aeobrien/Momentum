@@ -6,11 +6,14 @@ struct MomentumData {
     var tasks: [Task]
     var routines: [Routine]
     var completionHistory: [CompletionEntry]
+    var healthSummary: HealthSummary?
     var source: DataSource
     var sourceDate: Date?
 
     enum DataSource: String {
+        case relay = "Private phone relay"
         case shared = "MomentumData.json"
+        case cache = "Local cache"
         case backup = "Backup"
     }
 }
@@ -49,6 +52,22 @@ struct CompletionEntry {
     var taskUUID: String
     var date: Date
     var duration: Double  // seconds
+}
+
+struct HealthSummary {
+    var lastUpdated: Date?
+    var last30Days: [HealthDaySummary]
+}
+
+struct HealthDaySummary {
+    var date: Date
+    var meditationMinutes: Int
+    var meditationSessions: Int
+    var steps: Int
+    var walkingDistanceKm: Double
+    var activeEnergyKcal: Int
+    var exerciseMinutes: Int
+    var sleepMinutes: Int?
 }
 
 // MARK: - Backup File JSON Models
@@ -105,6 +124,7 @@ struct SharedFile: Codable {
     var tasks: [SharedFileTask]
     var routines: [SharedFileRoutine]
     var completionHistory: [SharedFileCompletion]
+    var healthSummary: SharedFileHealthSummary?
     var lastModified: String
     var lastModifiedBy: String
 }
@@ -143,4 +163,20 @@ struct SharedFileCompletion: Codable {
     var taskUUID: String
     var date: String
     var duration: Double
+}
+
+struct SharedFileHealthSummary: Codable {
+    var lastUpdated: String
+    var last30Days: [SharedFileHealthDaySummary]
+}
+
+struct SharedFileHealthDaySummary: Codable {
+    var date: String
+    var meditationMinutes: Int
+    var meditationSessions: Int
+    var steps: Int
+    var walkingDistanceKm: Double
+    var activeEnergyKcal: Int
+    var exerciseMinutes: Int
+    var sleepMinutes: Int?
 }

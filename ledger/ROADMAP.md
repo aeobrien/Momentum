@@ -39,7 +39,7 @@
 
 ## Phase 3: Data Integration
 **Status:** Done
-**Definition of Done:** Momentum data accessible to Dashboard/CLI via shared iCloud JSON, including HealthKit health metrics.
+**Definition of Done:** Momentum data accessible to Dashboard/CLI through the private relay, including HealthKit health metrics, with local and older iCloud data available as fallbacks.
 
 ### 3.1 — Shared Data Layer & CLI
 **Status:** Done
@@ -48,9 +48,9 @@
 
 | # | Task | Status | Effort | Deadline | Notes |
 |---|------|--------|--------|----------|-------|
-| 3.1.1 | Add shared iCloud JSON data layer (SharedDataStore.swift) | Done | Deep Focus | | Writes MomentumData.json on every Core Data save, debounced 2s |
+| 3.1.1 | Add private shared JSON data layer (SharedDataStore.swift) | Done | Deep Focus | | Uploads MomentumData.json through Tailscale on Core Data changes, debounced 2s; moved off the unreliable iCloud live path on 2026-08-22 |
 | 3.1.2 | Add HealthKit reader with 30-day rolling summary | Done | Deep Focus | | Meditation, steps, walking, exercise, active energy |
-| 3.1.3 | Build momentum-cli (status, routines, history, overdue, export) | Done | Deep Focus | | Reads shared file with backup fallback |
+| 3.1.3 | Build momentum-cli (status, routines, history, overdue, export) | Done | Deep Focus | | Reads the private relay first, then local cache, older iCloud file, or backup |
 | 3.1.4 | Add .gitignore to CLI | Done | Quick Win | | |
 
 ---

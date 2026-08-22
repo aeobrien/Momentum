@@ -11,6 +11,8 @@ struct HealthDaySummary: Codable {
     var walkingDistanceKm: Double = 0
     var activeEnergyKcal: Int = 0
     var exerciseMinutes: Int = 0
+    /// Sleep ending on this date. Nil means sleep was not available, not zero.
+    var sleepMinutes: Int?
 }
 
 struct HealthSummary: Codable {
@@ -31,6 +33,7 @@ class HealthKitReader {
         HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
         HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
         HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
+        HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
     ]
 
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
@@ -122,6 +125,15 @@ class HealthKitReader {
             group.leave()
         }
 
+
+        // Sleep is assigned to the day on which it ends. The noon-to-noon
+        // window avoids splitting an overnight sleep at midnight.
+        group.enter()
+        fetchSleepMinutes(endingOn: startOfDay) { minutes in
+            summary.sleepMinutes = minutes
+            group.leave()
+        }
+
         group.notify(queue: .global()) {
             completion(summary)
         }
@@ -157,5 +169,77 @@ class HealthKitReader {
             completion(totalMinutes, samples.count)
         }
         healthStore.execute(query)
+    }
+
+    private func fetchSleepMinutes(endingOn date: Date, completion: @escaping (Int?) -> Void) {
+        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
+            completion(nil)
+            return
+        }
+
+        let calendar = Calendar.current
+        guard let end = calendar.date(byAdding: .hour, value: 12, to: date),
+              let start = calendar.date(byAdding: .day, value: -1, to: end) else {
+            completion(nil)
+            return
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: start,
+            end: end,
+            options: []
+        )
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let query = HKSampleQuery(
+            sampleType: type,
+            predicate: predicate,
+            limit: HKObjectQueryNoLimit,
+            sortDescriptors: [sort]
+        ) { _, samples, error in
+            guard error == nil, let categorySamples = samples as? [HKCategorySample] else {
+                completion(nil)
+                return
+            }
+
+            // Sleep Cycle and Apple Watch can record the same period. Merge
+            // overlapping asleep intervals so that time is not counted twice.
+            let intervals = categorySamples
+                .filter { self.isAsleepValue($0.value) }
+                .map { (max($0.startDate, start), min($0.endDate, end)) }
+                .filter { $0.1 > $0.0 }
+                .sorted { $0.0 < $1.0 }
+
+            guard !intervals.isEmpty else {
+                completion(nil)
+                return
+            }
+
+            var merged: [(Date, Date)] = []
+            for interval in intervals {
+                if let last = merged.last, interval.0 <= last.1 {
+                    merged[merged.count - 1].1 = max(last.1, interval.1)
+                } else {
+                    merged.append(interval)
+                }
+            }
+
+            let minutes = merged.reduce(0.0) {
+                $0 + $1.1.timeIntervalSince($1.0) / 60.0
+            }
+            completion(Int(minutes.rounded()))
+        }
+        healthStore.execute(query)
+    }
+
+    private func isAsleepValue(_ value: Int) -> Bool {
+        if #available(iOS 16.0, *) {
+            return [
+                HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+                HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+                HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+            ].contains(value)
+        }
+        return value == HKCategoryValueSleepAnalysis.asleep.rawValue
     }
 }

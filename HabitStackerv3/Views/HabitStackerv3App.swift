@@ -148,9 +148,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidEnterBackground(_ application: UIApplication) {
         print("🔵 APP LIFECYCLE: applicationDidEnterBackground called")
 
-        // Flush any pending shared data writes immediately
-        SharedDataStore.shared.saveCurrentStateImmediately(context: DataStoreManager.shared.viewContext)
-
         // Request extended background execution time
         // This gives us up to ~30 seconds (or more on some devices) to keep running
         backgroundTaskIdentifier = application.beginBackgroundTask(withName: "RoutineBackgroundTask") { [weak self] in
@@ -160,6 +157,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
 
         print("🔵 APP LIFECYCLE: Started background task, remaining time: \(application.backgroundTimeRemaining)s")
+
+        // Flush after background time has been granted. The export fetches
+        // HealthKit asynchronously, so starting it first risks suspension
+        // before the iCloud file is written.
+        SharedDataStore.shared.saveCurrentStateImmediately(context: DataStoreManager.shared.viewContext)
 
         // Don't end activities here - let them continue in background
     }
@@ -173,6 +175,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         print("🔵 APP LIFECYCLE: applicationDidBecomeActive called")
         // End the background task if we have one running
         endBackgroundTask(application)
+
+        // Refresh the shared snapshot on every launch/return, even when the
+        // user has not changed a task. This keeps HealthKit and source
+        // freshness useful to the command-line reader.
+        SharedDataStore.shared.saveCurrentState(context: DataStoreManager.shared.viewContext)
     }
 
     private func endBackgroundTask(_ application: UIApplication) {
