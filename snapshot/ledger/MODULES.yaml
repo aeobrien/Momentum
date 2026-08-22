@@ -100,14 +100,14 @@ modules:
     project: Momentum
     subsystem: Shared Data / Integrations
     name: Shared JSON Export
-    capability: Publishes the current task, routine, completion, and health snapshot into a shared iCloud JSON file for other tools to consume.
+    capability: Publishes the current task, routine, completion, and health snapshot through a private phone-to-Mac feed for other tools to consume.
     status: working
-    approach: Observes Core Data saves, debounces writes, enriches the payload with HealthKit summaries, and writes a consolidated JSON document to the app ubiquity container.
-    tech: [CoreData, Foundation, HealthKit]
-    io: { in: "Managed object context saves plus HealthKit samples", out: "MomentumData.json in the iCloud Documents container" }
-    code_refs: ["HabitStackerv3/Views/SharedDataStore.swift", "HabitStackerv3/Views/HealthKitReader.swift", "HabitStackerv3/Views/HabitStackerv3App.swift"]
-    known_gaps: ["Conflict resolution is not evident beyond rewriting a single shared file.", "Health data collection depends on async fetches during save-time export, which increases coupling to system permissions and query latency."]
-    match_keywords: ["shared json store", "icloud export", "healthkit aggregation", "cross-app data feed"]
+    approach: Observes Core Data saves, debounces writes, enriches the payload with HealthKit summaries, keeps a protected local copy, and uploads the consolidated JSON document over HTTPS to a relay reachable only through Tailscale.
+    tech: [CoreData, Foundation, HealthKit, Tailscale, HTTPS]
+    io: { in: "Managed object context saves plus HealthKit samples", out: "MomentumData.json on the private Mac mini relay" }
+    code_refs: ["HabitStackerv3/Views/SharedDataStore.swift", "HabitStackerv3/Views/HealthKitReader.swift", "HabitStackerv3/Views/HabitStackerv3App.swift", "relay/momentum_relay.py"]
+    known_gaps: ["The phone must have Tailscale connected when it uploads.", "Health data collection depends on async fetches during save-time export, which increases coupling to system permissions and query latency."]
+    match_keywords: ["shared json store", "tailscale relay", "healthkit aggregation", "cross-app data feed"]
 
   - id: momentum.shared-data-integrations.lifeplanner-sync
     project: Momentum
@@ -167,9 +167,9 @@ modules:
     name: Read-Only Inspection CLI
     capability: Provides terminal reports for status, routines, completion history, overdue items, and raw export data from Momentum's shared or backup files.
     status: working
-    approach: Uses Swift ArgumentParser commands that load either the shared JSON file or the latest backup, normalize it into internal structs, and print formatted summaries.
-    tech: [ArgumentParser, Foundation]
-    io: { in: "MomentumData.json or latest `.momentumbackup` file plus CLI flags", out: "Terminal tables, summaries, and exported JSON" }
+    approach: Uses Swift ArgumentParser commands that load the private relay first, cache successful snapshots locally, and fall back to the older iCloud file or latest backup before printing formatted summaries.
+    tech: [ArgumentParser, Foundation, HTTPS]
+    io: { in: "Private relay, cached MomentumData.json, older iCloud file, or latest `.momentumbackup` plus CLI flags", out: "Terminal tables, summaries, and exported JSON" }
     code_refs: ["momentum-cli/Sources/momentum-cli/Commands.swift", "momentum-cli/Sources/momentum-cli/DataLoader.swift", "momentum-cli/Sources/momentum-cli/Models.swift", "momentum-cli/Sources/momentum-cli/Formatters.swift"]
-    known_gaps: ["The CLI is read-only and depends on the shared export or backup files rather than the live app database.", "If the shared file parse fails, it falls back to backups and only emits a warning to stderr."]
+    known_gaps: ["The CLI is read-only and depends on exported snapshots rather than the live app database.", "If the relay or a shared file fails, it falls back to cached or backup data and only emits a warning to stderr."]
     match_keywords: ["command line status", "habit tracker cli", "json report tool", "terminal dashboard"]

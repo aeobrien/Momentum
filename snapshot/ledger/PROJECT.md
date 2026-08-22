@@ -106,21 +106,22 @@ HabitStackerv3/
 | To-Do List | Stable | — |
 
 ## Key Files (new)
-- `HabitStackerv3/Views/SharedDataStore.swift` — iCloud shared JSON file manager
+- `HabitStackerv3/Views/SharedDataStore.swift` — private shared-data uploader and local snapshot manager
 - `HabitStackerv3/Views/HealthKitReader.swift` — HealthKit reader (meditation, steps, exercise, 30-day rolling)
 - `momentum-cli/` — Swift CLI package (status, routines, history, overdue, export)
+- `relay/` — tailnet-only service that receives and serves the latest phone snapshot
 
 ## Phase
 
-**Active / maintenance.** Used daily. Receives feature work and bug fixes as needed. Shared data layer and HealthKit integration added 2026-04-06.
+**Active / maintenance.** Used daily. Receives feature work and bug fixes as needed. Shared data layer and HealthKit integration added 2026-04-06; live sharing moved from iCloud to a private Tailscale relay on 2026-08-22.
 
-**Last updated:** 2026-04-06
+**Last updated:** 2026-08-22
 
 ## Linked Projects
 
 | Project | Relationship | Notes |
 |---------|-------------|-------|
-| DeadlineCalendar | related-to | Same shared iCloud data pattern; Dashboard reads both |
+| DeadlineCalendar | related-to | Dashboard reads data exported by both apps |
 | Ledger | related-to | Dashboard integration; CLI tools part of Ledger ecosystem |
 
 ## Open Questions
@@ -128,6 +129,6 @@ HabitStackerv3/
 - Performance with large task history datasets
 - Whether routine system needs further refinement
 - Widget reliability
-- MomentumData.json shared file: confirm sync is reliable over time
+- Private MomentumData.json feed: monitor reliability over time, including reconnects after Tailscale has been off
 
 **Lane:** personal

@@ -66,4 +66,16 @@ final class DataLoaderTests: XCTestCase {
 
         XCTAssertFalse(DataLoader.isDataless(url))
     }
+
+    func testRelayCanBeDisabledForOfflineUse() {
+        XCTAssertNil(DataLoader.relayURL(environment: ["MOMENTUM_DISABLE_RELAY": "1"]))
+    }
+
+    func testRelayURLCanBeOverriddenForTesting() {
+        let url = DataLoader.relayURL(environment: [
+            "MOMENTUM_RELAY_URL": "https://example.test/momentum.json"
+        ])
+
+        XCTAssertEqual(url?.absoluteString, "https://example.test/momentum.json")
+    }
 }

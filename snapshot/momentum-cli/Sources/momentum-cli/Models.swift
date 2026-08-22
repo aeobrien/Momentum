@@ -11,6 +11,7 @@ struct MomentumData {
     var sourceDate: Date?
 
     enum DataSource: String {
+        case relay = "Private phone relay"
         case shared = "MomentumData.json"
         case cache = "Local cache"
         case backup = "Backup"

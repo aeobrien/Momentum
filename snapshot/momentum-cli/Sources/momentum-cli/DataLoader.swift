@@ -9,7 +9,7 @@ enum DataLoaderError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .noDataFound:
-            return "No Momentum data found. Checked shared file and backup directory."
+            return "No Momentum data found. Checked the private relay, local cache, shared file, and backup directory."
         case .dataNotDownloaded:
             return "Momentum data exists in iCloud but is not downloaded on this Mac. Open MomentumData.json in Finder to download it, then retry."
         case .parseError(let msg):
@@ -27,6 +27,10 @@ struct DataLoader {
     static let cacheDir = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".cache/momentum-cli")
     static let cacheFilePath = cacheDir.appendingPathComponent("MomentumData.json")
+    static let defaultRelayURL = URL(
+        string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/data"
+    )!
+    static let maximumRelayBytes = 16 * 1024 * 1024
 
     static let iso8601Formatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -50,7 +54,20 @@ struct DataLoader {
     static func load() throws -> MomentumData {
         var foundDatalessFile = false
 
-        // Try shared file first
+        // The phone publishes to the private Tailscale relay. Read that first so
+        // routine and HealthKit status no longer depend on iCloud downloading a file.
+        if let relayData = fetchRelayData() {
+            do {
+                var parsed = try parseSharedFile(relayData)
+                parsed.source = .relay
+                saveCache(relayData)
+                return parsed
+            } catch {
+                fputs("Warning: The private Momentum relay returned invalid data: \(error)\n", stderr)
+            }
+        }
+
+        // Retain the old iCloud file as a fallback during the transition.
         if FileManager.default.fileExists(atPath: sharedFilePath.path) {
             if isDataless(sharedFilePath) {
                 foundDatalessFile = true
@@ -68,6 +85,8 @@ struct DataLoader {
             }
         }
 
+        var fallbacks: [MomentumData] = []
+
         // A successful shared-file read is cached locally. This keeps the CLI
         // useful if macOS later evicts the iCloud file again.
         if FileManager.default.fileExists(atPath: cacheFilePath.path) {
@@ -75,8 +94,7 @@ struct DataLoader {
                 let cachedData = try Data(contentsOf: cacheFilePath)
                 var parsed = try parseSharedFile(cachedData)
                 parsed.source = .cache
-                fputs("Warning: Using the last downloaded Momentum snapshot from the local cache.\n", stderr)
-                return parsed
+                fallbacks.append(parsed)
             } catch {
                 fputs("Warning: Failed to read the local Momentum cache: \(error)\n", stderr)
             }
@@ -91,10 +109,18 @@ struct DataLoader {
             }
             do {
                 let data = try Data(contentsOf: backupURL)
-                return try parseBackupFile(data, url: backupURL)
+                fallbacks.append(try parseBackupFile(data, url: backupURL))
+                break
             } catch {
                 fputs("Warning: Failed to read backup \(backupURL.lastPathComponent): \(error)\n", stderr)
             }
+        }
+
+        if let newestFallback = fallbacks.max(by: {
+            ($0.sourceDate ?? .distantPast) < ($1.sourceDate ?? .distantPast)
+        }) {
+            fputs("Warning: Using the newest local Momentum fallback (\(newestFallback.source.rawValue)).\n", stderr)
+            return newestFallback
         }
 
         if foundDatalessFile { throw DataLoaderError.dataNotDownloaded }
@@ -148,6 +174,55 @@ struct DataLoader {
         } catch {
             fputs("Warning: Could not update the local Momentum cache: \(error)\n", stderr)
         }
+    }
+
+    static func relayURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL? {
+        if environment["MOMENTUM_DISABLE_RELAY"] == "1" { return nil }
+        if let configured = environment["MOMENTUM_RELAY_URL"], !configured.isEmpty {
+            return URL(string: configured)
+        }
+        return defaultRelayURL
+    }
+
+    static func fetchRelayData() -> Data? {
+        guard let url = relayURL() else { return nil }
+
+        // The command is macOS-only. Use the operating system's curl process:
+        // it already shares the same DNS and Tailscale path as the rest of the
+        // laptop and, unlike a blocked main-thread URLSession, cannot deadlock
+        // an ArgumentParser command while waiting for its completion callback.
+        let process = Process()
+        let downloadURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("momentum-relay-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: downloadURL) }
+
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
+        process.arguments = [
+            "--fail", "--silent", "--show-error",
+            "--max-time", "4",
+            "--max-filesize", String(maximumRelayBytes),
+            "--output", downloadURL.path,
+            url.absoluteString,
+        ]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            fputs("Warning: Could not start the private Momentum relay reader; trying local fallbacks.\n", stderr)
+            return nil
+        }
+
+        guard process.terminationStatus == 0,
+              let data = try? Data(contentsOf: downloadURL),
+              !data.isEmpty,
+              data.count <= maximumRelayBytes else {
+            fputs("Warning: The private Momentum relay is unavailable; trying local fallbacks.\n", stderr)
+            return nil
+        }
+        return data
     }
 
     // MARK: - Parse Shared File
@@ -282,6 +357,10 @@ struct DataLoader {
 
     /// Load raw JSON data for export
     static func loadRawJSON() throws -> Data {
+        if let data = fetchRelayData() {
+            saveCache(data)
+            return data
+        }
         if FileManager.default.fileExists(atPath: sharedFilePath.path) {
             if !isDataless(sharedFilePath) {
                 return try Data(contentsOf: sharedFilePath)
@@ -291,6 +370,10 @@ struct DataLoader {
             if let data = try? Data(contentsOf: backupURL) {
                 return data
             }
+        }
+        if FileManager.default.fileExists(atPath: cacheFilePath.path),
+           let data = try? Data(contentsOf: cacheFilePath) {
+            return data
         }
         if FileManager.default.fileExists(atPath: sharedFilePath.path) || !findBackupsNewestFirst().isEmpty {
             throw DataLoaderError.dataNotDownloaded

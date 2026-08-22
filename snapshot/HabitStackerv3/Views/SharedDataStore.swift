@@ -54,6 +54,12 @@ final class SharedDataStore {
     static let shared = SharedDataStore()
 
     private let fileName = "MomentumData.json"
+    private let relayURL = URL(
+        string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/data"
+    )!
+    private let relayHealthURL = URL(
+        string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/health"
+    )!
     private let logger = AppLogger.create(subsystem: "com.AOTondra.Momentum", category: "SharedDataStore")
 
     /// Debounce timer to avoid excessive writes
@@ -68,6 +74,7 @@ final class SharedDataStore {
             name: .NSManagedObjectContextDidSave,
             object: nil
         )
+        probeRelayConnection()
     }
 
     /// Called whenever any NSManagedObjectContext saves. Triggers a debounced shared file write.
@@ -77,19 +84,12 @@ final class SharedDataStore {
         saveCurrentState(context: context)
     }
 
-    // MARK: - iCloud Container URL
+    // MARK: - Reliable local copy
 
-    private var containerURL: URL? {
-        FileManager.default.url(forUbiquityContainerIdentifier: nil)
-    }
-
-    private var sharedFileURL: URL? {
-        guard let containerURL = containerURL else {
-            logger.warning("iCloud container not available")
-            return nil
-        }
-        return containerURL
-            .appendingPathComponent("Documents")
+    private var localFileURL: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("MomentumRelay", isDirectory: true)
             .appendingPathComponent(fileName)
     }
 
@@ -117,23 +117,45 @@ final class SharedDataStore {
     }
 
     private func performSave(context: NSManagedObjectContext) {
-        // Fetch health data first (async), then build and write the full JSON
+        // Send the app data first. HealthKit can take a long time or wait on a
+        // permission decision, and must never prevent tasks and routines from
+        // reaching the relay.
+        uploadAppSnapshot(context: context, retryAttempt: 0)
+
+        // Follow with an enriched snapshot when the health reads finish.
         HealthKitReader.shared.fetchLast30Days { [weak self] healthDays in
-            guard let self = self else { return }
-
-            let healthSummary = HealthSummary(
-                lastUpdated: Date(),
-                last30Days: healthDays
-            )
-
+            guard let self else { return }
             context.perform {
                 do {
                     var sharedData = try self.buildSharedData(from: context)
-                    sharedData.healthSummary = healthSummary
-                    try self.writeToiCloud(sharedData)
-                    self.logger.info("Successfully wrote shared data to iCloud (with health summary)")
+                    sharedData.healthSummary = HealthSummary(
+                        lastUpdated: Date(),
+                        last30Days: healthDays
+                    )
+                    try self.persistAndUpload(sharedData)
+                    self.logger.info("Saved and uploaded the HealthKit-enriched snapshot")
                 } catch {
-                    self.logger.error("Failed to save shared data: \(error.localizedDescription)")
+                    self.logger.error("Failed to save the HealthKit-enriched snapshot: \(error.localizedDescription)")
+                    self.reportDiagnostic(stage: "health_export_failed", detail: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func uploadAppSnapshot(context: NSManagedObjectContext, retryAttempt: Int) {
+        context.perform { [weak self] in
+            guard let self else { return }
+            do {
+                let sharedData = try self.buildSharedData(from: context)
+                try self.persistAndUpload(sharedData)
+                self.logger.info("Saved and uploaded the immediate app snapshot")
+            } catch {
+                self.logger.error("Failed to save the immediate app snapshot: \(error.localizedDescription)")
+                self.reportDiagnostic(stage: "app_export_failed", detail: error.localizedDescription)
+                if retryAttempt < 3 {
+                    self.saveQueue.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        self?.uploadAppSnapshot(context: context, retryAttempt: retryAttempt + 1)
+                    }
                 }
             }
         }
@@ -196,7 +218,7 @@ final class SharedDataStore {
                 uuid: uuid,
                 name: name,
                 taskUUIDs: taskUUIDs,
-                averageCompletionTime: routine.averageCompletionTime,
+                averageCompletionTime: routine.averageCompletionTime.isFinite ? routine.averageCompletionTime : 0,
                 totalCompletions: Int(routine.totalCompletions),
                 lastUsed: routine.lastUsed
             )
@@ -212,7 +234,7 @@ final class SharedDataStore {
                     completionHistory.append(SharedCompletionEntry(
                         taskUUID: taskUUID,
                         date: date,
-                        duration: completion.completionTime
+                        duration: completion.completionTime.isFinite ? completion.completionTime : 0
                     ))
                 }
             }
@@ -227,60 +249,111 @@ final class SharedDataStore {
         )
     }
 
-    // MARK: - Write to iCloud
+    // MARK: - Local persistence and private relay
 
-    private func writeToiCloud(_ data: MomentumSharedData) throws {
-        guard let fileURL = sharedFileURL else {
-            throw SharedDataStoreError.iCloudNotAvailable
-        }
-
-        // Ensure Documents directory exists
-        let documentsDir = fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: documentsDir, withIntermediateDirectories: true)
-
-        // Encode
+    private func encode(_ data: MomentumSharedData) throws -> Data {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let jsonData = try encoder.encode(data)
+        return try encoder.encode(data)
+    }
 
-        // Write with NSFileCoordinator for safe iCloud access
-        let coordinator = NSFileCoordinator()
-        var coordinatorError: NSError?
-        var writeError: Error?
+    private func persistAndUpload(_ sharedData: MomentumSharedData) throws {
+        let jsonData = try encode(sharedData)
+        // The phone-to-Mac feed is the primary output. A failure in the local
+        // safety copy must not prevent the upload.
+        uploadToRelay(jsonData)
+        do {
+            try writeLocalCopy(jsonData)
+        } catch {
+            logger.warning("Private relay upload started, but the local safety copy failed: \(error.localizedDescription)")
+        }
+    }
 
-        coordinator.coordinate(writingItemAt: fileURL, options: .forReplacing, error: &coordinatorError) { writtenURL in
-            do {
-                try jsonData.write(to: writtenURL, options: .atomic)
-            } catch {
-                writeError = error
+    private func probeRelayConnection() {
+        var components = URLComponents(url: relayHealthURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "stage", value: "startup"),
+            URLQueryItem(name: "build", value: "4"),
+        ]
+        var request = URLRequest(url: components.url!)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 10
+        request.setValue("startup", forHTTPHeaderField: "X-Momentum-Stage")
+        URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
+            if let error {
+                self?.logger.warning("Private relay startup check failed: \(error.localizedDescription)")
+                return
             }
-        }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            self?.logger.info("Private relay startup check returned HTTP \(status)")
+        }.resume()
+    }
 
-        if let error = coordinatorError {
-            throw error
+    private func reportDiagnostic(stage: String, detail: String) {
+        var components = URLComponents(url: relayHealthURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "stage", value: stage),
+            URLQueryItem(name: "build", value: "4"),
+            URLQueryItem(name: "detail", value: String(detail.prefix(240))),
+        ]
+        guard let url = components.url else { return }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 10
+        URLSession.shared.dataTask(with: request).resume()
+    }
+
+    private func writeLocalCopy(_ jsonData: Data) throws {
+        guard let fileURL = localFileURL else {
+            throw SharedDataStoreError.localStorageUnavailable
         }
-        if let error = writeError {
-            throw error
-        }
+        let directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+        )
+        try jsonData.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+
+    private func uploadToRelay(_ jsonData: Data) {
+        var request = URLRequest(url: relayURL)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15
+
+        URLSession.shared.uploadTask(with: request, from: jsonData) { [weak self] _, response, error in
+            if let error {
+                self?.logger.warning("Private relay upload failed; the local copy will be retried: \(error.localizedDescription)")
+                return
+            }
+            guard let http = response as? HTTPURLResponse,
+                  (200...299).contains(http.statusCode) else {
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                self?.logger.warning("Private relay upload returned HTTP \(status); the local copy will be retried")
+                return
+            }
+            self?.logger.info("Private relay accepted the Momentum snapshot")
+        }.resume()
     }
 }
 
 // MARK: - Errors
 
 enum SharedDataStoreError: LocalizedError {
-    case iCloudNotAvailable
+    case localStorageUnavailable
     case encodingFailed
     case writeFailed
 
     var errorDescription: String? {
         switch self {
-        case .iCloudNotAvailable:
-            return "iCloud container is not available for shared data."
+        case .localStorageUnavailable:
+            return "Local storage is not available for shared data."
         case .encodingFailed:
             return "Failed to encode shared data as JSON."
         case .writeFailed:
-            return "Failed to write shared data to iCloud."
+            return "Failed to write shared data locally."
         }
     }
 }
