@@ -710,8 +710,7 @@ class RoutineRunner: ObservableObject {
     private func updateRoutineMetadata() {
         logger.debug("Updating metadata for routine: \(self.routine.name ?? "Unnamed", privacy: .public)")
         self.routine.lastUsed = Date() // Update last used timestamp
-        // Increment completion count? Depends on requirements
-        // routine.totalCompletions += 1
+        self.routine.totalCompletions += 1
 
         // REMOVED Save from here
         // do {
