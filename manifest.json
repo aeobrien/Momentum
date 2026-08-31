@@ -1,0 +1,31 @@
+{
+  "capture_finished_at_utc": "2026-08-31T02:18:51Z",
+  "capture_started_at_utc": "2026-08-31T02:18:46Z",
+  "captured_at_utc": "2026-08-31T02:18:46Z",
+  "captured_byte_estimate": 181900780,
+  "captured_path_count": 2106,
+  "consistency_retry_count": 0,
+  "excluded": [
+    {
+      "path": "momentum-cli/.build/checkouts/swift-argument-parser",
+      "reason": "unsupported_file_type",
+      "remote_recoverable": false,
+      "size": 864,
+      "threshold": null
+    }
+  ],
+  "github_hard_limit_bytes": 100000000,
+  "guardian_version": "2.0-sidecar",
+  "head_state": "symbolic",
+  "host": "aidans-laptop",
+  "racy_capture": false,
+  "repository_id": "Momentum-79b477fa3138",
+  "schema_version": 1,
+  "snapshot_blob_threshold_bytes": 94371840,
+  "snapshot_consistency": "stable",
+  "source_branch": "main",
+  "source_head_oid": "66db657454e32f83cbd8c728926c27fdbffbe9b6",
+  "source_index_sha256": "78f25ecaa138f4949a389e55fbb699903510185e5496ac5f45e74c7fb9af66fc",
+  "source_path": "/Users/aidan/Dev/Momentum",
+  "upstream_observed": "origin/main"
+}
