@@ -1,0 +1,175 @@
+project_shape:
+  scale: multi-subsystem
+  has_subsystem_layer: true
+  expected_modules: "10-14"
+  kind: product
+
+modules:
+  - id: momentum.task-scheduling.priority-scoring
+    project: Momentum
+    subsystem: Task Scheduling
+    name: Priority Scoring
+    capability: Calculates which routine tasks are most urgent based on essentiality, the routine's shared last-used timestamp as an elapsed-time proxy, and position in the routine.
+    status: working
+    approach: Uses custom Swift scoring logic over Core Data-backed task metadata, then sorts and trims tasks to fit the available window.
+    tech: [Foundation, CoreData]
+    io: { in: "Routine task UUIDs, the routine's last-used date, repetition intervals, available time", out: "Ordered subset of selected routine tasks" }
+    code_refs: ["HabitStackerv3/Views/TaskSelectionProcess.swift", "HabitStackerv3/Views/PriorityCalculator.swift"]
+    known_gaps: ["Task dependencies are explicitly not implemented.", "Selection uses a simple formula and time-fit pass rather than learned or constraint-based ranking."]
+    match_keywords: ["task prioritization", "urgency scoring", "habit scheduling", "overdue ranking"]
+
+  - id: momentum.task-scheduling.variable-duration-scheduler
+    project: Momentum
+    subsystem: Task Scheduling
+    name: Variable Duration Scheduler
+    capability: Builds a routine schedule that fits essential, core, and optional tasks into a time budget and can extend variable-length tasks.
+    status: working
+    approach: Categorizes tasks by essentiality, computes heuristic scores, schedules minimum durations first, then spends leftover time on optional tasks or five-minute extensions.
+    tech: [Foundation, OSLog]
+    io: { in: "Ordered CDTask list and available minutes", out: "Scheduled tasks plus per-task allocated durations" }
+    code_refs: ["HabitStackerv3/Views/VariableDurationTaskScheduling.swift", "HabitStackerv3/Views/CoreDataTaskScheduler.swift", "HabitStackerv3/Views/OptimisationSystem.swift", "HabitStackerv3/Views/ScheduleStructs.swift"]
+    known_gaps: ["Scheduling is heuristic and greedy rather than globally optimized.", "Result logging includes a hard-coded `105m` total in the final summary (`HabitStackerv3/Views/VariableDurationTaskScheduling.swift:409`)."]
+    match_keywords: ["time blocking", "duration-aware scheduling", "greedy scheduler", "routine planner"]
+
+  - id: momentum.routine-system.routine-authoring
+    project: Momentum
+    subsystem: Routine System
+    name: Routine Authoring
+    capability: Creates, edits, reorders, and templates reusable routines made from existing or newly generated tasks.
+    status: mature
+    approach: Uses SwiftUI forms and builder classes to create tasks from templates or custom entries, then persists ordered routine definitions through Core Data storage adapters.
+    tech: [SwiftUI, CoreData, Foundation]
+    io: { in: "Routine names, template selections, custom task entries, reordered task lists", out: "Persisted routines with ordered task UUIDs" }
+    code_refs: ["HabitStackerv3/Views/RoutineBuilder.swift", "HabitStackerv3/Views/RoutineViewModel.swift", "HabitStackerv3/Views/CreateRoutineView.swift", "HabitStackerv3/Views/EditRoutineView.swift", "HabitStackerv3/Views/RoutineTemplateOnboardingView.swift", "HabitStackerv3/Views/RoutineTemplateOnboardingReorderView.swift", "HabitStackerv3/Resources/template_routines.json", "HabitStackerv3/Resources/template_tasks.json"]
+    known_gaps: ["Duplicate detection is name-based, so semantically similar tasks with different names are not reconciled.", "Several temporary routine screens remain in the codebase, which suggests some UI paths are still in flux."]
+    match_keywords: ["routine builder", "task templates", "ordered checklist workflow", "habit routine editor"]
+
+  - id: momentum.routine-system.routine-runner
+    project: Momentum
+    subsystem: Routine System
+    name: Routine Runner
+    capability: Executes scheduled routines one task at a time with countdowns, prep phases, background handling, analytics, and completion tracking.
+    status: mature
+    approach: Maintains a long-lived observable runner with Combine timers, Core Data updates, notifications, and ActivityKit state for active routine sessions.
+    tech: [SwiftUI, Combine, CoreData, ActivityKit, UserNotifications, AVFoundation]
+    io: { in: "Scheduled tasks, allocated durations, active routine context, user actions", out: "Timer state, completion history, routine analytics, pending syncable routine-run records" }
+    code_refs: ["HabitStackerv3/Views/RoutineRunner.swift", "HabitStackerv3/Views/RoutineRunnerView.swift", "HabitStackerv3/Views/RoutineRunnerDetailView.swift", "HabitStackerv3/RoutineRunStore.swift", "HabitStackerv3/Views/TaskDurationSuggestion.swift"]
+    known_gaps: ["The runner owns a large amount of UI, timer, analytics, background, and live-activity state in one class.", "Background and interruption recovery are complex and therefore a likely maintenance risk."]
+    match_keywords: ["guided routine runner", "focus timer", "task countdown", "session analytics"]
+
+  - id: momentum.core-data-storage.task-and-routine-persistence
+    project: Momentum
+    subsystem: Core Data / Storage
+    name: Task And Routine Persistence
+    capability: Stores tasks, routines, relationships, and completion history and exposes CRUD-style access to the rest of the app.
+    status: mature
+    approach: Wraps Core Data entities in singleton storage adapters and view models that convert between managed objects and domain models.
+    tech: [CoreData, Foundation, OSLog]
+    io: { in: "Task and routine domain models plus CRUD requests", out: "Persisted Core Data records and fetched domain models" }
+    code_refs: ["HabitStackerv3/Views/CoreDataStack.swift", "HabitStackerv3/Views/DataStoreManager.swift", "HabitStackerv3/Views/TaskStorageCoreData.swift", "HabitStackerv3/Views/RoutineStorageCoreData.swift", "HabitStackerv3/CDTask+CoreDataProperties.swift", "HabitStackerv3/CDRoutine+CoreDataProperties.swift", "HabitStackerv3/CDTaskCompletionTime+CoreDataProperties.swift", "HabitStackerv3/Models/CDTask+Extensions.swift", "HabitStackerv3/CDRoutine+Extensions.swift"]
+    known_gaps: ["Switching the data store notes that an app restart is required to fully take effect.", "Storage access is heavily singleton-based, which limits isolation and composability."]
+    match_keywords: ["core data repository", "task persistence", "routine storage", "ios local database"]
+
+  - id: momentum.core-data-storage.backup-and-restore
+    project: Momentum
+    subsystem: Core Data / Storage
+    name: Backup And Restore
+    capability: Creates iCloud backup archives of Momentum data and restores the entire local store from a selected backup.
+    status: working
+    approach: Serializes tasks, routines, relations, completions, and selected preferences into custom document files stored in an iCloud container.
+    tech: [CoreData, UIKit, SwiftUI, Foundation]
+    io: { in: "Current managed object context or selected backup file", out: "`.momentumbackup` archives or fully restored local data" }
+    code_refs: ["HabitStackerv3/Views/iCloudBackupManager.swift", "HabitStackerv3/Views/BackupRestoreView.swift", "HabitStackerv3/Views/BackupData.swift", "HabitStackerv3/Views/MomentumBackupDocument.swift", "HabitStackerv3/Views/BackupDetailView.swift"]
+    known_gaps: ["Restore replaces all current task and routine data instead of merging.", "Backup automation is launch-based and described as daily rather than continuously verified."]
+    match_keywords: ["icloud backup", "app data export", "restore archive", "disaster recovery"]
+
+  - id: momentum.core-data-storage.store-migration
+    project: Momentum
+    subsystem: Core Data / Storage
+    name: Store Migration
+    capability: Moves older Momentum SQLite data into the current store layout and supports switching between personal and testing stores.
+    status: working
+    approach: Uses startup checks, file-copy migration, Core Data context resets, and UserDefaults flags to move or swap stores.
+    tech: [CoreData, Foundation]
+    io: { in: "Legacy SQLite store files and testing-mode preference", out: "Current store files and updated migration/store-selection state" }
+    code_refs: ["HabitStackerv3/Views/AutomaticMigration.swift", "HabitStackerv3/Views/CoreDataMigration.swift", "HabitStackerv3/Views/SimpleMigration.swift", "HabitStackerv3/Views/DebugMigrationView.swift", "HabitStackerv3/Views/DataStoreManager.swift"]
+    known_gaps: ["Migration is implemented as file copying and archiving rather than a model-aware transform.", "Testing-store switching warns that a restart is needed for full correctness."]
+    match_keywords: ["sqlite migration", "persistent store swap", "core data migration", "data store upgrade"]
+
+  - id: momentum.shared-data-integrations.shared-json-export
+    project: Momentum
+    subsystem: Shared Data / Integrations
+    name: Shared JSON Export
+    capability: Publishes the current task, routine, completion, and health snapshot through a private phone-to-Mac feed for other tools to consume.
+    status: working
+    approach: Observes Core Data saves, debounces writes, enriches the payload with HealthKit summaries, keeps a protected local copy, and uploads the consolidated JSON document over HTTPS to a relay reachable only through Tailscale.
+    tech: [CoreData, Foundation, HealthKit, Tailscale, HTTPS]
+    io: { in: "Managed object context saves plus HealthKit samples", out: "MomentumData.json on the private Mac mini relay" }
+    code_refs: ["HabitStackerv3/Views/SharedDataStore.swift", "HabitStackerv3/Views/HealthKitReader.swift", "HabitStackerv3/Views/HabitStackerv3App.swift", "relay/momentum_relay.py"]
+    known_gaps: ["The phone must have Tailscale connected when it uploads.", "Health data collection depends on async fetches during save-time export, which increases coupling to system permissions and query latency."]
+    match_keywords: ["shared json store", "tailscale relay", "healthkit aggregation", "cross-app data feed"]
+
+  - id: momentum.shared-data-integrations.lifeplanner-sync
+    project: Momentum
+    subsystem: Shared Data / Integrations
+    name: LifePlanner Sync
+    capability: Pushes Momentum tasks, routines, recent completions, and queued routine runs to a configurable external ingestion endpoint.
+    status: working
+    approach: Builds a custom JSON payload from Core Data and UserDefaults state, then POSTs it via URLSession to a LifePlanner server.
+    tech: [CoreData, Foundation, URLSession, Combine]
+    io: { in: "Current Core Data snapshot, pending routine runs, server URL and sync settings", out: "HTTP ingestion requests and saved last-sync status" }
+    code_refs: ["HabitStackerv3/SyncService.swift", "HabitStackerv3/RoutineRunStore.swift", "HabitStackerv3/Views/SyncSettingsView.swift"]
+    known_gaps: ["Sync is push-only; no inbound reconciliation path is visible.", "No auth, retry queue, or backoff strategy is evident in the current client."]
+    match_keywords: ["api sync client", "json ingestion", "habit tracker export", "server bridge"]
+
+  - id: momentum.widget-live-activity.live-activity-runner
+    project: Momentum
+    subsystem: Widget / Live Activity
+    name: Live Activity Runner
+    capability: Keeps active routine state visible outside the app and cleans up stale activities during app lifecycle changes.
+    status: working
+    approach: Uses ActivityKit activity attributes plus startup and termination hooks to create, update, and end routine live activities.
+    tech: [ActivityKit, WidgetKit, SwiftUI, UserNotifications]
+    io: { in: "Routine runner timer state and app lifecycle events", out: "Live Activity updates and activity cleanup operations" }
+    code_refs: ["HabitStackerv3/LiveActivity/LiveActivityManager.swift", "HabitStackerv3/LiveActivity/RoutineActivityAttributes.swift", "HabitStackerv3/LiveActivity/RoutineLiveActivity.swift", "HabitStackerv3/LiveActivity/RoutineActivityWidget.swift", "HabitStackerv3/Views/HabitStackerv3App.swift"]
+    known_gaps: ["Activity cleanup logic is duplicated between app lifecycle code and the manager.", "The code includes duplicate timer-related files (`OverrunAwareTimer.swift` and `OverrunAwareTimer 2.swift`)."]
+    match_keywords: ["ios live activities", "lock screen timer", "activitykit routine tracker", "background task display"]
+
+  - id: momentum.widget-live-activity.widget-extension
+    project: Momentum
+    subsystem: Widget / Live Activity
+    name: Widget Extension
+    capability: Hosts the WidgetKit target and app-intent plumbing for home-screen and live-activity surfaces.
+    status: partial
+    approach: Uses an AppIntent timeline provider and static preview entries, with the current widget body rendering placeholder content.
+    tech: [WidgetKit, AppIntents, SwiftUI]
+    io: { in: "Widget configuration intent and timeline refresh dates", out: "Rendered widget timelines and previews" }
+    code_refs: ["MomentumWidget/MomentumWidget.swift", "MomentumWidget/MomentumWidgetBundle.swift", "MomentumWidget/AppIntent.swift", "MomentumWidget/MomentumWidgetLiveActivity.swift", "MomentumWidget/MomentumWidgetControl.swift"]
+    known_gaps: ["The main widget still shows placeholder time and emoji content rather than Momentum task data.", "Timeline generation is generic and not connected to the app's scheduling state."]
+    match_keywords: ["ios widget", "widgetkit extension", "app intents widget", "home screen glance"]
+
+  - id: momentum.to-do-list.due-task-inbox
+    project: Momentum
+    subsystem: To-Do List
+    name: Due Task Inbox
+    capability: Presents non-session tasks as a due/not-due inbox and lets the user complete recurring tasks directly from the list.
+    status: mature
+    approach: Uses SwiftUI with a Core Data fetch request and local due-date rules that distinguish daily reset tasks from interval-based tasks.
+    tech: [SwiftUI, CoreData, Foundation]
+    io: { in: "Stored tasks, completion timestamps, repetition intervals, filter choice", out: "Filtered task list and updated completion timestamps" }
+    code_refs: ["HabitStackerv3/Views/ToDoView.swift"]
+    known_gaps: ["Due-date logic is embedded in the view instead of a reusable domain service.", "The list excludes session tasks entirely, so cross-mode task handling is intentionally split."]
+    match_keywords: ["todo inbox", "due task list", "recurring checklist", "daily reset tasks"]
+
+  - id: momentum.cli-reporting.read-only-inspection-cli
+    project: Momentum
+    subsystem: CLI / Reporting
+    name: Read-Only Inspection CLI
+    capability: Provides terminal reports for status, routines, completion history, overdue items, and raw export data from Momentum's shared or backup files.
+    status: working
+    approach: Uses Swift ArgumentParser commands that load the private relay first, cache successful snapshots locally, and fall back to the older iCloud file or latest backup before printing formatted summaries.
+    tech: [ArgumentParser, Foundation, HTTPS]
+    io: { in: "Private relay, cached MomentumData.json, older iCloud file, or latest `.momentumbackup` plus CLI flags", out: "Terminal tables, summaries, and exported JSON" }
+    code_refs: ["momentum-cli/Sources/momentum-cli/Commands.swift", "momentum-cli/Sources/momentum-cli/DataLoader.swift", "momentum-cli/Sources/momentum-cli/Models.swift", "momentum-cli/Sources/momentum-cli/Formatters.swift"]
+    known_gaps: ["The CLI is read-only and depends on exported snapshots rather than the live app database.", "If the relay or a shared file fails, it falls back to cached or backup data and only emits a warning to stderr."]
+    match_keywords: ["command line status", "habit tracker cli", "json report tool", "terminal dashboard"]
