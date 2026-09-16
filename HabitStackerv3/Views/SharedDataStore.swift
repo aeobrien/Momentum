@@ -54,12 +54,42 @@ final class SharedDataStore {
     static let shared = SharedDataStore()
 
     private let fileName = "MomentumData.json"
-    private let relayURL = URL(
-        string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/data"
-    )!
-    private let relayHealthURL = URL(
-        string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/health"
-    )!
+
+    /// One place a snapshot can be delivered to.
+    ///
+    /// There are two now. The Mac Mini was the only one, and the Chief of Staff
+    /// that reads this data runs on the laptop — so every reading had to cross
+    /// two machines, and when this was checked the Mini had been offline for
+    /// three days and the newest health day on the laptop was a week old.
+    /// Delivering to both means a Mini that is off no longer stops a reading
+    /// arriving. It does not make the phone's own connection unnecessary.
+    private struct RelayDestination {
+        let name: String
+        let dataURL: URL
+        let healthURL: URL
+    }
+
+    /// Each destination is delivered to on its own. One being unreachable does
+    /// not hold up or cancel the other, and each reports its own outcome, so a
+    /// log says which machine took the snapshot rather than just "uploaded".
+    ///
+    /// Recovery from a missed delivery is the next delivery, not a stored queue:
+    /// the relay at each end keeps only the newest snapshot it has been given and
+    /// refuses anything older, so the following hourly wake supersedes whatever
+    /// was missed. A destination that is down for a day costs freshness while it
+    /// is down and nothing afterwards.
+    private let destinations: [RelayDestination] = [
+        RelayDestination(
+            name: "mac-mini",
+            dataURL: URL(string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/data")!,
+            healthURL: URL(string: "https://aidans-mac-mini.tailc50104.ts.net/momentum/health")!
+        ),
+        RelayDestination(
+            name: "laptop",
+            dataURL: URL(string: "https://aidans-laptop-1.tailc50104.ts.net/momentum/data")!,
+            healthURL: URL(string: "https://aidans-laptop-1.tailc50104.ts.net/momentum/health")!
+        ),
+    ]
     private let logger = AppLogger.create(subsystem: "com.AOTondra.Momentum", category: "SharedDataStore")
 
     /// Debounce timer to avoid excessive writes
@@ -114,6 +144,40 @@ final class SharedDataStore {
     func saveCurrentStateImmediately(context: NSManagedObjectContext) {
         pendingSaveWorkItem?.cancel()
         performSave(context: context)
+    }
+
+    /// Rebuild the health summary from HealthKit and deliver it, for a launch
+    /// that iOS made in the background because health data changed.
+    ///
+    /// This is separate from `performSave` on purpose. `performSave` sends the
+    /// app's tasks and routines first and the health-enriched snapshot second,
+    /// which is right when Aidan has just changed something in the app. On a
+    /// background health wake nothing in the app has changed, so sending the app
+    /// snapshot as well would spend a tight background budget uploading the same
+    /// tasks twice.
+    ///
+    /// It re-reads HealthKit rather than serialising whatever is in memory:
+    /// on a background launch there is nothing in memory yet, and the whole
+    /// point of the wake is the readings that have just appeared.
+    func saveHealthSnapshotFromBackground() {
+        let context = DataStoreManager.shared.viewContext
+        HealthKitReader.shared.fetchLast30Days { [weak self] healthDays in
+            guard let self else { return }
+            context.perform {
+                do {
+                    var sharedData = try self.buildSharedData(from: context)
+                    sharedData.healthSummary = HealthSummary(
+                        lastUpdated: Date(),
+                        last30Days: healthDays
+                    )
+                    try self.persistAndUpload(sharedData)
+                    self.logger.info("Delivered a health snapshot from a background wake")
+                } catch {
+                    self.logger.error("A background health wake could not be delivered: \(error.localizedDescription)")
+                    self.reportDiagnostic(stage: "background_health_failed", detail: error.localizedDescription)
+                }
+            }
+        }
     }
 
     private func performSave(context: NSManagedObjectContext) {
@@ -271,37 +335,43 @@ final class SharedDataStore {
     }
 
     private func probeRelayConnection() {
-        var components = URLComponents(url: relayHealthURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "stage", value: "startup"),
-            URLQueryItem(name: "build", value: "4"),
-        ]
-        var request = URLRequest(url: components.url!)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 10
-        request.setValue("startup", forHTTPHeaderField: "X-Momentum-Stage")
-        URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
-            if let error {
-                self?.logger.warning("Private relay startup check failed: \(error.localizedDescription)")
-                return
-            }
-            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            self?.logger.info("Private relay startup check returned HTTP \(status)")
-        }.resume()
+        for destination in destinations {
+            var components = URLComponents(url: destination.healthURL, resolvingAgainstBaseURL: false)!
+            components.queryItems = [
+                URLQueryItem(name: "stage", value: "startup"),
+                URLQueryItem(name: "build", value: "4"),
+            ]
+            guard let url = components.url else { continue }
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.timeoutInterval = 10
+            request.setValue("startup", forHTTPHeaderField: "X-Momentum-Stage")
+            let name = destination.name
+            URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
+                if let error {
+                    self?.logger.warning("Startup check for the \(name) relay failed: \(error.localizedDescription)")
+                    return
+                }
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                self?.logger.info("Startup check for the \(name) relay returned HTTP \(status)")
+            }.resume()
+        }
     }
 
     private func reportDiagnostic(stage: String, detail: String) {
-        var components = URLComponents(url: relayHealthURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "stage", value: stage),
-            URLQueryItem(name: "build", value: "4"),
-            URLQueryItem(name: "detail", value: String(detail.prefix(240))),
-        ]
-        guard let url = components.url else { return }
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 10
-        URLSession.shared.dataTask(with: request).resume()
+        for destination in destinations {
+            var components = URLComponents(url: destination.healthURL, resolvingAgainstBaseURL: false)!
+            components.queryItems = [
+                URLQueryItem(name: "stage", value: stage),
+                URLQueryItem(name: "build", value: "4"),
+                URLQueryItem(name: "detail", value: String(detail.prefix(240))),
+            ]
+            guard let url = components.url else { continue }
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.timeoutInterval = 10
+            URLSession.shared.dataTask(with: request).resume()
+        }
     }
 
     private func writeLocalCopy(_ jsonData: Data) throws {
@@ -318,23 +388,30 @@ final class SharedDataStore {
     }
 
     private func uploadToRelay(_ jsonData: Data) {
-        var request = URLRequest(url: relayURL)
+        for destination in destinations {
+            upload(jsonData, to: destination)
+        }
+    }
+
+    private func upload(_ jsonData: Data, to destination: RelayDestination) {
+        var request = URLRequest(url: destination.dataURL)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 15
 
+        let name = destination.name
         URLSession.shared.uploadTask(with: request, from: jsonData) { [weak self] _, response, error in
             if let error {
-                self?.logger.warning("Private relay upload failed; the local copy will be retried: \(error.localizedDescription)")
+                self?.logger.warning("Upload to the \(name) relay failed; the next delivery supersedes it: \(error.localizedDescription)")
                 return
             }
             guard let http = response as? HTTPURLResponse,
                   (200...299).contains(http.statusCode) else {
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-                self?.logger.warning("Private relay upload returned HTTP \(status); the local copy will be retried")
+                self?.logger.warning("The \(name) relay returned HTTP \(status); the next delivery supersedes it")
                 return
             }
-            self?.logger.info("Private relay accepted the Momentum snapshot")
+            self?.logger.info("The \(name) relay accepted the Momentum snapshot")
         }.resume()
     }
 }
