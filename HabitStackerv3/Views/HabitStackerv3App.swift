@@ -124,10 +124,24 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Initialize shared data store (starts observing Core Data saves)
         _ = SharedDataStore.shared
 
-        // Request HealthKit read authorization
+        // Request HealthKit read authorization, then ask to be woken when new
+        // health data arrives.
+        //
+        // The observers are registered here, on the launch path, and not in a
+        // view: when iOS launches this app in the background for a HealthKit
+        // delivery it creates no view, so an observer registered in one would not
+        // exist on exactly the launches it is meant to serve.
+        //
+        // `startBackgroundDelivery` acknowledges each delivery to HealthKit
+        // before the upload is attempted, because iOS throttles or stops
+        // deliveries to an app that is slow to acknowledge them.
         HealthKitReader.shared.requestAuthorization { success, error in
             if success {
                 print("HealthKit authorization granted")
+                HealthKitReader.shared.startBackgroundDelivery { finished in
+                    finished()
+                    SharedDataStore.shared.saveHealthSnapshotFromBackground()
+                }
             } else if let error = error {
                 print("HealthKit authorization failed: \(error.localizedDescription)")
             }

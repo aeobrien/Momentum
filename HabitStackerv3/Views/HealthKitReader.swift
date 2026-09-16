@@ -44,6 +44,85 @@ class HealthKitReader {
         healthStore.requestAuthorization(toShare: nil, read: readTypes, completion: completion)
     }
 
+    // MARK: - Background delivery
+
+    /// Sample types worth waking the app for. Sleep and the movement totals are
+    /// what the morning briefing reads; mindful sessions ride along because they
+    /// are in the same summary.
+    private var backgroundDeliveryTypes: [HKSampleType] {
+        readTypes.compactMap { $0 as? HKSampleType }
+    }
+
+    private var observerQueries: [HKObserverQuery] = []
+    private let observerLock = NSLock()
+
+    /// Ask HealthKit to wake the app when any of the read types gets new data,
+    /// and call `onUpdate` when it does.
+    ///
+    /// Call this from the app's launch path, not from a view. When iOS launches
+    /// the app for a HealthKit delivery no view is created, so an observer
+    /// registered in a view does not exist on the launch that matters — which is
+    /// every launch this is for.
+    ///
+    /// `onUpdate` is handed a `finished` closure and MUST call it. That closure
+    /// is HealthKit's completion handler: until it runs, iOS considers the
+    /// delivery outstanding, and an app that is slow to acknowledge deliveries
+    /// gets them throttled or stopped. So acknowledge first and upload after —
+    /// never wait on the network before calling it.
+    ///
+    /// Frequency is `.hourly` rather than `.immediate` on purpose: several of
+    /// these types, step count among them, are capped at hourly by the system
+    /// anyway, and the frequency is a ceiling the system may throttle below for
+    /// battery or device state. Asking for more would not deliver more.
+    ///
+    /// This does not give overnight reporting. HealthKit's store is encrypted
+    /// until the phone's first unlock, so a registered observer produces no
+    /// callback while the phone is locked. What it gives is "fresh as of the
+    /// last unlock", which is what a morning briefing needs.
+    func startBackgroundDelivery(onUpdate: @escaping (_ finished: @escaping () -> Void) -> Void) {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+
+        observerLock.lock()
+        let alreadyRunning = !observerQueries.isEmpty
+        observerLock.unlock()
+        if alreadyRunning {
+            // A second launch path calling this must not double every delivery.
+            return
+        }
+
+        for type in backgroundDeliveryTypes {
+            let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, completionHandler, error in
+                if let error {
+                    // Still acknowledge: an unacknowledged delivery is worse
+                    // than a failed one, because it stops future deliveries.
+                    self?.log("observer for \(type.identifier) failed: \(error.localizedDescription)")
+                    completionHandler()
+                    return
+                }
+                onUpdate { completionHandler() }
+            }
+            healthStore.execute(query)
+
+            observerLock.lock()
+            observerQueries.append(query)
+            observerLock.unlock()
+
+            healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { [weak self] success, error in
+                if let error {
+                    self?.log("background delivery refused for \(type.identifier): \(error.localizedDescription)")
+                } else if !success {
+                    self?.log("background delivery not enabled for \(type.identifier), with no error given")
+                } else {
+                    self?.log("background delivery enabled for \(type.identifier)")
+                }
+            }
+        }
+    }
+
+    private func log(_ message: String) {
+        print("[HEALTHKIT] \(message)")
+    }
+
     // Fetch last 30 days of health data
     func fetchLast30Days(completion: @escaping ([HealthDaySummary]) -> Void) {
         let calendar = Calendar.current
