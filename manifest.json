@@ -1,8 +1,8 @@
 {
-  "capture_finished_at_utc": "2026-09-16T02:54:07Z",
-  "capture_started_at_utc": "2026-09-16T02:54:00Z",
-  "captured_at_utc": "2026-09-16T02:54:00Z",
-  "captured_byte_estimate": 181900780,
+  "capture_finished_at_utc": "2026-09-16T21:36:32Z",
+  "capture_started_at_utc": "2026-09-16T21:36:23Z",
+  "captured_at_utc": "2026-09-16T21:36:23Z",
+  "captured_byte_estimate": 181900792,
   "captured_path_count": 2106,
   "consistency_retry_count": 0,
   "excluded": [
@@ -25,7 +25,7 @@
   "snapshot_consistency": "stable",
   "source_branch": "main",
   "source_head_oid": "66db657454e32f83cbd8c728926c27fdbffbe9b6",
-  "source_index_sha256": "78f25ecaa138f4949a389e55fbb699903510185e5496ac5f45e74c7fb9af66fc",
+  "source_index_sha256": "ed7389195d7d2e1886ab8554c2a76d6f5113ad2274e76083c138819f8567c7e1",
   "source_path": "/Users/aidan/Dev/Momentum",
   "upstream_observed": "origin/main"
 }
