@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(python3:*)",
+      "Bash(cp:*)",
+      "Bash(sed:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(open:*)",
+      "Bash(git add:*)",
+      "Bash(swift build:*)",
+      "Bash(git commit:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(xcrun simctl shutdown:*)",
+      "Bash(xcrun simctl erase:*)",
+      "Bash(true)",
+      "Bash(swift-frontend:*)"
+    ],
+    "deny": []
+  }
+}
