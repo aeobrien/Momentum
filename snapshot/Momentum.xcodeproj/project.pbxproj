@@ -1,0 +1,1387 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00A0451AF8C245A98E7DC0A1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 982602432B884C5290157ADB /* SettingsView.swift */; };
+		0342EFDC3A2F4E42A2560623 /* BackupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB675999AA484797121287 /* BackupDetailView.swift */; };
+		4A65B470B02F4D9ABB48D859 /* BackupData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */; };
+		51A29F7609D94E0E835C1840 /* BackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F746B448122346998D7F6199 /* BackupRestoreView.swift */; };
+		AB7B0934618B40EA8D804D23 /* iCloudBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */; };
+		A1B2C3D4E5F6A7B800112234 /* RoutineRunStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */; };
+		B4354DC99ECB4B2DA76962C8 /* MomentumBackupDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */; };
+		DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */; };
+		DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */; };
+		DD3CB6AB2DB6D05A009B2C5C /* SchedulePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */; };
+		DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C42CDCCF6F008B839C /* TaskCard.swift */; };
+		DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C62CDCCF7B008B839C /* SearchBar.swift */; };
+		DD4222C92CDCD342008B839C /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4222C82CDCD342008B839C /* DateExtensions.swift */; };
+		DD43C33B2F38A7AF00ED227E /* SyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */; };
+		DD43C33C2F38A7AF00ED227E /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD43C3392F38A7AF00ED227E /* SyncService.swift */; };
+		DD4ED5222E75999F00B195CA /* TaskCleanupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */; };
+		DD5902B02CDD1CFA005F040A /* ToDoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902AF2CDD1CFA005F040A /* ToDoView.swift */; };
+		DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */; };
+		DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B32CDD2347005F040A /* RoutineTestView.swift */; };
+		DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902B92CDE5D48005F040A /* TestingStructs.swift */; };
+		DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */; };
+		DD70B57F2E1C297400673D79 /* BackgroundTaskViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */; };
+		DD70B5B42E1C4A5200673D79 /* NewUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5B32E1C4A4F00673D79 /* NewUI.swift */; };
+		DD70B5B62E1C50D800673D79 /* CircularProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5B52E1C50D800673D79 /* CircularProgressView.swift */; };
+		DD70B5B82E1D3C1D00673D79 /* RoutineSortMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5B72E1D3C1D00673D79 /* RoutineSortMode.swift */; };
+		DD70B5BB2E1D3C4D00673D79 /* RoutineCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */; };
+		DD70B5BC2E1D3C4D00673D79 /* RoutineSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */; };
+		DD70B69E2E213A7100673D79 /* DataStoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B69D2E213A7100673D79 /* DataStoreManager.swift */; };
+		DD70B69F2E213A7200673D79 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B69E2E213A7200673D79 /* SettingsManager.swift */; };
+		DD70B6A42E231B5100673D79 /* RoutineTemplateOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */; };
+		DD70B6A72E231B6E00673D79 /* RoutineBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */; };
+		DD70B6A82E231B6E00673D79 /* DefaultTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */; };
+		DD70B6AA2E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD70B6A92E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift */; };
+		DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */; };
+		DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */; };
+		DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */; };
+		DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */; };
+		DD947FEE2CDC155E0014A929 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FED2CDC155E0014A929 /* CoreDataStack.swift */; };
+		EE1A2B3C2E02F00000AABB01 /* SharedDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */; };
+		FF2A3B4C2E82A00000CCDD01 /* HealthKitReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */; };
+		FF2A3B4E2E82A00000CCDD02 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */; };
+		DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */; };
+		DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */; };
+		DD947FFF2CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */; };
+		DD9480002CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */; };
+		DD9480022CDC17730014A929 /* CDTask+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480012CDC17730014A929 /* CDTask+Extensions.swift */; };
+		DD9480042CDC178B0014A929 /* CDRoutine+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */; };
+		DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */; };
+		DD9480082CDC18CE0014A929 /* RoutineStorageCoreData.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */; };
+		DDA018482E378145006EEA49 /* ChecklistTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA018472E378145006EEA49 /* ChecklistTaskView.swift */; };
+		DDA0184A2E3787BE006EEA49 /* ChecklistItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA018492E3787BE006EEA49 /* ChecklistItem.swift */; };
+		DDA0184C2E37BBE2006EEA49 /* ChecklistItemTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */; };
+		DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */; };
+		DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */; };
+		DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B962E0B080400C573DB /* TempTaskList.swift */; };
+		DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */; };
+		DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */; };
+		DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */; };
+		DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */; };
+		DDAE4BA32E0B26D200C573DB /* RunFromSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */; };
+		DDAE4BA42E0B26D200C573DB /* TaskDurationSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */; };
+		DDAE4BA52E0B26D200C573DB /* TaskDurationSuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */; };
+		DDAE4BA72E0B271100C573DB /* TaskProgressBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */; };
+		DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */; };
+		DDAE4BAB2E0C196200C573DB /* DebugMigrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */; };
+		DDAE4BAD2E0C52DF00C573DB /* SimpleMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */; };
+		DDAE4BAF2E0C5A7E00C573DB /* AutomaticMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */; };
+		DDE14F9F2E2AAEB000AB9088 /* InfoModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE14F9D2E2AAEB000AB9088 /* InfoModalView.swift */; };
+		DDE14FA42E2ABFC500AB9088 /* template_routines.json in Resources */ = {isa = PBXBuildFile; fileRef = DDE14FA12E2ABFC500AB9088 /* template_routines.json */; };
+		DDE14FA52E2ABFC500AB9088 /* template_tasks.json in Resources */ = {isa = PBXBuildFile; fileRef = DDE14FA22E2ABFC500AB9088 /* template_tasks.json */; };
+		DDE14FA72E2ACFAF00AB9088 /* template_categories.json in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FA62E2ACFAA00AB9088 /* template_categories.json */; };
+		DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE14FB32E300FD800AB9088 /* SettingsManager.swift */; };
+		DDE150502E3246AA00AB9088 /* RoutineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */; };
+		DDE150522E3246AA00AB9088 /* RoutineLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */; };
+		DDE1505A2E32536700AB9088 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE150592E32536700AB9088 /* WidgetKit.framework */; };
+		DDE1505C2E32536700AB9088 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE1505B2E32536700AB9088 /* SwiftUI.framework */; };
+		DDE1506D2E32536900AB9088 /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DDE150742E32538900AB9088 /* RoutineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */; };
+		DDE150762E32543D00AB9088 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE150752E32543D00AB9088 /* LiveActivityManager.swift */; };
+		DDE150792E32576300AB9088 /* RoutineLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */; };
+		DDE1507F2E32873200AB9088 /* OverrunAwareTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */; };
+		DDE150802E32873200AB9088 /* OverrunAwareTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */; };
+		DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */; };
+		DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */; };
+		DDF227F22CC957B50014505A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F12CC957B50014505A /* Assets.xcassets */; };
+		DDF227F52CC957B50014505A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DDF227F42CC957B50014505A /* Preview Assets.xcassets */; };
+		DDF227FF2CC957B50014505A /* HabitStackerv3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF227FE2CC957B50014505A /* HabitStackerv3Tests.swift */; };
+		DDF228092CC957B50014505A /* HabitStackerv3UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228082CC957B50014505A /* HabitStackerv3UITests.swift */; };
+		DDF2280B2CC957B50014505A /* HabitStackerv3UITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2280A2CC957B50014505A /* HabitStackerv3UITestsLaunchTests.swift */; };
+		DDF2283B2CC95C120014505A /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DDF2283A2CC95C120014505A /* AsyncAlgorithms */; };
+		DDF228862CC95DDC0014505A /* HabitStackerv3App.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */; };
+		DDF228882CC95DF60014505A /* TaskStorageInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228232CC958EA0014505A /* TaskStorageInterface.swift */; };
+		DDF228892CC95DF60014505A /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228342CC959AA0014505A /* AddTaskView.swift */; };
+		DDF2288A2CC95DF60014505A /* CustomTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228182CC958890014505A /* CustomTask.swift */; };
+		DDF2288B2CC95DF60014505A /* VersionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228292CC959370014505A /* VersionManager.swift */; };
+		DDF2288C2CC95DF60014505A /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228322CC9599D0014505A /* TaskDetailView.swift */; };
+		DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228212CC958D50014505A /* TaskStorageError.swift */; };
+		DDF2288E2CC95DF60014505A /* TaskInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2281C2CC958A40014505A /* TaskInstance.swift */; };
+		DDF2288F2CC95DF60014505A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2282E2CC959690014505A /* ContentView.swift */; };
+		DDF228902CC95DF60014505A /* TaskStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2281F2CC958B40014505A /* TaskStorage.swift */; };
+		DDF228912CC95DF60014505A /* Version.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2281A2CC958990014505A /* Version.swift */; };
+		DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228262CC9591E0014505A /* Logging+Extensions.swift */; };
+		DDF228932CC95DF60014505A /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2282B2CC959450014505A /* PerformanceMonitor.swift */; };
+		DDF228942CC95DF60014505A /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228302CC959920014505A /* TaskListView.swift */; };
+		DDF228982CC96AD50014505A /* Routine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228972CC96AD50014505A /* Routine.swift */; };
+		DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2289A2CC96B0F0014505A /* RoutineMetadata.swift */; };
+		DDF2289E2CC96B640014505A /* RoutineError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2289D2CC96B640014505A /* RoutineError.swift */; };
+		DDF228A02CC96B730014505A /* RoutineLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF2289F2CC96B730014505A /* RoutineLogger.swift */; };
+		DDF228A22CC96B830014505A /* RoutineStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228A12CC96B830014505A /* RoutineStorage.swift */; };
+		DDF228A42CC96BCA0014505A /* PriorityCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228A32CC96BCA0014505A /* PriorityCalculator.swift */; };
+		DDF228A62CC96BDF0014505A /* TaskSelectionProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228A52CC96BDF0014505A /* TaskSelectionProcess.swift */; };
+		DDF228A82CC96C0D0014505A /* RoutineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */; };
+		DDF228AA2CC96C190014505A /* RoutineListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228A92CC96C190014505A /* RoutineListView.swift */; };
+		DDF228AC2CC96C310014505A /* RoutineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228AB2CC96C310014505A /* RoutineDetailView.swift */; };
+		DDF228AE2CC96C3A0014505A /* CreateRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */; };
+		DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228AF2CC97A670014505A /* TaskViewModel.swift */; };
+		DDF228B22CC97E500014505A /* MultipleSelectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228B12CC97E500014505A /* MultipleSelectionRow.swift */; };
+		DDF228B42CC98DEA0014505A /* EditRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228B32CC98DEA0014505A /* EditRoutineView.swift */; };
+		DDF228B62CC98ED70014505A /* RoutineStorageInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228B52CC98ED70014505A /* RoutineStorageInterface.swift */; };
+		DDF228B82CC99C2E0014505A /* ScheduleStructs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */; };
+		DDF228BA2CC99C520014505A /* RoutineSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228B92CC99C520014505A /* RoutineSetup.swift */; };
+		DDF228BC2CC99C630014505A /* SetupLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228BB2CC99C630014505A /* SetupLogger.swift */; };
+		DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228BD2CC99C750014505A /* RoutineSelectionView.swift */; };
+		DDF228C02CC99E200014505A /* SchedulingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228BF2CC99E200014505A /* SchedulingError.swift */; };
+		DDF228C22CC9A06B0014505A /* ResultExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228C12CC9A06B0014505A /* ResultExtensions.swift */; };
+		DDF228C42CCAD2920014505A /* RoutineRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228C32CCAD2920014505A /* RoutineRunner.swift */; };
+		DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228C62CCADA910014505A /* RoutineRunnerView.swift */; };
+		DDF228C92CCAE1300014505A /* RoutineRunnerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228C82CCAE1300014505A /* RoutineRunnerDetailView.swift */; };
+		DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228CA2CCD8C400014505A /* SplashScreenView.swift */; };
+		DDF228CD2CCD8E440014505A /* RoutineTaskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */; };
+		DDF228CF2CCD95E60014505A /* TaskCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228CE2CCD95E60014505A /* TaskCardView.swift */; };
+		DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228D02CCD9ACE0014505A /* SortMode.swift */; };
+		DDF228D42CCE9F240014505A /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = DDF228D32CCE9F240014505A /* SwiftSoup */; };
+		DDF228D62CCEBFDA0014505A /* LogRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228D52CCEBFDA0014505A /* LogRecord.swift */; };
+		DDF228D82CCEC0160014505A /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228D72CCEC0160014505A /* LogsView.swift */; };
+		DDF228DE2CCEE3220014505A /* LogSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228DD2CCEE3220014505A /* LogSession.swift */; };
+		DDF228E02CCFB3E80014505A /* InternalLogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */; };
+		DDF228E22CCFB7070014505A /* SlideToCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */; };
+		DDFCB83C2E11ADED0085F0AE /* SpendOverUnderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DDE1506B2E32536900AB9088 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DDF227E22CC957B20014505A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DDE150562E32536700AB9088;
+			remoteInfo = MomentumWidgetExtension;
+		};
+		DDF227FB2CC957B50014505A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DDF227E22CC957B20014505A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DDF227E92CC957B30014505A;
+			remoteInfo = HabitStackerv3;
+		};
+		DDF228052CC957B50014505A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DDF227E22CC957B20014505A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DDF227E92CC957B30014505A;
+			remoteInfo = HabitStackerv3;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DDE150722E32536900AB9088 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DDE1506D2E32536900AB9088 /* MomentumWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4FAB675999AA484797121287 /* BackupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupDetailView.swift; sourceTree = "<group>"; };
+		982602432B884C5290157ADB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumBackupDocument.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineRunStore.swift; sourceTree = "<group>"; };
+		CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupData.swift; sourceTree = "<group>"; };
+		DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Momentum.xcdatamodel; sourceTree = "<group>"; };
+		DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableDurationTaskScheduling.swift; sourceTree = "<group>"; };
+		DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SchedulePreviewView.swift; path = Views/SchedulePreviewView.swift; sourceTree = "<group>"; };
+		DD4222C42CDCCF6F008B839C /* TaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCard.swift; sourceTree = "<group>"; };
+		DD4222C62CDCCF7B008B839C /* SearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBar.swift; sourceTree = "<group>"; };
+		DD4222C82CDCD342008B839C /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
+		DD43C3392F38A7AF00ED227E /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncSettingsView.swift; sourceTree = "<group>"; };
+		DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCleanupView.swift; sourceTree = "<group>"; };
+		DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
+		DD5902AF2CDD1CFA005F040A /* ToDoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoView.swift; sourceTree = "<group>"; };
+		DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestHarness.swift; sourceTree = "<group>"; };
+		DD5902B32CDD2347005F040A /* RoutineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTestView.swift; sourceTree = "<group>"; };
+		DD5902B92CDE5D48005F040A /* TestingStructs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestingStructs.swift; sourceTree = "<group>"; };
+		DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimisationSystem.swift; sourceTree = "<group>"; };
+		DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskViews.swift; sourceTree = "<group>"; };
+		DD70B5B32E1C4A4F00673D79 /* NewUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewUI.swift; sourceTree = "<group>"; };
+		DD70B5B52E1C50D800673D79 /* CircularProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularProgressView.swift; sourceTree = "<group>"; };
+		DD70B5B72E1D3C1D00673D79 /* RoutineSortMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSortMode.swift; sourceTree = "<group>"; };
+		DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineCard.swift; sourceTree = "<group>"; };
+		DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSearchBar.swift; sourceTree = "<group>"; };
+		DD70B69D2E213A7100673D79 /* DataStoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStoreManager.swift; sourceTree = "<group>"; };
+		DD70B69E2E213A7200673D79 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
+		DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplateOnboardingView.swift; sourceTree = "<group>"; };
+		DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultTemplates.swift; sourceTree = "<group>"; };
+		DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineBuilder.swift; sourceTree = "<group>"; };
+		DD70B6A92E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplateOnboardingReorderView.swift; sourceTree = "<group>"; };
+		DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTaskCompletionTime+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		DD947FED2CDC155E0014A929 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataStore.swift; sourceTree = "<group>"; };
+		FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitReader.swift; sourceTree = "<group>"; };
+		FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutineTask+CoreDataClass.swift"; sourceTree = "<group>"; };
+		DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutineTask+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		DD9480012CDC17730014A929 /* CDTask+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDTask+Extensions.swift"; sourceTree = "<group>"; };
+		DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CDRoutine+Extensions.swift"; sourceTree = "<group>"; };
+		DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorageCoreData.swift; sourceTree = "<group>"; };
+		DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStorageCoreData.swift; sourceTree = "<group>"; };
+		DDA018472E378145006EEA49 /* ChecklistTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistTaskView.swift; sourceTree = "<group>"; };
+		DDA018492E3787BE006EEA49 /* ChecklistItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistItem.swift; sourceTree = "<group>"; };
+		DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistItemTransformer.swift; sourceTree = "<group>"; };
+		DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineEntryView.swift; sourceTree = "<group>"; };
+		DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineTimeAllocationView.swift; sourceTree = "<group>"; };
+		DDAE4B962E0B080400C573DB /* TempTaskList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTaskList.swift; sourceTree = "<group>"; };
+		DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineRunner.swift; sourceTree = "<group>"; };
+		DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineRunnerView.swift; sourceTree = "<group>"; };
+		DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRoutineDetailView.swift; sourceTree = "<group>"; };
+		DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempRunnerWrapper.swift; sourceTree = "<group>"; };
+		DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunFromSelectionView.swift; sourceTree = "<group>"; };
+		DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDurationSuggestion.swift; sourceTree = "<group>"; };
+		DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDurationSuggestionsView.swift; sourceTree = "<group>"; };
+		DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgressBarView.swift; sourceTree = "<group>"; };
+		DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataMigration.swift; sourceTree = "<group>"; };
+		DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMigrationView.swift; sourceTree = "<group>"; };
+		DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleMigration.swift; sourceTree = "<group>"; };
+		DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticMigration.swift; sourceTree = "<group>"; };
+		DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudBackupManager.swift; sourceTree = "<group>"; };
+		DDE14F9D2E2AAEB000AB9088 /* InfoModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoModalView.swift; sourceTree = "<group>"; };
+		DDE14FA12E2ABFC500AB9088 /* template_routines.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_routines.json; sourceTree = "<group>"; };
+		DDE14FA22E2ABFC500AB9088 /* template_tasks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_tasks.json; sourceTree = "<group>"; };
+		DDE14FA62E2ACFAA00AB9088 /* template_categories.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = template_categories.json; sourceTree = "<group>"; };
+		DDE14FB32E300FD800AB9088 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
+		DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineActivityAttributes.swift; sourceTree = "<group>"; };
+		DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineLiveActivityView.swift; sourceTree = "<group>"; };
+		DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDE150592E32536700AB9088 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DDE1505B2E32536700AB9088 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		DDE150752E32543D00AB9088 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineLiveActivity.swift; sourceTree = "<group>"; };
+		DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverrunAwareTimer.swift; sourceTree = "<group>"; };
+		DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataTaskScheduler.swift; sourceTree = "<group>"; };
+		DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Formatter+Extensions.swift"; path = "HabitStackerv3/Utils/Formatter+Extensions.swift"; sourceTree = SOURCE_ROOT; };
+		DDF227EA2CC957B30014505A /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStackerv3App.swift; sourceTree = "<group>"; };
+		DDF227F12CC957B50014505A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DDF227F42CC957B50014505A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		DDF227FA2CC957B50014505A /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDF227FE2CC957B50014505A /* HabitStackerv3Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStackerv3Tests.swift; sourceTree = "<group>"; };
+		DDF228042CC957B50014505A /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDF228082CC957B50014505A /* HabitStackerv3UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStackerv3UITests.swift; sourceTree = "<group>"; };
+		DDF2280A2CC957B50014505A /* HabitStackerv3UITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HabitStackerv3UITestsLaunchTests.swift; sourceTree = "<group>"; };
+		DDF228182CC958890014505A /* CustomTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTask.swift; sourceTree = "<group>"; };
+		DDF2281A2CC958990014505A /* Version.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Version.swift; sourceTree = "<group>"; };
+		DDF2281C2CC958A40014505A /* TaskInstance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskInstance.swift; sourceTree = "<group>"; };
+		DDF2281F2CC958B40014505A /* TaskStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorage.swift; sourceTree = "<group>"; };
+		DDF228212CC958D50014505A /* TaskStorageError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorageError.swift; sourceTree = "<group>"; };
+		DDF228232CC958EA0014505A /* TaskStorageInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStorageInterface.swift; sourceTree = "<group>"; };
+		DDF228262CC9591E0014505A /* Logging+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logging+Extensions.swift"; sourceTree = "<group>"; };
+		DDF228292CC959370014505A /* VersionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionManager.swift; sourceTree = "<group>"; };
+		DDF2282B2CC959450014505A /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
+		DDF2282E2CC959690014505A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DDF228302CC959920014505A /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
+		DDF228322CC9599D0014505A /* TaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailView.swift; sourceTree = "<group>"; };
+		DDF228342CC959AA0014505A /* AddTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
+		DDF228972CC96AD50014505A /* Routine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routine.swift; sourceTree = "<group>"; };
+		DDF2289A2CC96B0F0014505A /* RoutineMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineMetadata.swift; sourceTree = "<group>"; };
+		DDF2289D2CC96B640014505A /* RoutineError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineError.swift; sourceTree = "<group>"; };
+		DDF2289F2CC96B730014505A /* RoutineLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineLogger.swift; sourceTree = "<group>"; };
+		DDF228A12CC96B830014505A /* RoutineStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStorage.swift; sourceTree = "<group>"; };
+		DDF228A32CC96BCA0014505A /* PriorityCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorityCalculator.swift; sourceTree = "<group>"; };
+		DDF228A52CC96BDF0014505A /* TaskSelectionProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSelectionProcess.swift; sourceTree = "<group>"; };
+		DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineViewModel.swift; sourceTree = "<group>"; };
+		DDF228A92CC96C190014505A /* RoutineListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineListView.swift; sourceTree = "<group>"; };
+		DDF228AB2CC96C310014505A /* RoutineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineDetailView.swift; sourceTree = "<group>"; };
+		DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateRoutineView.swift; sourceTree = "<group>"; };
+		DDF228AF2CC97A670014505A /* TaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskViewModel.swift; sourceTree = "<group>"; };
+		DDF228B12CC97E500014505A /* MultipleSelectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipleSelectionRow.swift; sourceTree = "<group>"; };
+		DDF228B32CC98DEA0014505A /* EditRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRoutineView.swift; sourceTree = "<group>"; };
+		DDF228B52CC98ED70014505A /* RoutineStorageInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStorageInterface.swift; sourceTree = "<group>"; };
+		DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleStructs.swift; sourceTree = "<group>"; };
+		DDF228B92CC99C520014505A /* RoutineSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSetup.swift; sourceTree = "<group>"; };
+		DDF228BB2CC99C630014505A /* SetupLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLogger.swift; sourceTree = "<group>"; };
+		DDF228BD2CC99C750014505A /* RoutineSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSelectionView.swift; sourceTree = "<group>"; };
+		DDF228BF2CC99E200014505A /* SchedulingError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulingError.swift; sourceTree = "<group>"; };
+		DDF228C12CC9A06B0014505A /* ResultExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultExtensions.swift; sourceTree = "<group>"; };
+		DDF228C32CCAD2920014505A /* RoutineRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineRunner.swift; sourceTree = "<group>"; };
+		DDF228C52CCAD3DC0014505A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DDF228C62CCADA910014505A /* RoutineRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineRunnerView.swift; sourceTree = "<group>"; };
+		DDF228C82CCAE1300014505A /* RoutineRunnerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineRunnerDetailView.swift; sourceTree = "<group>"; };
+		DDF228CA2CCD8C400014505A /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTaskCard.swift; sourceTree = "<group>"; };
+		DDF228CE2CCD95E60014505A /* TaskCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCardView.swift; sourceTree = "<group>"; };
+		DDF228D02CCD9ACE0014505A /* SortMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortMode.swift; sourceTree = "<group>"; };
+		DDF228D52CCEBFDA0014505A /* LogRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogRecord.swift; sourceTree = "<group>"; };
+		DDF228D72CCEC0160014505A /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
+		DDF228DD2CCEE3220014505A /* LogSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSession.swift; sourceTree = "<group>"; };
+		DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalLogManager.swift; sourceTree = "<group>"; };
+		DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToCompleteView.swift; sourceTree = "<group>"; };
+		DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendOverUnderView.swift; sourceTree = "<group>"; };
+		F746B448122346998D7F6199 /* BackupRestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRestoreView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DDE1506E2E32536900AB9088 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DDE150562E32536700AB9088 /* MomentumWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DDE1505D2E32536700AB9088 /* MomentumWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (DDE1506E2E32536900AB9088 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MomentumWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DDE150542E32536700AB9088 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDE1505C2E32536700AB9088 /* SwiftUI.framework in Frameworks */,
+				DDE1505A2E32536700AB9088 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227E72CC957B30014505A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF2A3B4E2E82A00000CCDD02 /* HealthKit.framework in Frameworks */,
+				DDF2283B2CC95C120014505A /* AsyncAlgorithms in Frameworks */,
+				DDF228D42CCE9F240014505A /* SwiftSoup in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227F72CC957B50014505A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF228012CC957B50014505A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DDE14F9E2E2AAEB000AB9088 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				DDE14F9D2E2AAEB000AB9088 /* InfoModalView.swift */,
+			);
+			name = Components;
+			path = Views/Components;
+			sourceTree = "<group>";
+		};
+		DDE14FA32E2ABFC500AB9088 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				DDE14FA62E2ACFAA00AB9088 /* template_categories.json */,
+				DDE14FA12E2ABFC500AB9088 /* template_routines.json */,
+				DDE14FA22E2ABFC500AB9088 /* template_tasks.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		DDE1504F2E3246AA00AB9088 /* LiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				DDE1507E2E32873200AB9088 /* OverrunAwareTimer.swift */,
+				DDE150782E32576300AB9088 /* RoutineLiveActivity.swift */,
+				DDE150752E32543D00AB9088 /* LiveActivityManager.swift */,
+				DDE1504C2E3246AA00AB9088 /* RoutineActivityAttributes.swift */,
+				DDE1504E2E3246AA00AB9088 /* RoutineLiveActivityView.swift */,
+			);
+			path = LiveActivity;
+			sourceTree = "<group>";
+		};
+		DDE150582E32536700AB9088 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FF2A3B4D2E82A00000CCDD02 /* HealthKit.framework */,
+				DDE150592E32536700AB9088 /* WidgetKit.framework */,
+				DDE1505B2E32536700AB9088 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DDF227E12CC957B20014505A = {
+			isa = PBXGroup;
+			children = (
+				DD43C3392F38A7AF00ED227E /* SyncService.swift */,
+				DD43C33A2F38A7AF00ED227E /* SyncSettingsView.swift */,
+				DD4EDAAC2E0C813A008353E4 /* Momentum.entitlements */,
+				DDF227EC2CC957B30014505A /* HabitStackerv3 */,
+				DDF227FD2CC957B50014505A /* HabitStackerv3Tests */,
+				DDF228072CC957B50014505A /* HabitStackerv3UITests */,
+				DDE1505D2E32536700AB9088 /* MomentumWidget */,
+				DDE150582E32536700AB9088 /* Frameworks */,
+				DDF227EB2CC957B30014505A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DDF227EB2CC957B30014505A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DDF227EA2CC957B30014505A /* Momentum.app */,
+				DDF227FA2CC957B50014505A /* MomentumTests.xctest */,
+				DDF228042CC957B50014505A /* MomentumUITests.xctest */,
+				DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DDF227EC2CC957B30014505A /* HabitStackerv3 */ = {
+			isa = PBXGroup;
+			children = (
+				DDE1504F2E3246AA00AB9088 /* LiveActivity */,
+				DDE14F9E2E2AAEB000AB9088 /* Components */,
+				DDF228262CC9591E0014505A /* Logging+Extensions.swift */,
+				DD3CB6AA2DB6D05A009B2C5C /* SchedulePreviewView.swift */,
+				DD947FF52CDC17490014A929 /* CDRoutine+CoreDataClass.swift */,
+				DD947FF62CDC17490014A929 /* CDRoutine+CoreDataProperties.swift */,
+				DD9480032CDC178B0014A929 /* CDRoutine+Extensions.swift */,
+				DD947FF92CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift */,
+				DD947FFA2CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift */,
+				A1B2C3D4E5F6A7B800112233 /* RoutineRunStore.swift */,
+				DD9480012CDC17730014A929 /* CDTask+Extensions.swift */,
+				DD7A54BE2E0AEBA400E1201E /* CDTask+CoreDataClass.swift */,
+				DD7A54BF2E0AEBA400E1201E /* CDTask+CoreDataProperties.swift */,
+				DD7A54C22E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift */,
+				DD7A54C32E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift */,
+				DDF228C52CCAD3DC0014505A /* Info.plist */,
+				DDF227F12CC957B50014505A /* Assets.xcassets */,
+				DDF228172CC958720014505A /* Models */,
+				DDF227F32CC957B50014505A /* Preview Content */,
+				DDF228282CC9592C0014505A /* Utilities */,
+				DDF2282D2CC959530014505A /* Views */,
+				DDE14FA32E2ABFC500AB9088 /* Resources */,
+			);
+			path = HabitStackerv3;
+			sourceTree = "<group>";
+		};
+		DDF227F32CC957B50014505A /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				DDF227F42CC957B50014505A /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		DDF227FD2CC957B50014505A /* HabitStackerv3Tests */ = {
+			isa = PBXGroup;
+			children = (
+				DDF227FE2CC957B50014505A /* HabitStackerv3Tests.swift */,
+			);
+			path = HabitStackerv3Tests;
+			sourceTree = "<group>";
+		};
+		DDF228072CC957B50014505A /* HabitStackerv3UITests */ = {
+			isa = PBXGroup;
+			children = (
+				DDF228082CC957B50014505A /* HabitStackerv3UITests.swift */,
+				DDF2280A2CC957B50014505A /* HabitStackerv3UITestsLaunchTests.swift */,
+			);
+			path = HabitStackerv3UITests;
+			sourceTree = "<group>";
+		};
+		DDF228172CC958720014505A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				DDA018492E3787BE006EEA49 /* ChecklistItem.swift */,
+				DDA0184B2E37BBE2006EEA49 /* ChecklistItemTransformer.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DDF228282CC9592C0014505A /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				DDE4AB0A2DA88F80004327C2 /* Formatter+Extensions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		DDF2282D2CC959530014505A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				DDF228342CC959AA0014505A /* AddTaskView.swift */,
+				DDAE4BAE2E0C5A7E00C573DB /* AutomaticMigration.swift */,
+				DD70B57E2E1C297400673D79 /* BackgroundTaskViews.swift */,
+				CA9CEA5C64834CD5AA6DAE85 /* BackupData.swift */,
+				4FAB675999AA484797121287 /* BackupDetailView.swift */,
+				F746B448122346998D7F6199 /* BackupRestoreView.swift */,
+				DDA018472E378145006EEA49 /* ChecklistTaskView.swift */,
+				DD70B5B52E1C50D800673D79 /* CircularProgressView.swift */,
+				DDF2282E2CC959690014505A /* ContentView.swift */,
+				DDAE4BA82E0BFEC200C573DB /* CoreDataMigration.swift */,
+				DD947FED2CDC155E0014A929 /* CoreDataStack.swift */,
+				DDE4AB082DA88974004327C2 /* CoreDataTaskScheduler.swift */,
+				EE1A2B3B2E02F00000AABB01 /* SharedDataStore.swift */,
+				DDF228AD2CC96C3A0014505A /* CreateRoutineView.swift */,
+				DDF228182CC958890014505A /* CustomTask.swift */,
+				DD70B69D2E213A7100673D79 /* DataStoreManager.swift */,
+				DD4222C82CDCD342008B839C /* DateExtensions.swift */,
+				DDAE4BAA2E0C196200C573DB /* DebugMigrationView.swift */,
+				DD70B6A52E231B6E00673D79 /* DefaultTemplates.swift */,
+				DDF228B32CC98DEA0014505A /* EditRoutineView.swift */,
+				DDF227ED2CC957B30014505A /* HabitStackerv3App.swift */,
+				FF2A3B4B2E82A00000CCDD01 /* HealthKitReader.swift */,
+				DDC1CC8044D7414584603FF8 /* iCloudBackupManager.swift */,
+				DDF228DF2CCFB3E80014505A /* InternalLogManager.swift */,
+				DDF228D52CCEBFDA0014505A /* LogRecord.swift */,
+				DDF228DD2CCEE3220014505A /* LogSession.swift */,
+				DDF228D72CCEC0160014505A /* LogsView.swift */,
+				DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */,
+				AE083D7CBDFA47BD807FDD67 /* MomentumBackupDocument.swift */,
+				DDF228B12CC97E500014505A /* MultipleSelectionRow.swift */,
+				DD70B5B32E1C4A4F00673D79 /* NewUI.swift */,
+				DD5902BB2CDE5D5F005F040A /* OptimisationSystem.swift */,
+				DDF2282B2CC959450014505A /* PerformanceMonitor.swift */,
+				DDF228A32CC96BCA0014505A /* PriorityCalculator.swift */,
+				DDF228C12CC9A06B0014505A /* ResultExtensions.swift */,
+				DDF228972CC96AD50014505A /* Routine.swift */,
+				DD70B6A62E231B6E00673D79 /* RoutineBuilder.swift */,
+				DD70B5B92E1D3C4D00673D79 /* RoutineCard.swift */,
+				DDF228AB2CC96C310014505A /* RoutineDetailView.swift */,
+				DDF2289D2CC96B640014505A /* RoutineError.swift */,
+				DDF228A92CC96C190014505A /* RoutineListView.swift */,
+				DDF2289F2CC96B730014505A /* RoutineLogger.swift */,
+				DDF2289A2CC96B0F0014505A /* RoutineMetadata.swift */,
+				DDF228C32CCAD2920014505A /* RoutineRunner.swift */,
+				DDF228C82CCAE1300014505A /* RoutineRunnerDetailView.swift */,
+				DDF228C62CCADA910014505A /* RoutineRunnerView.swift */,
+				DD70B5BA2E1D3C4D00673D79 /* RoutineSearchBar.swift */,
+				DDF228BD2CC99C750014505A /* RoutineSelectionView.swift */,
+				DDF228B92CC99C520014505A /* RoutineSetup.swift */,
+				DD70B5B72E1D3C1D00673D79 /* RoutineSortMode.swift */,
+				DDF228A12CC96B830014505A /* RoutineStorage.swift */,
+				DD9480072CDC18CE0014A929 /* RoutineStorageCoreData.swift */,
+				DDF228B52CC98ED70014505A /* RoutineStorageInterface.swift */,
+				DDF228CC2CCD8E440014505A /* RoutineTaskCard.swift */,
+				DD70B6A92E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift */,
+				DD70B6A32E231B5100673D79 /* RoutineTemplateOnboardingView.swift */,
+				DD5902B12CDD21A3005F040A /* RoutineTestHarness.swift */,
+				DD5902B32CDD2347005F040A /* RoutineTestView.swift */,
+				DDF228A72CC96C0D0014505A /* RoutineViewModel.swift */,
+				DDAE4BA02E0B26D200C573DB /* RunFromSelectionView.swift */,
+				DDF228B72CC99C2E0014505A /* ScheduleStructs.swift */,
+				DDF228BF2CC99E200014505A /* SchedulingError.swift */,
+				DD4222C62CDCCF7B008B839C /* SearchBar.swift */,
+				DD70B69E2E213A7200673D79 /* SettingsManager.swift */,
+				DDE14FB32E300FD800AB9088 /* SettingsManager.swift */,
+				982602432B884C5290157ADB /* SettingsView.swift */,
+				DDF228BB2CC99C630014505A /* SetupLogger.swift */,
+				DDAE4BAC2E0C52DF00C573DB /* SimpleMigration.swift */,
+				DDF228E12CCFB7070014505A /* SlideToCompleteView.swift */,
+				DDF228D02CCD9ACE0014505A /* SortMode.swift */,
+				DDFCB83B2E11ADED0085F0AE /* SpendOverUnderView.swift */,
+				DDF228CA2CCD8C400014505A /* SplashScreenView.swift */,
+				DD4222C42CDCCF6F008B839C /* TaskCard.swift */,
+				DDF228CE2CCD95E60014505A /* TaskCardView.swift */,
+				DD4ED5212E75999F00B195CA /* TaskCleanupView.swift */,
+				DDF228322CC9599D0014505A /* TaskDetailView.swift */,
+				DDAE4BA12E0B26D200C573DB /* TaskDurationSuggestion.swift */,
+				DDAE4BA22E0B26D200C573DB /* TaskDurationSuggestionsView.swift */,
+				DDF2281C2CC958A40014505A /* TaskInstance.swift */,
+				DDF228302CC959920014505A /* TaskListView.swift */,
+				DDAE4BA62E0B271100C573DB /* TaskProgressBarView.swift */,
+				DDF228A52CC96BDF0014505A /* TaskSelectionProcess.swift */,
+				DDF2281F2CC958B40014505A /* TaskStorage.swift */,
+				DD9480052CDC18390014A929 /* TaskStorageCoreData.swift */,
+				DDF228212CC958D50014505A /* TaskStorageError.swift */,
+				DDF228232CC958EA0014505A /* TaskStorageInterface.swift */,
+				DDF228AF2CC97A670014505A /* TaskViewModel.swift */,
+				DDAE4B9C2E0B1D9100C573DB /* TempRoutineDetailView.swift */,
+				DDAE4B922E0B039000C573DB /* TempRoutineEntryView.swift */,
+				DDAE4B982E0B13DF00C573DB /* TempRoutineRunner.swift */,
+				DDAE4B9A2E0B140E00C573DB /* TempRoutineRunnerView.swift */,
+				DDAE4B942E0B03A600C573DB /* TempRoutineTimeAllocationView.swift */,
+				DDAE4B9D2E0B1D9100C573DB /* TempRunnerWrapper.swift */,
+				DDAE4B962E0B080400C573DB /* TempTaskList.swift */,
+				DD5902B92CDE5D48005F040A /* TestingStructs.swift */,
+				DD5902AF2CDD1CFA005F040A /* ToDoView.swift */,
+				DD12D7F32CDE9ECF00230040 /* VariableDurationTaskScheduling.swift */,
+				DDF2281A2CC958990014505A /* Version.swift */,
+				DDF228292CC959370014505A /* VersionManager.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DDE150562E32536700AB9088 /* MomentumWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DDE1506F2E32536900AB9088 /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */;
+			buildPhases = (
+				DDE150532E32536700AB9088 /* Sources */,
+				DDE150542E32536700AB9088 /* Frameworks */,
+				DDE150552E32536700AB9088 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DDE1505D2E32536700AB9088 /* MomentumWidget */,
+			);
+			name = MomentumWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MomentumWidgetExtension;
+			productReference = DDE150572E32536700AB9088 /* MomentumWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DDF227E92CC957B30014505A /* Momentum */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DDF2280E2CC957B50014505A /* Build configuration list for PBXNativeTarget "Momentum" */;
+			buildPhases = (
+				DDF227E62CC957B30014505A /* Sources */,
+				DDF227E72CC957B30014505A /* Frameworks */,
+				DDF227E82CC957B30014505A /* Resources */,
+				DDE150722E32536900AB9088 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DDE1506C2E32536900AB9088 /* PBXTargetDependency */,
+			);
+			name = Momentum;
+			packageProductDependencies = (
+				DDF2283A2CC95C120014505A /* AsyncAlgorithms */,
+				DDF228D32CCE9F240014505A /* SwiftSoup */,
+			);
+			productName = HabitStackerv3;
+			productReference = DDF227EA2CC957B30014505A /* Momentum.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DDF227F92CC957B50014505A /* MomentumTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DDF228112CC957B50014505A /* Build configuration list for PBXNativeTarget "MomentumTests" */;
+			buildPhases = (
+				DDF227F62CC957B50014505A /* Sources */,
+				DDF227F72CC957B50014505A /* Frameworks */,
+				DDF227F82CC957B50014505A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DDF227FC2CC957B50014505A /* PBXTargetDependency */,
+			);
+			name = MomentumTests;
+			productName = HabitStackerv3Tests;
+			productReference = DDF227FA2CC957B50014505A /* MomentumTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DDF228032CC957B50014505A /* MomentumUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DDF228142CC957B50014505A /* Build configuration list for PBXNativeTarget "MomentumUITests" */;
+			buildPhases = (
+				DDF228002CC957B50014505A /* Sources */,
+				DDF228012CC957B50014505A /* Frameworks */,
+				DDF228022CC957B50014505A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DDF228062CC957B50014505A /* PBXTargetDependency */,
+			);
+			name = MomentumUITests;
+			productName = HabitStackerv3UITests;
+			productReference = DDF228042CC957B50014505A /* MomentumUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DDF227E22CC957B20014505A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					DDE150562E32536700AB9088 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					DDF227E92CC957B30014505A = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					DDF227F92CC957B50014505A = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = DDF227E92CC957B30014505A;
+					};
+					DDF228032CC957B50014505A = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = DDF227E92CC957B30014505A;
+					};
+				};
+			};
+			buildConfigurationList = DDF227E52CC957B30014505A /* Build configuration list for PBXProject "Momentum" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DDF227E12CC957B20014505A;
+			packageReferences = (
+				DDF228392CC95C120014505A /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				DDF228D22CCE9F240014505A /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+			);
+			productRefGroup = DDF227EB2CC957B30014505A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DDF227E92CC957B30014505A /* Momentum */,
+				DDF227F92CC957B50014505A /* MomentumTests */,
+				DDF228032CC957B50014505A /* MomentumUITests */,
+				DDE150562E32536700AB9088 /* MomentumWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DDE150552E32536700AB9088 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227E82CC957B30014505A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDF227F52CC957B50014505A /* Preview Assets.xcassets in Resources */,
+				DDE14FA42E2ABFC500AB9088 /* template_routines.json in Resources */,
+				DDE14FA52E2ABFC500AB9088 /* template_tasks.json in Resources */,
+				DDF227F22CC957B50014505A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227F82CC957B50014505A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF228022CC957B50014505A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DDE150532E32536700AB9088 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDE150802E32873200AB9088 /* OverrunAwareTimer.swift in Sources */,
+				DDE150742E32538900AB9088 /* RoutineActivityAttributes.swift in Sources */,
+				DDE150792E32576300AB9088 /* RoutineLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227E62CC957B30014505A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDAE4BA72E0B271100C573DB /* TaskProgressBarView.swift in Sources */,
+				DDF228862CC95DDC0014505A /* HabitStackerv3App.swift in Sources */,
+				4A65B470B02F4D9ABB48D859 /* BackupData.swift in Sources */,
+				B4354DC99ECB4B2DA76962C8 /* MomentumBackupDocument.swift in Sources */,
+				AB7B0934618B40EA8D804D23 /* iCloudBackupManager.swift in Sources */,
+				51A29F7609D94E0E835C1840 /* BackupRestoreView.swift in Sources */,
+				00A0451AF8C245A98E7DC0A1 /* SettingsView.swift in Sources */,
+				0342EFDC3A2F4E42A2560623 /* BackupDetailView.swift in Sources */,
+				DD70B6AA2E2324F600673D79 /* RoutineTemplateOnboardingReorderView.swift in Sources */,
+				DDF228B62CC98ED70014505A /* RoutineStorageInterface.swift in Sources */,
+				DDF228C02CC99E200014505A /* SchedulingError.swift in Sources */,
+				DDF228882CC95DF60014505A /* TaskStorageInterface.swift in Sources */,
+				DDF228B82CC99C2E0014505A /* ScheduleStructs.swift in Sources */,
+				DDF228892CC95DF60014505A /* AddTaskView.swift in Sources */,
+				DD947FEE2CDC155E0014A929 /* CoreDataStack.swift in Sources */,
+				EE1A2B3C2E02F00000AABB01 /* SharedDataStore.swift in Sources */,
+				FF2A3B4C2E82A00000CCDD01 /* HealthKitReader.swift in Sources */,
+				DDF228E22CCFB7070014505A /* SlideToCompleteView.swift in Sources */,
+				DDF2288A2CC95DF60014505A /* CustomTask.swift in Sources */,
+				DDF2288B2CC95DF60014505A /* VersionManager.swift in Sources */,
+				DDF228982CC96AD50014505A /* Routine.swift in Sources */,
+				DDF228AC2CC96C310014505A /* RoutineDetailView.swift in Sources */,
+				DD4222C92CDCD342008B839C /* DateExtensions.swift in Sources */,
+				DD5902B22CDD21A3005F040A /* RoutineTestHarness.swift in Sources */,
+				DD3CB6AB2DB6D05A009B2C5C /* SchedulePreviewView.swift in Sources */,
+				DDF2288C2CC95DF60014505A /* TaskDetailView.swift in Sources */,
+				DD7A54C42E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataProperties.swift in Sources */,
+				DD7A54C52E0AEC3900E1201E /* CDTaskCompletionTime+CoreDataClass.swift in Sources */,
+				DDF228D62CCEBFDA0014505A /* LogRecord.swift in Sources */,
+				DDA0184A2E3787BE006EEA49 /* ChecklistItem.swift in Sources */,
+				DDF228BA2CC99C520014505A /* RoutineSetup.swift in Sources */,
+				DDF228BE2CC99C750014505A /* RoutineSelectionView.swift in Sources */,
+				DDAE4B9B2E0B140E00C573DB /* TempRoutineRunnerView.swift in Sources */,
+				DDF228A22CC96B830014505A /* RoutineStorage.swift in Sources */,
+				DDAE4B972E0B080400C573DB /* TempTaskList.swift in Sources */,
+				DDE4AB0B2DA88F80004327C2 /* Formatter+Extensions.swift in Sources */,
+				DD4ED5222E75999F00B195CA /* TaskCleanupView.swift in Sources */,
+				DDF228CB2CCD8C400014505A /* SplashScreenView.swift in Sources */,
+				DDAE4B932E0B039000C573DB /* TempRoutineEntryView.swift in Sources */,
+				DDA018482E378145006EEA49 /* ChecklistTaskView.swift in Sources */,
+				DDF2289B2CC96B0F0014505A /* RoutineMetadata.swift in Sources */,
+				DD70B6A42E231B5100673D79 /* RoutineTemplateOnboardingView.swift in Sources */,
+				DDF2288D2CC95DF60014505A /* TaskStorageError.swift in Sources */,
+				DDE14F9F2E2AAEB000AB9088 /* InfoModalView.swift in Sources */,
+				DD5902BC2CDE5D5F005F040A /* OptimisationSystem.swift in Sources */,
+				DDAE4BA92E0BFEC200C573DB /* CoreDataMigration.swift in Sources */,
+				DDF2288E2CC95DF60014505A /* TaskInstance.swift in Sources */,
+				DDE1507F2E32873200AB9088 /* OverrunAwareTimer.swift in Sources */,
+				DDF2288F2CC95DF60014505A /* ContentView.swift in Sources */,
+				DDF228CD2CCD8E440014505A /* RoutineTaskCard.swift in Sources */,
+				DD7A54C02E0AEBA400E1201E /* CDTask+CoreDataClass.swift in Sources */,
+				DD7A54C12E0AEBA400E1201E /* CDTask+CoreDataProperties.swift in Sources */,
+				DDF228902CC95DF60014505A /* TaskStorage.swift in Sources */,
+				DD43C33B2F38A7AF00ED227E /* SyncSettingsView.swift in Sources */,
+				DD43C33C2F38A7AF00ED227E /* SyncService.swift in Sources */,
+				DDF228A82CC96C0D0014505A /* RoutineViewModel.swift in Sources */,
+				DDAE4B952E0B03A600C573DB /* TempRoutineTimeAllocationView.swift in Sources */,
+				DDF228D12CCD9ACE0014505A /* SortMode.swift in Sources */,
+				DDF228912CC95DF60014505A /* Version.swift in Sources */,
+				DD0FD7742E0AF62200867BAE /* Momentum 3.xcdatamodeld in Sources */,
+				DD70B57F2E1C297400673D79 /* BackgroundTaskViews.swift in Sources */,
+				DD947FFB2CDC17490014A929 /* CDRoutine+CoreDataClass.swift in Sources */,
+				DDA0184C2E37BBE2006EEA49 /* ChecklistItemTransformer.swift in Sources */,
+				DD947FFC2CDC17490014A929 /* CDRoutine+CoreDataProperties.swift in Sources */,
+				DD5902B42CDD2347005F040A /* RoutineTestView.swift in Sources */,
+				DD947FFF2CDC17490014A929 /* CDRoutineTask+CoreDataClass.swift in Sources */,
+				DD70B5B62E1C50D800673D79 /* CircularProgressView.swift in Sources */,
+				DD9480042CDC178B0014A929 /* CDRoutine+Extensions.swift in Sources */,
+				DD9480002CDC17490014A929 /* CDRoutineTask+CoreDataProperties.swift in Sources */,
+				DDF228A02CC96B730014505A /* RoutineLogger.swift in Sources */,
+				DD70B5BB2E1D3C4D00673D79 /* RoutineCard.swift in Sources */,
+				DD70B5BC2E1D3C4D00673D79 /* RoutineSearchBar.swift in Sources */,
+				DD12D7F42CDE9ECF00230040 /* VariableDurationTaskScheduling.swift in Sources */,
+				DD4222C72CDCCF7B008B839C /* SearchBar.swift in Sources */,
+				DDAE4BAF2E0C5A7E00C573DB /* AutomaticMigration.swift in Sources */,
+				DDF228AA2CC96C190014505A /* RoutineListView.swift in Sources */,
+				DD70B6A72E231B6E00673D79 /* RoutineBuilder.swift in Sources */,
+				DD70B6A82E231B6E00673D79 /* DefaultTemplates.swift in Sources */,
+				DDF228CF2CCD95E60014505A /* TaskCardView.swift in Sources */,
+				DDFCB83C2E11ADED0085F0AE /* SpendOverUnderView.swift in Sources */,
+				DDAE4B992E0B13DF00C573DB /* TempRoutineRunner.swift in Sources */,
+				DD5902BA2CDE5D48005F040A /* TestingStructs.swift in Sources */,
+				DDF228A42CC96BCA0014505A /* PriorityCalculator.swift in Sources */,
+				DD70B5B42E1C4A5200673D79 /* NewUI.swift in Sources */,
+				DDAE4BA32E0B26D200C573DB /* RunFromSelectionView.swift in Sources */,
+				DDAE4BA42E0B26D200C573DB /* TaskDurationSuggestion.swift in Sources */,
+				DDAE4BA52E0B26D200C573DB /* TaskDurationSuggestionsView.swift in Sources */,
+				DD9480062CDC18390014A929 /* TaskStorageCoreData.swift in Sources */,
+				DDF228E02CCFB3E80014505A /* InternalLogManager.swift in Sources */,
+				DDF228B42CC98DEA0014505A /* EditRoutineView.swift in Sources */,
+				DD70B5B82E1D3C1D00673D79 /* RoutineSortMode.swift in Sources */,
+				DD4222C52CDCCF6F008B839C /* TaskCard.swift in Sources */,
+				DDE14FA72E2ACFAF00AB9088 /* template_categories.json in Sources */,
+				DDF228B22CC97E500014505A /* MultipleSelectionRow.swift in Sources */,
+				DDF228C92CCAE1300014505A /* RoutineRunnerDetailView.swift in Sources */,
+				DDE14FB42E300FD800AB9088 /* SettingsManager.swift in Sources */,
+				DDF228B02CC97A670014505A /* TaskViewModel.swift in Sources */,
+				DDE4AB092DA88975004327C2 /* CoreDataTaskScheduler.swift in Sources */,
+				DDE150762E32543D00AB9088 /* LiveActivityManager.swift in Sources */,
+				DDF228922CC95DF60014505A /* Logging+Extensions.swift in Sources */,
+				DDAE4BAB2E0C196200C573DB /* DebugMigrationView.swift in Sources */,
+				DDF228A62CC96BDF0014505A /* TaskSelectionProcess.swift in Sources */,
+				DDF228C42CCAD2920014505A /* RoutineRunner.swift in Sources */,
+				DDF228C72CCADA910014505A /* RoutineRunnerView.swift in Sources */,
+				DD9480022CDC17730014A929 /* CDTask+Extensions.swift in Sources */,
+				DDAE4BAD2E0C52DF00C573DB /* SimpleMigration.swift in Sources */,
+				DDE150502E3246AA00AB9088 /* RoutineActivityAttributes.swift in Sources */,
+				DDE150522E3246AA00AB9088 /* RoutineLiveActivityView.swift in Sources */,
+				DDF228932CC95DF60014505A /* PerformanceMonitor.swift in Sources */,
+				DDAE4B9E2E0B1D9100C573DB /* TempRoutineDetailView.swift in Sources */,
+				DDAE4B9F2E0B1D9100C573DB /* TempRunnerWrapper.swift in Sources */,
+				DDF228942CC95DF60014505A /* TaskListView.swift in Sources */,
+				DDF228BC2CC99C630014505A /* SetupLogger.swift in Sources */,
+				DDF2289E2CC96B640014505A /* RoutineError.swift in Sources */,
+				DD70B69E2E213A7100673D79 /* DataStoreManager.swift in Sources */,
+				DD70B69F2E213A7200673D79 /* SettingsManager.swift in Sources */,
+				DD5902B02CDD1CFA005F040A /* ToDoView.swift in Sources */,
+				DDF228D82CCEC0160014505A /* LogsView.swift in Sources */,
+				DDF228AE2CC96C3A0014505A /* CreateRoutineView.swift in Sources */,
+				DD9480082CDC18CE0014A929 /* RoutineStorageCoreData.swift in Sources */,
+				A1B2C3D4E5F6A7B800112234 /* RoutineRunStore.swift in Sources */,
+				DDF228C22CC9A06B0014505A /* ResultExtensions.swift in Sources */,
+				DDF228DE2CCEE3220014505A /* LogSession.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF227F62CC957B50014505A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDF227FF2CC957B50014505A /* HabitStackerv3Tests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDF228002CC957B50014505A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDF2280B2CC957B50014505A /* HabitStackerv3UITestsLaunchTests.swift in Sources */,
+				DDF228092CC957B50014505A /* HabitStackerv3UITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DDE1506C2E32536900AB9088 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DDE150562E32536700AB9088 /* MomentumWidgetExtension */;
+			targetProxy = DDE1506B2E32536900AB9088 /* PBXContainerItemProxy */;
+		};
+		DDF227FC2CC957B50014505A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DDF227E92CC957B30014505A /* Momentum */;
+			targetProxy = DDF227FB2CC957B50014505A /* PBXContainerItemProxy */;
+		};
+		DDF228062CC957B50014505A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DDF227E92CC957B30014505A /* Momentum */;
+			targetProxy = DDF228052CC957B50014505A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		DDE150702E32536900AB9088 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DDE150712E32536900AB9088 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DDF2280C2CC957B50014505A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DDF2280D2CC957B50014505A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DDF2280F2CC957B50014505A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_ASSET_PATHS = "\"HabitStackerv3/Preview Content\"";
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HabitStackerv3/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Momentum.ing;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DDF228102CC957B50014505A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_ASSET_PATHS = "\"HabitStackerv3/Preview Content\"";
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HabitStackerv3/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Momentum.ing;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.Momentum;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DDF228122CC957B50014505A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.HabitStackerv3Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momentum.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momentum";
+			};
+			name = Debug;
+		};
+		DDF228132CC957B50014505A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.HabitStackerv3Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momentum.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momentum";
+			};
+			name = Release;
+		};
+		DDF228152CC957B50014505A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.HabitStackerv3UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HabitStackerv3;
+			};
+			name = Debug;
+		};
+		DDF228162CC957B50014505A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R2D4Y969H;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = AOTondra.HabitStackerv3UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HabitStackerv3;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DDE1506F2E32536900AB9088 /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDE150702E32536900AB9088 /* Debug */,
+				DDE150712E32536900AB9088 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DDF227E52CC957B30014505A /* Build configuration list for PBXProject "Momentum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDF2280C2CC957B50014505A /* Debug */,
+				DDF2280D2CC957B50014505A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DDF2280E2CC957B50014505A /* Build configuration list for PBXNativeTarget "Momentum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDF2280F2CC957B50014505A /* Debug */,
+				DDF228102CC957B50014505A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DDF228112CC957B50014505A /* Build configuration list for PBXNativeTarget "MomentumTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDF228122CC957B50014505A /* Debug */,
+				DDF228132CC957B50014505A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DDF228142CC957B50014505A /* Build configuration list for PBXNativeTarget "MomentumUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DDF228152CC957B50014505A /* Debug */,
+				DDF228162CC957B50014505A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DDF228392CC95C120014505A /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+		DDF228D22CCE9F240014505A /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DDF2283A2CC95C120014505A /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DDF228392CC95C120014505A /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		DDF228D32CCE9F240014505A /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DDF228D22CCE9F240014505A /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		DD0FD7722E0AF62100867BAE /* Momentum 3.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */,
+			);
+			currentVersion = DD0FD7732E0AF62200867BAE /* Momentum.xcdatamodel */;
+			path = "Momentum 3.xcdatamodeld";
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = DDF227E22CC957B20014505A /* Project object */;
+}
