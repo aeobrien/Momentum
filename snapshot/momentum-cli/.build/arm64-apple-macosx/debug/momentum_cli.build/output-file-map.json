@@ -1,0 +1,29 @@
+{
+  "": {
+    "swift-dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/master.swiftdeps"
+  },
+  "/Users/aidan/Dev/Momentum/momentum-cli/Sources/momentum-cli/Commands.swift": {
+    "dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Commands.d",
+    "object": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Commands.swift.o",
+    "swiftmodule": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Commands~partial.swiftmodule",
+    "swift-dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Commands.swiftdeps"
+  },
+  "/Users/aidan/Dev/Momentum/momentum-cli/Sources/momentum-cli/DataLoader.swift": {
+    "dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/DataLoader.d",
+    "object": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/DataLoader.swift.o",
+    "swiftmodule": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/DataLoader~partial.swiftmodule",
+    "swift-dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/DataLoader.swiftdeps"
+  },
+  "/Users/aidan/Dev/Momentum/momentum-cli/Sources/momentum-cli/Formatters.swift": {
+    "dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Formatters.d",
+    "object": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Formatters.swift.o",
+    "swiftmodule": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Formatters~partial.swiftmodule",
+    "swift-dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Formatters.swiftdeps"
+  },
+  "/Users/aidan/Dev/Momentum/momentum-cli/Sources/momentum-cli/Models.swift": {
+    "dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Models.d",
+    "object": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Models.swift.o",
+    "swiftmodule": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/aidan/Dev/Momentum/momentum-cli/.build/arm64-apple-macosx/debug/momentum_cli.build/Models.swiftdeps"
+  }
+}
