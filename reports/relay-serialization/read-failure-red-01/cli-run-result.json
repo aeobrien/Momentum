@@ -1,0 +1,22 @@
+{
+  "ok": false,
+  "exit_code": 1,
+  "timed_out": false,
+  "duration_s": 0.297,
+  "stdout_tail": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________ test_failed_read_cannot_authorize_overwriting_saved_snapshot _________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-52/test_failed_read_cannot_author0')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105934ee0>\n\n    def test_failed_read_cannot_authorize_overwriting_saved_snapshot(tmp_path, monkeypatch):\n        target = tmp_path / 'data.json'\n        target.write_bytes(NEW)\n        original = Path.read_bytes\n        with monkeypatch.context() as patch:\n            def failed_read(path):\n                if path == target: raise PermissionError('synthetic unreadable snapshot')\n                return original(path)\n            patch.setattr(Path, 'read_bytes', failed_read)\n            assert relay.read_snapshot(target) is None  # Existing read-only API behavior.\n>           with pytest.raises(PermissionError): relay.store_if_newer(target, OLD)\nE           Failed: DID NOT RAISE PermissionError\n\nrelay/test_momentum_relay_concurrency.py:243: Failed\n=========================== short test summary info ============================\nFAILED relay/test_momentum_relay_concurrency.py::test_failed_read_cannot_authorize_overwriting_saved_snapshot\n1 failed, 10 deselected in 0.09s\n",
+  "stderr_tail": "",
+  "truncated": false,
+  "assertions": [
+    {
+      "kind": "exit==",
+      "expected": 0,
+      "actual": 1,
+      "ok": false
+    }
+  ],
+  "files": {
+    "created": [],
+    "modified": [],
+    "deleted": []
+  }
+}
