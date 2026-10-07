@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "duration_s": 1.028,
+  "stdout_tail": "127.0.0.1 - \"PUT /momentum/data HTTP/1.1\" 500 -\n127.0.0.1 - \"PUT /data HTTP/1.1\" 200 -\n127.0.0.1 - \"PUT /data HTTP/1.1\" 200 -\n127.0.0.1 - \"GET /momentum/data HTTP/1.1\" 200 -\n127.0.0.1 - \"GET /health HTTP/1.1\" 200 -\n",
+  "stderr_tail": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.810s\n\nOK\n",
+  "truncated": false,
+  "assertions": [
+    {
+      "kind": "exit==",
+      "expected": 0,
+      "actual": 0,
+      "ok": true
+    },
+    {
+      "kind": "stderr.contains",
+      "expected": "Ran 4 tests",
+      "actual": null,
+      "ok": true
+    }
+  ],
+  "files": {
+    "created": [],
+    "modified": [],
+    "deleted": []
+  }
+}

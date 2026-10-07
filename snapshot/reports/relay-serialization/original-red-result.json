@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "duration_s": 0.076,
+  "stdout_tail": "{\"defect_reproduced\": true, \"older_upload_replaced_newer\": true, \"real_records_accessed\": false, \"network_used\": false, \"scope\": \"actual store_if_newer with controlled concurrent read timing\"}\n",
+  "stderr_tail": "",
+  "truncated": false,
+  "assertions": [
+    {
+      "kind": "exit==",
+      "expected": 0,
+      "actual": 0,
+      "ok": true
+    },
+    {
+      "kind": "stdout.contains",
+      "expected": "\"defect_reproduced\": true",
+      "actual": null,
+      "ok": true
+    }
+  ],
+  "files": {
+    "created": [],
+    "modified": [],
+    "deleted": []
+  }
+}
