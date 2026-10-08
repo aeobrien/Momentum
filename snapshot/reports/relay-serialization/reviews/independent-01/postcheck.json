@@ -1,0 +1,13 @@
+{
+  "all_candidate_hashes_match": true,
+  "checks": {
+    "relay/momentum_relay.py": true,
+    "relay/test_momentum_relay.py": true,
+    "relay/test_momentum_relay_concurrency.py": true,
+    "docs/BUILD-RELAY-SERIALIZATION.md": true,
+    "docs/RELAY-SERIALIZATION.md": true
+  },
+  "current_head": "71ac4e88d9941e897cd5724398f5534a114cfed3",
+  "independent_probe_sha256": "023f4ee9d4fbbdbd06b62a80c7e90ca1af95ff2a2e7ab39f8764545d3a32abd9",
+  "astra_not_launched": true
+}

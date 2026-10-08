@@ -1,0 +1,26 @@
+{
+  "candidate": "01",
+  "base": "c5cd45f",
+  "files": [
+    {
+      "path": "relay/momentum_relay.py",
+      "sha256": "0853e8b2b9cde1b1549c5616e7021d674d98d6a3847524dab2e69ebb8195cea3"
+    },
+    {
+      "path": "relay/test_momentum_relay.py",
+      "sha256": "bddd24f037df07425322337b9e49e2c5e918d1005dc5670ccdcaa25950b53abe"
+    },
+    {
+      "path": "relay/test_momentum_relay_concurrency.py",
+      "sha256": "da09d0313e1d8f6666b43cae5e2b14e85cbd9838fa84fb87d1ddcdfe6463099b"
+    },
+    {
+      "path": "docs/BUILD-RELAY-SERIALIZATION.md",
+      "sha256": "9576de56d08518252c5da050b570c48b2c9463593d3c23e8e81b4fa8bb03c28b"
+    },
+    {
+      "path": "docs/RELAY-SERIALIZATION.md",
+      "sha256": "ec024cc4539ca0455d733d526450f3ff9ecc19680afa6e0a30024ef5fd146f6d"
+    }
+  ]
+}

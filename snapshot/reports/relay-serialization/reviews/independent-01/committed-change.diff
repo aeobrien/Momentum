@@ -1,0 +1,851 @@
+diff --git a/docs/BUILD-RELAY-SERIALIZATION.md b/docs/BUILD-RELAY-SERIALIZATION.md
+new file mode 100644
+index 0000000..f999a2a
+--- /dev/null
++++ b/docs/BUILD-RELAY-SERIALIZATION.md
+@@ -0,0 +1,24 @@
++# Keep the newest relay snapshot during overlapping uploads
++
++North star: an older upload must never replace a newer accepted snapshot when requests overlap, including separate relay processes using the same file. Baseline c5cd45f. Isolated relay source repair only; no phone code, deployment, accounts, production relay/default store, remote requests or records. This does not supply missing task CRUD or app-command transport. Reuse current validation, atomic replacement and HTTP contracts. The shared reusable-component catalogue has no applicable persistence primitive; adapt this relay's existing atomic writer using the standard POSIX per-file advisory lock.
++
++## Step 1: Serialize snapshot comparison and replacement
++
++Keep comparison and atomic replacement in one per-target-file critical section shared by threads and cooperating processes. Preserve equal-timestamp replacement and older-upload response semantics. Preserve root's original failing reproduction and add desired-outcome deterministic thread and process regressions. Unrelated snapshot files must progress independently.
++
++- The command `/Users/aidan/Dev/Understudy/.venv/bin/python -m pytest relay/test_momentum_relay.py -q` exits 0.
++- The file `reports/relay-serialization/original-red-result.json` exists.
++
++## Step 2: Preserve atomic reads and honest failure behavior
++
++Readers see complete previous or new data while replacement is pending. Failures before replacement preserve prior data, clean temporary files and release writer ownership for retry. Exercise actual loopback HTTP PUT, GET and health routes, stale/equal/new uploads, concurrent uploads and injected persistence errors. Keep public success responses and validation behavior; if persistence fails, return a truthful HTTP error.
++
++- The file `relay/test_momentum_relay_concurrency.py` exists.
++- The command `/Users/aidan/Dev/Understudy/.venv/bin/python -m pytest relay -q` exits 0.
++
++## Step 3: Review and retain bounded delivery evidence
++
++Retain red, green and any harness failures. Obtain independent Astra review from another agent and Fable review only after exact external disclosure authorization; do not infer consent. Run post-review Understudy, committed-diff review and original completion gates. Document local-filesystem cooperative locking and deployment limits. No local pass means installed service or user acceptance.
++
++- The file `docs/RELAY-SERIALIZATION.md` exists.
++- The file `reports/relay-serialization/VALIDATION.md` exists.
+diff --git a/docs/BUILD-RELAY-SERIALIZATION.md.done-gate-id b/docs/BUILD-RELAY-SERIALIZATION.md.done-gate-id
+new file mode 100644
+index 0000000..8dd1f15
+--- /dev/null
++++ b/docs/BUILD-RELAY-SERIALIZATION.md.done-gate-id
+@@ -0,0 +1 @@
++build-BUILD-RELAY-SERIALIZATION-9576de56
+diff --git a/docs/RELAY-SERIALIZATION.md b/docs/RELAY-SERIALIZATION.md
+new file mode 100644
+index 0000000..1389d01
+--- /dev/null
++++ b/docs/RELAY-SERIALIZATION.md
+@@ -0,0 +1,11 @@
++# Keep the latest relay snapshot
++
++The relay now holds a per-snapshot POSIX advisory lock from reading the current timestamp through atomic replacement. Threads and cooperating relay processes using the same pathname share the stable sibling `.NAME.lock` file. The lock file stays in place; deleting it while writers run would split ownership. Separate snapshot files do not share a global lock.
++
++Incoming JSON is validated before locking. An older timestamp still returns HTTP 200 with `stored:false` and the saved timestamp. Equal timestamps still replace the snapshot. Existing GET, health, path aliases and invalid-body responses remain unchanged. Reads observe either the complete previous file or the complete replacement without waiting for the writer lock. Existing corrupt JSON retains its previous replace-on-valid-upload behavior.
++
++The writer now distinguishes a missing file from an I/O failure while reading existing data. A failed read cannot authorize an overwrite. The read-only helper retains its original `None` behavior by default; writers opt into propagating I/O errors. Persistence errors return HTTP 500 with `snapshot_persistence_failed`, without exposing filesystem paths. Errors before replacement leave the previous bytes intact; descriptors and temporary files are released on exception so a later upload can retry.
++
++This is cooperative locking on the relay's supported macOS/POSIX local filesystem. It does not protect against another program ignoring the lock, lock-file deletion, hostile directory changes, network-filesystem semantics or power-loss durability beyond the existing fsynced temporary file/atomic replacement. The service's trusted private directory remains required. It introduces no Windows support or dependency.
++
++This repair is source-only until reviewed and deployed. It does not create task CRUD, app-command transport, automatic synchronization conflict merging, or changes to the phone app. No installed relay, real account or default data store was used during verification.
+diff --git a/relay/momentum_relay.py b/relay/momentum_relay.py
+index 9c04ff5..527d38d 100644
+--- a/relay/momentum_relay.py
++++ b/relay/momentum_relay.py
+@@ -8,6 +8,7 @@ door, so the payload is available only to devices signed into Aidan's tailnet.
+ from __future__ import annotations
+ 
+ import argparse
++import fcntl
+ import json
+ import os
+ import tempfile
+@@ -48,34 +49,46 @@ def validate_snapshot(data: bytes) -> tuple[dict, datetime]:
+     return payload, modified
+ 
+ 
+-def read_snapshot(path: Path) -> tuple[bytes, datetime] | None:
++def read_snapshot(path: Path, *, raise_on_io_error: bool = False) -> tuple[bytes, datetime] | None:
+     try:
+         data = path.read_bytes()
+         _, modified = validate_snapshot(data)
+         return data, modified
+-    except (OSError, ValueError):
++    except (FileNotFoundError, ValueError):
++        return None
++    except OSError:
++        if raise_on_io_error:
++            raise
+         return None
+ 
+ 
+ def store_if_newer(path: Path, data: bytes) -> tuple[bool, datetime]:
+     _, incoming_modified = validate_snapshot(data)
+-    current = read_snapshot(path)
+-    if current is not None and current[1] > incoming_modified:
+-        return False, current[1]
+-
+     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+-    fd, temporary_name = tempfile.mkstemp(prefix=".MomentumData-", dir=path.parent)
+-    temporary = Path(temporary_name)
+-    try:
+-        with os.fdopen(fd, "wb") as handle:
+-            handle.write(data)
+-            handle.flush()
+-            os.fsync(handle.fileno())
+-        temporary.chmod(0o600)
+-        os.replace(temporary, path)
+-    finally:
+-        temporary.unlink(missing_ok=True)
+-    return True, incoming_modified
++    # A stable sibling inode is essential: the snapshot inode changes on replace.
++    # Open separately for every call so flock also serializes threads in this
++    # process. Never unlink the lock file: waiters must share the same inode.
++    lock_path = path.with_name(f".{path.name}.lock")
++    lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
++    with os.fdopen(lock_fd, "rb") as lock:
++        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
++        current = read_snapshot(path, raise_on_io_error=True)
++        if current is not None and current[1] > incoming_modified:
++            return False, current[1]
++
++        fd, temporary_name = tempfile.mkstemp(prefix=".MomentumData-", dir=path.parent)
++        temporary = Path(temporary_name)
++        try:
++            with os.fdopen(fd, "wb") as handle:
++                handle.write(data)
++                handle.flush()
++                os.fsync(handle.fileno())
++            temporary.chmod(0o600)
++            os.replace(temporary, path)
++        finally:
++            temporary.unlink(missing_ok=True)
++        # Closing the descriptor releases ownership on success or any exception.
++        return True, incoming_modified
+ 
+ 
+ class MomentumRelayHandler(BaseHTTPRequestHandler):
+@@ -142,6 +155,9 @@ class MomentumRelayHandler(BaseHTTPRequestHandler):
+         except ValueError as exc:
+             self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+             return
++        except OSError:
++            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "snapshot_persistence_failed"})
++            return
+         self._json(
+             HTTPStatus.OK,
+             {"status": "ok", "stored": stored, "lastModified": modified.isoformat()},
+diff --git a/relay/test_momentum_relay_concurrency.py b/relay/test_momentum_relay_concurrency.py
+new file mode 100644
+index 0000000..6b79d87
+--- /dev/null
++++ b/relay/test_momentum_relay_concurrency.py
+@@ -0,0 +1,245 @@
++"""Synthetic temporary stores and loopback only; no installed relay state."""
++import concurrent.futures
++import http.client
++import json
++import multiprocessing
++import os
++import sys
++import threading
++from contextlib import contextmanager
++from pathlib import Path
++
++import pytest
++
++sys.path.insert(0, str(Path(__file__).parent))
++import momentum_relay as relay
++from test_momentum_relay import snapshot
++
++BASE = snapshot('2026-10-06T10:00:00Z')
++OLD = snapshot('2026-10-06T10:01:00Z')
++NEW = snapshot('2026-10-06T10:02:00Z')
++
++
++def _process_upload(path, data, entered, release, started, done):
++    original = relay.read_snapshot
++    def held_read(target, **kwargs):
++        result = original(target, **kwargs)
++        entered.set()
++        assert release.wait(10), 'release timed out'
++        return result
++    if entered is not None:
++        relay.read_snapshot = held_read
++    started.set()
++    relay.store_if_newer(Path(path), data)
++    done.set()
++
++
++def test_overlapping_threads_keep_newest(tmp_path, monkeypatch):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    entered, release, started, done = (threading.Event() for _ in range(4))
++    original = relay.read_snapshot
++    def held_read(path, **kwargs):
++        result = original(path, **kwargs)
++        if threading.current_thread().name == 'older':
++            entered.set()
++            assert release.wait(10)
++        return result
++    monkeypatch.setattr(relay, 'read_snapshot', held_read)
++    errors = []
++    def upload(data):
++        try:
++            if data == NEW: started.set()
++            relay.store_if_newer(target, data)
++            if data == NEW: done.set()
++        except BaseException as error: errors.append(error)
++    older = threading.Thread(target=upload, args=(OLD,), name='older')
++    newer = threading.Thread(target=upload, args=(NEW,))
++    older.start()
++    try:
++        assert entered.wait(5)
++        newer.start()
++        assert started.wait(5)
++        done.wait(.4)  # Lets the unfixed writer replace while the older read is held.
++    finally:
++        release.set()
++        older.join(5)
++        if newer.ident is not None: newer.join(5)
++    assert not older.is_alive() and not newer.is_alive() and not errors
++    assert target.read_bytes() == NEW
++
++
++def test_overlapping_processes_keep_newest(tmp_path):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    ctx = multiprocessing.get_context('spawn')
++    entered, release, start_old, start_new, done_old, done_new = (ctx.Event() for _ in range(6))
++    older = ctx.Process(target=_process_upload, args=(str(target), OLD, entered, release, start_old, done_old))
++    newer = ctx.Process(target=_process_upload, args=(str(target), NEW, None, release, start_new, done_new))
++    older.start()
++    try:
++        assert entered.wait(5)
++        newer.start()
++        assert start_new.wait(5)
++        done_new.wait(.4)
++    finally:
++        release.set()
++        for process in (older, newer):
++            if process.pid:
++                process.join(5)
++                if process.is_alive(): process.terminate(); process.join(5)
++    assert older.exitcode == newer.exitcode == 0
++    assert done_old.is_set() and done_new.is_set()
++    assert target.read_bytes() == NEW
++
++
++def test_other_files_progress_while_one_write_is_held(tmp_path, monkeypatch):
++    first = tmp_path / 'one' / 'data.json'
++    second = tmp_path / 'two' / 'data.json'
++    entered, release = threading.Event(), threading.Event()
++    original = relay.read_snapshot
++    def held_read(path, **kwargs):
++        result = original(path, **kwargs)
++        if path == first:
++            entered.set()
++            assert release.wait(10)
++        return result
++    monkeypatch.setattr(relay, 'read_snapshot', held_read)
++    with concurrent.futures.ThreadPoolExecutor(2) as pool:
++        pending = pool.submit(relay.store_if_newer, first, OLD)
++        try:
++            assert entered.wait(5)
++            assert pool.submit(relay.store_if_newer, second, NEW).result(3)[0]
++            assert second.read_bytes() == NEW
++        finally: release.set()
++        assert pending.result(5)[0]
++
++
++@pytest.mark.parametrize('boundary', ['fsync', 'chmod', 'replace'])
++def test_failure_preserves_old_bytes_and_releases_for_retry(tmp_path, monkeypatch, boundary):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    def fail(*args, **kwargs): raise OSError('synthetic persistence failure')
++    with monkeypatch.context() as patch:
++        patch.setattr(Path if boundary == 'chmod' else os, boundary, fail)
++        with pytest.raises(OSError, match='synthetic'):
++            relay.store_if_newer(target, NEW)
++    assert target.read_bytes() == BASE
++    assert not list(tmp_path.glob('.MomentumData-*'))
++    assert relay.store_if_newer(target, NEW)[0]
++    assert target.read_bytes() == NEW
++
++
++def test_readers_see_complete_previous_then_new_snapshot(tmp_path, monkeypatch):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    entered, release = threading.Event(), threading.Event()
++    replace = os.replace
++    def held_replace(source, dest):
++        entered.set()
++        assert release.wait(10)
++        replace(source, dest)
++    monkeypatch.setattr(os, 'replace', held_replace)
++    with concurrent.futures.ThreadPoolExecutor(1) as pool:
++        pending = pool.submit(relay.store_if_newer, target, NEW)
++        try:
++            assert entered.wait(5)
++            for _ in range(20): assert relay.read_snapshot(target)[0] == BASE
++        finally: release.set()
++        assert pending.result(5)[0]
++    assert relay.read_snapshot(target)[0] == NEW
++
++
++@contextmanager
++def running_server(path):
++    server = relay.make_server('127.0.0.1', 0, path)
++    thread = threading.Thread(target=server.serve_forever, daemon=True)
++    thread.start()
++    try: yield server.server_address
++    finally:
++        server.shutdown(); server.server_close(); thread.join(5)
++
++
++def request(address, method, route, body=None):
++    connection = http.client.HTTPConnection(*address, timeout=5)
++    try:
++        connection.request(method, route, body=body)
++        response = connection.getresponse()
++        return response.status, response.read()
++    finally: connection.close()
++
++
++def test_http_success_stale_equal_and_validation_contract(tmp_path):
++    target = tmp_path / 'data.json'
++    with running_server(target) as address:
++        assert request(address, 'GET', '/data')[0] == 404
++        assert json.loads(request(address, 'GET', '/health')[1])['hasData'] is False
++        for route, data, expected in [('/momentum/data', NEW, True), ('/data', OLD, False), ('/data', NEW, True)]:
++            status, raw = request(address, 'PUT', route, data)
++            assert status == 200 and json.loads(raw)['stored'] is expected
++        equal_changed = NEW.replace(b'"app"', b'"other-app"')
++        assert json.loads(request(address, 'PUT', '/data', equal_changed)[1])['stored'] is True
++        assert request(address, 'GET', '/momentum/data') == (200, equal_changed)
++        assert json.loads(request(address, 'GET', '/momentum/health')[1])['hasData'] is True
++        assert request(address, 'PUT', '/data', b'{}')[0] == 400
++        assert request(address, 'GET', '/missing')[0] == 404
++        assert target.read_bytes() == equal_changed
++
++
++def test_http_overlapping_uploads_keep_newest(tmp_path, monkeypatch):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    entered, release = threading.Event(), threading.Event()
++    original = relay.read_snapshot
++    first = True
++    guard = threading.Lock()
++    def held_read(path, **kwargs):
++        nonlocal first
++        result = original(path, **kwargs)
++        with guard:
++            hold = first
++            first = False
++        if hold:
++            entered.set()
++            assert release.wait(10)
++        return result
++    monkeypatch.setattr(relay, 'read_snapshot', held_read)
++    with running_server(target) as address, concurrent.futures.ThreadPoolExecutor(2) as pool:
++        older = pool.submit(request, address, 'PUT', '/data', OLD)
++        try:
++            assert entered.wait(5)
++            newer = pool.submit(request, address, 'PUT', '/momentum/data', NEW)
++            concurrent.futures.wait([newer], timeout=.4)
++        finally: release.set()
++        assert older.result(5)[0] == newer.result(5)[0] == 200
++        assert request(address, 'GET', '/data') == (200, NEW)
++
++
++def test_http_persistence_failure_is_error_and_retry_works(tmp_path, monkeypatch):
++    target = tmp_path / 'data.json'
++    target.write_bytes(BASE)
++    with running_server(target) as address:
++        with monkeypatch.context() as patch:
++            def fail(*args): raise OSError('synthetic failure with private path')
++            patch.setattr(os, 'replace', fail)
++            status, raw = request(address, 'PUT', '/data', NEW)
++            assert status == 500
++            assert json.loads(raw) == {'error': 'snapshot_persistence_failed'}
++        assert request(address, 'GET', '/data') == (200, BASE)
++        assert request(address, 'PUT', '/data', NEW)[0] == 200
++        assert request(address, 'GET', '/data') == (200, NEW)
++
++
++def test_failed_read_cannot_authorize_overwriting_saved_snapshot(tmp_path, monkeypatch):
++    target = tmp_path / 'data.json'
++    target.write_bytes(NEW)
++    original = Path.read_bytes
++    with monkeypatch.context() as patch:
++        def failed_read(path):
++            if path == target: raise PermissionError('synthetic unreadable snapshot')
++            return original(path)
++        patch.setattr(Path, 'read_bytes', failed_read)
++        assert relay.read_snapshot(target) is None  # Existing read-only API behavior.
++        with pytest.raises(PermissionError): relay.store_if_newer(target, OLD)
++    assert target.read_bytes() == NEW
++    assert relay.store_if_newer(target, OLD)[0] is False
+diff --git a/reports/relay-serialization/VALIDATION.md b/reports/relay-serialization/VALIDATION.md
+new file mode 100644
+index 0000000..9ad20b3
+--- /dev/null
++++ b/reports/relay-serialization/VALIDATION.md
+@@ -0,0 +1,13 @@
++# Local validation, candidate 01
++
++Baseline c5cd45f in isolated Momentum-relay-serialization; source-only repair. Original root red reproduction and result copied byte-for-byte in this directory; originals remain at SessionManual/reports/workers/momentum-write-boundary-20261006.
++
++Understudy red-01: 4 failed, 9 passed, 2.496s. Required newest-snapshot outcome failed for threads, separate spawned processes and actual loopback HTTP; injected replace failure closed the HTTP connection without an error response. Full untruncated output and JUnit retained.
++
++Understudy green-01: 13 passed, 3.510s after serialized comparison/replacement and HTTP persistence error handling.
++
++Understudy read-failure-red-01: one genuine failure. An unreadable existing snapshot was treated as absent and overwritten; desired failure-preservation assertion failed. Added strict writer read behavior while retaining read-only helper defaults.
++
++Understudy green-02: 14 passed, 3.445s, no timeout or truncation. Coverage includes original validation and stale retry, thread/process/HTTP overlap, independent file progress, fsync/chmod/replace failure with preserved prior bytes and successful retry, complete concurrent reads, equal timestamps and route aliases, HTTP error/retry and unreadable saved state. All stores are synthetic temporary directories, HTTP binds only loopback ephemeral ports, and spawned processes load this worktree's source.
++
++Independent Astra and Fable review are pending. Post-review Understudy and committed gates remain pending. Fable has no authorization request or package yet. No installation, production store, remote provider, screen, account, real data or phone code changes occurred. Synthetic passes do not establish user acceptance or deployment readiness.
+diff --git a/reports/relay-serialization/WORKBOARD.md b/reports/relay-serialization/WORKBOARD.md
+new file mode 100644
+index 0000000..fd7514d
+--- /dev/null
++++ b/reports/relay-serialization/WORKBOARD.md
+@@ -0,0 +1,11 @@
++# Relay snapshot repair
++
++Saved procedure: 1fa9c273-e7ee-4e6b-bc15-0a3e822ef124. Build session: momentum-relay-serialization-20261006.
++
++- Thread/process latest snapshot persistence: original root race retained; desired-outcome thread/process/HTTP tests failed before repair and pass after.
++- Independent file progress, atomic readers and failure recovery: verified locally; strict writer reads prevent overwriting unreadable data.
++- Actual loopback HTTP behavior: verified locally, including persistence error and retry.
++- Separate Astra/Fable review, post-review tests and committed gates: pending.
++- Installation, real devices, task CRUD and app-command transport: outside this slice; not claimed.
++
++Primary Momentum contains unrelated user/worker changes and tracked build artifacts; all edits stay in this isolated worktree. No applicable project-local AGENTS.md or CLAUDE.md found. No wake subscription or screen lease is needed for these bounded headless checks.
+diff --git a/reports/relay-serialization/candidate-01.json b/reports/relay-serialization/candidate-01.json
+new file mode 100644
+index 0000000..cb057e0
+--- /dev/null
++++ b/reports/relay-serialization/candidate-01.json
+@@ -0,0 +1,26 @@
++{
++  "candidate": "01",
++  "base": "c5cd45f",
++  "files": [
++    {
++      "path": "relay/momentum_relay.py",
++      "sha256": "0853e8b2b9cde1b1549c5616e7021d674d98d6a3847524dab2e69ebb8195cea3"
++    },
++    {
++      "path": "relay/test_momentum_relay.py",
++      "sha256": "bddd24f037df07425322337b9e49e2c5e918d1005dc5670ccdcaa25950b53abe"
++    },
++    {
++      "path": "relay/test_momentum_relay_concurrency.py",
++      "sha256": "da09d0313e1d8f6666b43cae5e2b14e85cbd9838fa84fb87d1ddcdfe6463099b"
++    },
++    {
++      "path": "docs/BUILD-RELAY-SERIALIZATION.md",
++      "sha256": "9576de56d08518252c5da050b570c48b2c9463593d3c23e8e81b4fa8bb03c28b"
++    },
++    {
++      "path": "docs/RELAY-SERIALIZATION.md",
++      "sha256": "ec024cc4539ca0455d733d526450f3ff9ecc19680afa6e0a30024ef5fd146f6d"
++    }
++  ]
++}
+diff --git a/reports/relay-serialization/green-01/cli-run-result.json b/reports/relay-serialization/green-01/cli-run-result.json
+new file mode 100644
+index 0000000..3f324d4
+--- /dev/null
++++ b/reports/relay-serialization/green-01/cli-run-result.json
+@@ -0,0 +1,28 @@
++{
++  "ok": true,
++  "exit_code": 0,
++  "timed_out": false,
++  "duration_s": 3.51,
++  "stdout_tail": ".............                                                            [100%]\n13 passed in 3.29s\n",
++  "stderr_tail": "",
++  "truncated": false,
++  "assertions": [
++    {
++      "kind": "exit==",
++      "expected": 0,
++      "actual": 0,
++      "ok": true
++    },
++    {
++      "kind": "stdout.contains",
++      "expected": "13 passed",
++      "actual": null,
++      "ok": true
++    }
++  ],
++  "files": {
++    "created": [],
++    "modified": [],
++    "deleted": []
++  }
++}
+\ No newline at end of file
+diff --git a/reports/relay-serialization/green-02-junit.xml b/reports/relay-serialization/green-02-junit.xml
+new file mode 100644
+index 0000000..0e9a25a
+--- /dev/null
++++ b/reports/relay-serialization/green-02-junit.xml
+@@ -0,0 +1 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="14" time="3.143" timestamp="2026-10-06T19:57:21.690029+01:00" hostname="Aidans-Laptop.local"><testcase classname="relay.test_momentum_relay" name="test_rejects_json_without_the_shared_data_contract" time="0.000" /><testcase classname="relay.test_momentum_relay" name="test_stores_a_valid_snapshot_atomically" time="0.003" /><testcase classname="relay.test_momentum_relay" name="test_an_older_retry_cannot_replace_newer_data" time="0.001" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_threads_keep_newest" time="0.407" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_processes_keep_newest" time="0.700" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_other_files_progress_while_one_write_is_held" time="0.004" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[fsync]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[chmod]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[replace]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_readers_see_complete_previous_then_new_snapshot" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_success_stale_equal_and_validation_contract" time="0.512" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_overlapping_uploads_keep_newest" time="0.912" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_persistence_failure_is_error_and_retry_works" time="0.517" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failed_read_cannot_authorize_overwriting_saved_snapshot" time="0.011" /></testsuite></testsuites>
+\ No newline at end of file
+diff --git a/reports/relay-serialization/green-02/cli-run-result.json b/reports/relay-serialization/green-02/cli-run-result.json
+new file mode 100644
+index 0000000..21d588c
+--- /dev/null
++++ b/reports/relay-serialization/green-02/cli-run-result.json
+@@ -0,0 +1,28 @@
++{
++  "ok": true,
++  "exit_code": 0,
++  "timed_out": false,
++  "duration_s": 3.445,
++  "stdout_tail": "..............                                                           [100%]\n14 passed in 3.16s\n",
++  "stderr_tail": "",
++  "truncated": false,
++  "assertions": [
++    {
++      "kind": "exit==",
++      "expected": 0,
++      "actual": 0,
++      "ok": true
++    },
++    {
++      "kind": "stdout.contains",
++      "expected": "14 passed",
++      "actual": null,
++      "ok": true
++    }
++  ],
++  "files": {
++    "created": [],
++    "modified": [],
++    "deleted": []
++  }
++}
+\ No newline at end of file
+diff --git a/reports/relay-serialization/green-junit.xml b/reports/relay-serialization/green-junit.xml
+new file mode 100644
+index 0000000..14bb5a6
+--- /dev/null
++++ b/reports/relay-serialization/green-junit.xml
+@@ -0,0 +1 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="13" time="3.290" timestamp="2026-10-06T19:56:17.888236+01:00" hostname="Aidans-Laptop.local"><testcase classname="relay.test_momentum_relay" name="test_rejects_json_without_the_shared_data_contract" time="0.000" /><testcase classname="relay.test_momentum_relay" name="test_stores_a_valid_snapshot_atomically" time="0.004" /><testcase classname="relay.test_momentum_relay" name="test_an_older_retry_cannot_replace_newer_data" time="0.001" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_threads_keep_newest" time="0.409" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_processes_keep_newest" time="0.887" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_other_files_progress_while_one_write_is_held" time="0.005" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[fsync]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[chmod]" time="0.003" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[replace]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_readers_see_complete_previous_then_new_snapshot" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_success_stale_equal_and_validation_contract" time="0.513" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_overlapping_uploads_keep_newest" time="0.912" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_persistence_failure_is_error_and_retry_works" time="0.507" /></testsuite></testsuites>
+\ No newline at end of file
+diff --git a/reports/relay-serialization/original-red-probe.py b/reports/relay-serialization/original-red-probe.py
+new file mode 100644
+index 0000000..b025f44
+--- /dev/null
++++ b/reports/relay-serialization/original-red-probe.py
+@@ -0,0 +1,32 @@
++"""Reproduce an older concurrent upload replacing a newer synthetic snapshot."""
++import importlib.util, json, tempfile, threading
++from pathlib import Path
++source=Path('/Users/aidan/Dev/Momentum/relay/momentum_relay.py')
++spec=importlib.util.spec_from_file_location('momentum_relay_audit',source)
++m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
++def snapshot(stamp):
++ return json.dumps({'tasks':[], 'routines':[], 'completionHistory':[], 'lastModified':stamp, 'lastModifiedBy':'app'}).encode()
++older=snapshot('2026-10-06T10:01:00Z'); newer=snapshot('2026-10-06T10:02:00Z')
++with tempfile.TemporaryDirectory(prefix='momentum-audit-') as tmp:
++ path=Path(tmp)/'snapshot.json';path.write_bytes(snapshot('2026-10-06T10:00:00Z'))
++ read_done=threading.Event();release=threading.Event(); original=m.read_snapshot; failures=[]; outcomes=[]
++ def read_with_barrier(p):
++  result=original(p)
++  if threading.current_thread().name=='older-upload':
++   read_done.set()
++   if not release.wait(5): raise RuntimeError('test barrier expired')
++  return result
++ m.read_snapshot=read_with_barrier
++ def older_upload():
++  try:outcomes.append(m.store_if_newer(path,older)[0])
++  except BaseException as e:failures.append(repr(e))
++ thread=threading.Thread(target=older_upload,name='older-upload');thread.start()
++ try:
++  assert read_done.wait(5),'older upload did not reach comparison'
++  assert m.store_if_newer(path,newer)[0]
++  assert path.read_bytes()==newer,'newer upload not stored'
++ finally:
++  release.set();thread.join(5)
++ assert not thread.is_alive() and not failures,failures
++ assert outcomes==[True] and path.read_bytes()==older,'original concurrency defect not reproduced'
++ print(json.dumps({'defect_reproduced':True,'older_upload_replaced_newer':True,'real_records_accessed':False,'network_used':False,'scope':'actual store_if_newer with controlled concurrent read timing'}))
+diff --git a/reports/relay-serialization/original-red-result.json b/reports/relay-serialization/original-red-result.json
+new file mode 100644
+index 0000000..44676f6
+--- /dev/null
++++ b/reports/relay-serialization/original-red-result.json
+@@ -0,0 +1,28 @@
++{
++  "ok": true,
++  "exit_code": 0,
++  "timed_out": false,
++  "duration_s": 0.076,
++  "stdout_tail": "{\"defect_reproduced\": true, \"older_upload_replaced_newer\": true, \"real_records_accessed\": false, \"network_used\": false, \"scope\": \"actual store_if_newer with controlled concurrent read timing\"}\n",
++  "stderr_tail": "",
++  "truncated": false,
++  "assertions": [
++    {
++      "kind": "exit==",
++      "expected": 0,
++      "actual": 0,
++      "ok": true
++    },
++    {
++      "kind": "stdout.contains",
++      "expected": "\"defect_reproduced\": true",
++      "actual": null,
++      "ok": true
++    }
++  ],
++  "files": {
++    "created": [],
++    "modified": [],
++    "deleted": []
++  }
++}
+\ No newline at end of file
+diff --git a/reports/relay-serialization/read-failure-red-01/cli-run-result.json b/reports/relay-serialization/read-failure-red-01/cli-run-result.json
+new file mode 100644
+index 0000000..bee1980
+--- /dev/null
++++ b/reports/relay-serialization/read-failure-red-01/cli-run-result.json
+@@ -0,0 +1,22 @@
++{
++  "ok": false,
++  "exit_code": 1,
++  "timed_out": false,
++  "duration_s": 0.297,
++  "stdout_tail": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________ test_failed_read_cannot_authorize_overwriting_saved_snapshot _________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-52/test_failed_read_cannot_author0')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105934ee0>\n\n    def test_failed_read_cannot_authorize_overwriting_saved_snapshot(tmp_path, monkeypatch):\n        target = tmp_path / 'data.json'\n        target.write_bytes(NEW)\n        original = Path.read_bytes\n        with monkeypatch.context() as patch:\n            def failed_read(path):\n                if path == target: raise PermissionError('synthetic unreadable snapshot')\n                return original(path)\n            patch.setattr(Path, 'read_bytes', failed_read)\n            assert relay.read_snapshot(target) is None  # Existing read-only API behavior.\n>           with pytest.raises(PermissionError): relay.store_if_newer(target, OLD)\nE           Failed: DID NOT RAISE PermissionError\n\nrelay/test_momentum_relay_concurrency.py:243: Failed\n=========================== short test summary info ============================\nFAILED relay/test_momentum_relay_concurrency.py::test_failed_read_cannot_authorize_overwriting_saved_snapshot\n1 failed, 10 deselected in 0.09s\n",
++  "stderr_tail": "",
++  "truncated": false,
++  "assertions": [
++    {
++      "kind": "exit==",
++      "expected": 0,
++      "actual": 1,
++      "ok": false
++    }
++  ],
++  "files": {
++    "created": [],
++    "modified": [],
++    "deleted": []
++  }
++}
+\ No newline at end of file
+diff --git a/reports/relay-serialization/read-failure-red-junit.xml b/reports/relay-serialization/read-failure-red-junit.xml
+new file mode 100644
+index 0000000..e83cf7e
+--- /dev/null
++++ b/reports/relay-serialization/read-failure-red-junit.xml
+@@ -0,0 +1,17 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.089" timestamp="2026-10-06T19:57:06.230343+01:00" hostname="Aidans-Laptop.local"><testcase classname="relay.test_momentum_relay_concurrency" name="test_failed_read_cannot_authorize_overwriting_saved_snapshot" time="0.007"><failure message="Failed: DID NOT RAISE PermissionError">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-52/test_failed_read_cannot_author0')
++monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x105934ee0&gt;
++
++    def test_failed_read_cannot_authorize_overwriting_saved_snapshot(tmp_path, monkeypatch):
++        target = tmp_path / 'data.json'
++        target.write_bytes(NEW)
++        original = Path.read_bytes
++        with monkeypatch.context() as patch:
++            def failed_read(path):
++                if path == target: raise PermissionError('synthetic unreadable snapshot')
++                return original(path)
++            patch.setattr(Path, 'read_bytes', failed_read)
++            assert relay.read_snapshot(target) is None  # Existing read-only API behavior.
++&gt;           with pytest.raises(PermissionError): relay.store_if_newer(target, OLD)
++E           Failed: DID NOT RAISE PermissionError
++
++relay/test_momentum_relay_concurrency.py:243: Failed</failure></testcase></testsuite></testsuites>
+\ No newline at end of file
+diff --git a/reports/relay-serialization/red-01/cli-run-result.json b/reports/relay-serialization/red-01/cli-run-result.json
+new file mode 100644
+index 0000000..1bb4dd8
+--- /dev/null
++++ b/reports/relay-serialization/red-01/cli-run-result.json
+@@ -0,0 +1,22 @@
++{
++  "ok": false,
++  "exit_code": 1,
++  "timed_out": false,
++  "duration_s": 2.496,
++  "stdout_tail": "...FF......FF                                                            [100%]\n=================================== FAILURES ===================================\n_____________________ test_overlapping_threads_keep_newest _____________________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_threads_keep_0')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106171120>\n\n    def test_overlapping_threads_keep_newest(tmp_path, monkeypatch):\n        target = tmp_path / 'data.json'\n        target.write_bytes(BASE)\n        entered, release, started, done = (threading.Event() for _ in range(4))\n        original = relay.read_snapshot\n        def held_read(path):\n            result = original(path)\n            if threading.current_thread().name == 'older':\n                entered.set()\n                assert release.wait(10)\n            return result\n        monkeypatch.setattr(relay, 'read_snapshot', held_read)\n        errors = []\n        def upload(data):\n            try:\n                if data == NEW: started.set()\n                relay.store_if_newer(target, data)\n                if data == NEW: done.set()\n            except BaseException as error: errors.append(error)\n        older = threading.Thread(target=upload, args=(OLD,), name='older')\n        newer = threading.Thread(target=upload, args=(NEW,))\n        older.start()\n        try:\n            assert entered.wait(5)\n            newer.start()\n            assert started.wait(5)\n            done.wait(.4)  # Lets the unfixed writer replace while the older read is held.\n        finally:\n            release.set()\n            older.join(5)\n            if newer.ident is not None: newer.join(5)\n        assert not older.is_alive() and not newer.is_alive() and not errors\n>       assert target.read_bytes() == NEW\nE       assert b'{\"tasks\": [...edBy\": \"app\"}' == b'{\"tasks\": [...edBy\": \"app\"}'\nE         \nE         At index 87 diff: b'1' != b'2'\nE         Use -v to get more diff\n\nrelay/test_momentum_relay_concurrency.py:69: AssertionError\n____________________ test_overlapping_processes_keep_newest ____________________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_processes_kee0')\n\n    def test_overlapping_processes_keep_newest(tmp_path):\n        target = tmp_path / 'data.json'\n        target.write_bytes(BASE)\n        ctx = multiprocessing.get_context('spawn')\n        entered, release, start_old, start_new, done_old, done_new = (ctx.Event() for _ in range(6))\n        older = ctx.Process(target=_process_upload, args=(str(target), OLD, entered, release, start_old, done_old))\n        newer = ctx.Process(target=_process_upload, args=(str(target), NEW, None, release, start_new, done_new))\n        older.start()\n        try:\n            assert entered.wait(5)\n            newer.start()\n            assert start_new.wait(5)\n            done_new.wait(.4)\n        finally:\n            release.set()\n            for process in (older, newer):\n                if process.pid:\n                    process.join(5)\n                    if process.is_alive(): process.terminate(); process.join(5)\n        assert older.exitcode == newer.exitcode == 0\n        assert done_old.is_set() and done_new.is_set()\n>       assert target.read_bytes() == NEW\nE       assert b'{\"tasks\": [...edBy\": \"app\"}' == b'{\"tasks\": [...edBy\": \"app\"}'\nE         \nE         At index 87 diff: b'1' != b'2'\nE         Use -v to get more diff\n\nrelay/test_momentum_relay_concurrency.py:93: AssertionError\n__________________ test_http_overlapping_uploads_keep_newest ___________________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_overlapping_uploads_0')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106191540>\n\n    def test_http_overlapping_uploads_keep_newest(tmp_path, monkeypatch):\n        target = tmp_path / 'data.json'\n        target.write_bytes(BASE)\n        entered, release = threading.Event(), threading.Event()\n        original = relay.read_snapshot\n        first = True\n        guard = threading.Lock()\n        def held_read(path):\n            nonlocal first\n            result = original(path)\n            with guard:\n                hold = first\n                first = False\n            if hold:\n                entered.set()\n                assert release.wait(10)\n            return result\n        monkeypatch.setattr(relay, 'read_snapshot', held_read)\n        with running_server(target) as address, concurrent.futures.ThreadPoolExecutor(2) as pool:\n            older = pool.submit(request, address, 'PUT', '/data', OLD)\n            try:\n                assert entered.wait(5)\n                newer = pool.submit(request, address, 'PUT', '/momentum/data', NEW)\n                concurrent.futures.wait([newer], timeout=.4)\n            finally: release.set()\n            assert older.result(5)[0] == newer.result(5)[0] == 200\n>           assert request(address, 'GET', '/data') == (200, NEW)\nE           assert (200, b'{\"tas...dBy\": \"app\"}') == (200, b'{\"tas...dBy\": \"app\"}')\nE             \nE             At index 1 diff: b'{\"tasks\": [], \"routines\": [], \"completionHistory\": [], \"lastModified\": \"2026-10-06T10:01:00Z\", \"lastModifiedBy\": \"app\"}' != b'{\"tasks\": [], \"routines\": [], \"completionHistory\": [], \"lastModified\": \"2026-10-06T10:02:00Z\", \"lastModifiedBy\": \"app\"}'\nE             Use -v to get more diff\n\nrelay/test_momentum_relay_concurrency.py:215: AssertionError\n----------------------------- Captured stdout call -----------------------------\n127.0.0.1 - \"PUT /momentum/data HTTP/1.1\" 200 -\n127.0.0.1 - \"PUT /data HTTP/1.1\" 200 -\n127.0.0.1 - \"GET /data HTTP/1.1\" 200 -\n____________ test_http_persistence_failure_is_error_and_retry_works ____________\n\ntmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_persistence_failure_0')\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1061774f0>\n\n    def test_http_persistence_failure_is_error_and_retry_works(tmp_path, monkeypatch):\n        target = tmp_path / 'data.json'\n        target.write_bytes(BASE)\n        with running_server(target) as address:\n            with monkeypatch.context() as patch:\n                def fail(*args): raise OSError('synthetic failure with private path')\n                patch.setattr(os, 'replace', fail)\n>               status, raw = request(address, 'PUT', '/data', NEW)\n\nrelay/test_momentum_relay_concurrency.py:225: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nrelay/test_momentum_relay_concurrency.py:167: in request\n    response = connection.getresponse()\n../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:1375: in getresponse\n    response.begin()\n../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:318: in begin\n    version, status, reason = self._read_status()\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <http.client.HTTPResponse object at 0x106176080>\n\n    def _read_status(self):\n        line = str(self.fp.readline(_MAXLINE + 1), \"iso-8859-1\")\n        if len(line) > _MAXLINE:\n            raise LineTooLong(\"status line\")\n        if self.debuglevel > 0:\n            print(\"reply:\", repr(line))\n        if not line:\n            # Presumably, the server closed the connection before\n            # sending a valid response.\n>           raise RemoteDisconnected(\"Remote end closed connection without\"\n                                     \" response\")\nE           http.client.RemoteDisconnected: Remote end closed connection without response\n\n../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:287: RemoteDisconnected\n----------------------------- Captured stderr call -----------------------------\n----------------------------------------\nException occurred during processing of request from ('127.0.0.1', 62035)\nTraceback (most recent call last):\n  File \"/Users/aidan/.pyenv/versions/3.10.13/lib/python3.10/socketserver.py\", line 683, in process_request_thread\n    self.finish_request(request, client_address)\n  File \"/Users/aidan/.pyenv/versions/3.10.13/lib/python3.10/socketserver.py\", line 360, in finish_request\n    self.RequestHandlerClass(request, client_address, self)\n  File \"/Users/aidan/.pyenv/versions/3.10.13/lib/python3.10/socketserver.py\", line 747, in __init__\n    self.handle()\n  File \"/Users/aidan/.pyenv/versions/3.10.13/lib/python3.10/http/server.py\", line 433, in handle\n    self.handle_one_request()\n  File \"/Users/aidan/.pyenv/versions/3.10.13/lib/python3.10/http/server.py\", line 421, in handle_one_request\n    method()\n  File \"/Users/aidan/Dev/Momentum-relay-serialization/relay/momentum_relay.py\", line 141, in do_PUT\n    stored, modified = store_if_newer(self.data_path, data)\n  File \"/Users/aidan/Dev/Momentum-relay-serialization/relay/momentum_relay.py\", line 75, in store_if_newer\n    os.replace(temporary, path)\n  File \"/Users/aidan/Dev/Momentum-relay-serialization/relay/test_momentum_relay_concurrency.py\", line 223, in fail\n    def fail(*args): raise OSError('synthetic failure with private path')\nOSError: synthetic failure with private path\n----------------------------------------\n=========================== short test summary info ============================\nFAILED relay/test_momentum_relay_concurrency.py::test_overlapping_threads_keep_newest\nFAILED relay/test_momentum_relay_concurrency.py::test_overlapping_processes_keep_newest\nFAILED relay/test_momentum_relay_concurrency.py::test_http_overlapping_uploads_keep_newest\nFAILED relay/test_momentum_relay_concurrency.py::test_http_persistence_failure_is_error_and_retry_works\n4 failed, 9 passed in 2.19s\n",
++  "stderr_tail": "",
++  "truncated": false,
++  "assertions": [
++    {
++      "kind": "exit==",
++      "expected": 0,
++      "actual": 1,
++      "ok": false
++    }
++  ],
++  "files": {
++    "created": [],
++    "modified": [],
++    "deleted": []
++  }
++}
+\ No newline at end of file
+diff --git a/reports/relay-serialization/red-junit.xml b/reports/relay-serialization/red-junit.xml
+new file mode 100644
+index 0000000..474d76c
+--- /dev/null
++++ b/reports/relay-serialization/red-junit.xml
+@@ -0,0 +1,143 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="13" time="2.170" timestamp="2026-10-06T19:55:28.193460+01:00" hostname="Aidans-Laptop.local"><testcase classname="relay.test_momentum_relay" name="test_rejects_json_without_the_shared_data_contract" time="0.001" /><testcase classname="relay.test_momentum_relay" name="test_stores_a_valid_snapshot_atomically" time="0.004" /><testcase classname="relay.test_momentum_relay" name="test_an_older_retry_cannot_replace_newer_data" time="0.001" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_threads_keep_newest" time="0.007"><failure message="assert b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}' == b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}'&#10;  &#10;  At index 87 diff: b'1' != b'2'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_threads_keep_0')
++monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x106171120&gt;
++
++    def test_overlapping_threads_keep_newest(tmp_path, monkeypatch):
++        target = tmp_path / 'data.json'
++        target.write_bytes(BASE)
++        entered, release, started, done = (threading.Event() for _ in range(4))
++        original = relay.read_snapshot
++        def held_read(path):
++            result = original(path)
++            if threading.current_thread().name == 'older':
++                entered.set()
++                assert release.wait(10)
++            return result
++        monkeypatch.setattr(relay, 'read_snapshot', held_read)
++        errors = []
++        def upload(data):
++            try:
++                if data == NEW: started.set()
++                relay.store_if_newer(target, data)
++                if data == NEW: done.set()
++            except BaseException as error: errors.append(error)
++        older = threading.Thread(target=upload, args=(OLD,), name='older')
++        newer = threading.Thread(target=upload, args=(NEW,))
++        older.start()
++        try:
++            assert entered.wait(5)
++            newer.start()
++            assert started.wait(5)
++            done.wait(.4)  # Lets the unfixed writer replace while the older read is held.
++        finally:
++            release.set()
++            older.join(5)
++            if newer.ident is not None: newer.join(5)
++        assert not older.is_alive() and not newer.is_alive() and not errors
++&gt;       assert target.read_bytes() == NEW
++E       assert b'{"tasks": [...edBy": "app"}' == b'{"tasks": [...edBy": "app"}'
++E         
++E         At index 87 diff: b'1' != b'2'
++E         Use -v to get more diff
++
++relay/test_momentum_relay_concurrency.py:69: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_processes_keep_newest" time="0.457"><failure message="assert b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}' == b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}'&#10;  &#10;  At index 87 diff: b'1' != b'2'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_processes_kee0')
++
++    def test_overlapping_processes_keep_newest(tmp_path):
++        target = tmp_path / 'data.json'
++        target.write_bytes(BASE)
++        ctx = multiprocessing.get_context('spawn')
++        entered, release, start_old, start_new, done_old, done_new = (ctx.Event() for _ in range(6))
++        older = ctx.Process(target=_process_upload, args=(str(target), OLD, entered, release, start_old, done_old))
++        newer = ctx.Process(target=_process_upload, args=(str(target), NEW, None, release, start_new, done_new))
++        older.start()
++        try:
++            assert entered.wait(5)
++            newer.start()
++            assert start_new.wait(5)
++            done_new.wait(.4)
++        finally:
++            release.set()
++            for process in (older, newer):
++                if process.pid:
++                    process.join(5)
++                    if process.is_alive(): process.terminate(); process.join(5)
++        assert older.exitcode == newer.exitcode == 0
++        assert done_old.is_set() and done_new.is_set()
++&gt;       assert target.read_bytes() == NEW
++E       assert b'{"tasks": [...edBy": "app"}' == b'{"tasks": [...edBy": "app"}'
++E         
++E         At index 87 diff: b'1' != b'2'
++E         Use -v to get more diff
++
++relay/test_momentum_relay_concurrency.py:93: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_other_files_progress_while_one_write_is_held" time="0.004" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[fsync]" time="0.003" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[chmod]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[replace]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_readers_see_complete_previous_then_new_snapshot" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_success_stale_equal_and_validation_contract" time="0.511" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_overlapping_uploads_keep_newest" time="0.507"><failure message="assert (200, b'{&quot;tas...dBy&quot;: &quot;app&quot;}') == (200, b'{&quot;tas...dBy&quot;: &quot;app&quot;}')&#10;  &#10;  At index 1 diff: b'{&quot;tasks&quot;: [], &quot;routines&quot;: [], &quot;completionHistory&quot;: [], &quot;lastModified&quot;: &quot;2026-10-06T10:01:00Z&quot;, &quot;lastModifiedBy&quot;: &quot;app&quot;}' != b'{&quot;tasks&quot;: [], &quot;routines&quot;: [], &quot;completionHistory&quot;: [], &quot;lastModified&quot;: &quot;2026-10-06T10:02:00Z&quot;, &quot;lastModifiedBy&quot;: &quot;app&quot;}'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_overlapping_uploads_0')
++monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x106191540&gt;
++
++    def test_http_overlapping_uploads_keep_newest(tmp_path, monkeypatch):
++        target = tmp_path / 'data.json'
++        target.write_bytes(BASE)
++        entered, release = threading.Event(), threading.Event()
++        original = relay.read_snapshot
++        first = True
++        guard = threading.Lock()
++        def held_read(path):
++            nonlocal first
++            result = original(path)
++            with guard:
++                hold = first
++                first = False
++            if hold:
++                entered.set()
++                assert release.wait(10)
++            return result
++        monkeypatch.setattr(relay, 'read_snapshot', held_read)
++        with running_server(target) as address, concurrent.futures.ThreadPoolExecutor(2) as pool:
++            older = pool.submit(request, address, 'PUT', '/data', OLD)
++            try:
++                assert entered.wait(5)
++                newer = pool.submit(request, address, 'PUT', '/momentum/data', NEW)
++                concurrent.futures.wait([newer], timeout=.4)
++            finally: release.set()
++            assert older.result(5)[0] == newer.result(5)[0] == 200
++&gt;           assert request(address, 'GET', '/data') == (200, NEW)
++E           assert (200, b'{"tas...dBy": "app"}') == (200, b'{"tas...dBy": "app"}')
++E             
++E             At index 1 diff: b'{"tasks": [], "routines": [], "completionHistory": [], "lastModified": "2026-10-06T10:01:00Z", "lastModifiedBy": "app"}' != b'{"tasks": [], "routines": [], "completionHistory": [], "lastModified": "2026-10-06T10:02:00Z", "lastModifiedBy": "app"}'
++E             Use -v to get more diff
++
++relay/test_momentum_relay_concurrency.py:215: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_persistence_failure_is_error_and_retry_works" time="0.504"><failure message="http.client.RemoteDisconnected: Remote end closed connection without response">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_persistence_failure_0')
++monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1061774f0&gt;
++
++    def test_http_persistence_failure_is_error_and_retry_works(tmp_path, monkeypatch):
++        target = tmp_path / 'data.json'
++        target.write_bytes(BASE)
++        with running_server(target) as address:
++            with monkeypatch.context() as patch:
++                def fail(*args): raise OSError('synthetic failure with private path')
++                patch.setattr(os, 'replace', fail)
++&gt;               status, raw = request(address, 'PUT', '/data', NEW)
++
++relay/test_momentum_relay_concurrency.py:225: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++relay/test_momentum_relay_concurrency.py:167: in request
++    response = connection.getresponse()
++../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:1375: in getresponse
++    response.begin()
++../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:318: in begin
++    version, status, reason = self._read_status()
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = &lt;http.client.HTTPResponse object at 0x106176080&gt;
++
++    def _read_status(self):
++        line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
++        if len(line) &gt; _MAXLINE:
++            raise LineTooLong("status line")
++        if self.debuglevel &gt; 0:
++            print("reply:", repr(line))
++        if not line:
++            # Presumably, the server closed the connection before
++            # sending a valid response.
++&gt;           raise RemoteDisconnected("Remote end closed connection without"
++                                     " response")
++E           http.client.RemoteDisconnected: Remote end closed connection without response
++
++../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:287: RemoteDisconnected</failure></testcase></testsuite></testsuites>
+\ No newline at end of file
