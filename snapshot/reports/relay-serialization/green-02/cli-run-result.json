@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "duration_s": 3.445,
+  "stdout_tail": "..............                                                           [100%]\n14 passed in 3.16s\n",
+  "stderr_tail": "",
+  "truncated": false,
+  "assertions": [
+    {
+      "kind": "exit==",
+      "expected": 0,
+      "actual": 0,
+      "ok": true
+    },
+    {
+      "kind": "stdout.contains",
+      "expected": "14 passed",
+      "actual": null,
+      "ok": true
+    }
+  ],
+  "files": {
+    "created": [],
+    "modified": [],
+    "deleted": []
+  }
+}
