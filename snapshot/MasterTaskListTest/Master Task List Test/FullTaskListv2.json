@@ -1,0 +1,245 @@
+{
+  "version": "1.2",
+  "tasks": [
+    {
+      "id": "50e7e7b3-0899-4d5e-9d0d-1c768e7c7741",
+      "task": "Brush teeth",
+      "duration": 20,
+      "priority": 1,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "f7846a3b-3a65-4d7e-9378-8727185db931",
+      "task": "Make breakfast",
+      "duration": 40,
+      "priority": 2,
+      "routines": ["morning"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "2bcd8f5a-8571-4f15-bc7e-2e8f3b4a5bb5",
+      "task": "Water plants",
+      "duration": 30,
+      "priority": 3,
+      "routines": ["morning", "lunchtime", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 900
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "da48a1d3-91a2-4c61-8a3e-438e1a3c47d4",
+      "task": "Exercise",
+      "duration": 25,
+      "priority": 4,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 600
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "0d2880c5-8d9b-4c99-a2b1-0a82b8d5e0a2",
+      "task": "Read book",
+      "duration": 1200,
+      "priority": 5,
+      "routines": ["evening"],
+      "criteria": {
+        "always": false,
+        "interval": 300
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "8c7a6f39-0d5d-47b4-a9f8-dbe0d9a8c7e1",
+      "task": "Morning walk",
+      "duration": 1200,
+      "priority": 6,
+      "routines": ["morning"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "8c3c6a3e-8f7a-4e1d-9c3d-0b8d6a7f9d6e",
+      "task": "Check emails",
+      "duration": 900,
+      "priority": 7,
+      "routines": ["morning", "lunchtime", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 180
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "1e7d6a3f-7e8a-4b3d-9f8b-0b7d6a8f9d7a",
+      "task": "Cook lunch",
+      "duration": 1800,
+      "priority": 8,
+      "routines": ["lunchtime"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "3c8d6a3e-9e1a-4b7d-8c6f-1d7b6a9e8c7d",
+      "task": "Meditate",
+      "duration": 600,
+      "priority": 9,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 480
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "7c8d6a3e-1e9a-4b7d-8c6f-0b8d6a9e7d6e",
+      "task": "Call parents",
+      "duration": 1200,
+      "priority": 10,
+      "routines": ["lunchtime"],
+      "criteria": {
+        "always": false,
+        "interval": 900
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "2d7e6a3f-7e8a-4c6d-8f7b-1d8b6a9f7d6e",
+      "task": "Work on project",
+      "duration": 3600,
+      "priority": 11,
+      "routines": ["morning", "lunchtime", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 720
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "3e8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e8d6e",
+      "task": "Grocery shopping",
+      "duration": 3600,
+      "priority": 12,
+      "routines": ["lunchtime", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 840
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "4e8d6a3e-9e1a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Vacuum house",
+      "duration": 1800,
+      "priority": 13,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 900
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "5e8d6a3e-9e1a-4b7d-8c6f-1d7b6a9e8d6e",
+      "task": "Laundry",
+      "duration": 2700,
+      "priority": 14,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 780
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "6e8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Dishwashing",
+      "duration": 600,
+      "priority": 15,
+      "routines": ["morning", "lunchtime", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 300
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "7e8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d6e",
+      "task": "Yoga",
+      "duration": 1800,
+      "priority": 16,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": false,
+        "interval": 540
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "8e8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Journal writing",
+      "duration": 900,
+      "priority": 17,
+      "routines": ["evening"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "9e8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Plan next day",
+      "duration": 900,
+      "priority": 18,
+      "routines": ["evening"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "ae8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Play a game",
+      "duration": 1800,
+      "priority": 19,
+      "routines": ["evening"],
+      "criteria": {
+        "always": false,
+        "interval": 600
+      },
+      "lastCompletion": null
+    },
+    {
+      "id": "be8d6a3e-1e9a-4b7d-8c6f-1d7b6a9e9d7e",
+      "task": "Walk the dog",
+      "duration": 1200,
+      "priority": 20,
+      "routines": ["morning", "evening"],
+      "criteria": {
+        "always": true,
+        "interval": null
+      },
+      "lastCompletion": null
+    }
+  ]
+}
