@@ -8,6 +8,7 @@ door, so the payload is available only to devices signed into Aidan's tailnet.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import os
 import tempfile
@@ -48,34 +49,46 @@ def validate_snapshot(data: bytes) -> tuple[dict, datetime]:
     return payload, modified
 
 
-def read_snapshot(path: Path) -> tuple[bytes, datetime] | None:
+def read_snapshot(path: Path, *, raise_on_io_error: bool = False) -> tuple[bytes, datetime] | None:
     try:
         data = path.read_bytes()
         _, modified = validate_snapshot(data)
         return data, modified
-    except (OSError, ValueError):
+    except (FileNotFoundError, ValueError):
+        return None
+    except OSError:
+        if raise_on_io_error:
+            raise
         return None
 
 
 def store_if_newer(path: Path, data: bytes) -> tuple[bool, datetime]:
     _, incoming_modified = validate_snapshot(data)
-    current = read_snapshot(path)
-    if current is not None and current[1] > incoming_modified:
-        return False, current[1]
-
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd, temporary_name = tempfile.mkstemp(prefix=".MomentumData-", dir=path.parent)
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temporary.chmod(0o600)
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
-    return True, incoming_modified
+    # A stable sibling inode is essential: the snapshot inode changes on replace.
+    # Open separately for every call so flock also serializes threads in this
+    # process. Never unlink the lock file: waiters must share the same inode.
+    lock_path = path.with_name(f".{path.name}.lock")
+    lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    with os.fdopen(lock_fd, "rb") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        current = read_snapshot(path, raise_on_io_error=True)
+        if current is not None and current[1] > incoming_modified:
+            return False, current[1]
+
+        fd, temporary_name = tempfile.mkstemp(prefix=".MomentumData-", dir=path.parent)
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            temporary.chmod(0o600)
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+        # Closing the descriptor releases ownership on success or any exception.
+        return True, incoming_modified
 
 
 class MomentumRelayHandler(BaseHTTPRequestHandler):
@@ -141,6 +154,9 @@ class MomentumRelayHandler(BaseHTTPRequestHandler):
             stored, modified = store_if_newer(self.data_path, data)
         except ValueError as exc:
             self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+            return
+        except OSError:
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "snapshot_persistence_failed"})
             return
         self._json(
             HTTPStatus.OK,
