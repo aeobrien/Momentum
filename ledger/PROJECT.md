@@ -20,15 +20,15 @@ Actively used daily. Mature codebase with multiple iterations (originally HabitS
 
 ```
 HabitStackerv3/
-  HabitStackerv3App.swift           — App entry point
-  ContentView.swift                 — Root view
+  CDRoutine+Extensions.swift        — Core Data routine extensions
+  Views/HabitStackerv3App.swift     — App entry point
+  Views/ContentView.swift           — Root view
   
   Models/
     ChecklistItem.swift             — Checklist item model
     ChecklistItemTransformer.swift  — Value transformer for Core Data
     CDTask+Extensions.swift         — Core Data task extensions
-    CDRoutine+Extensions.swift      — Core Data routine extensions
-    Momentum 3.xcdatamodeld         — Core Data model
+  Views/Momentum 3.xcdatamodeld     — Core Data model
   
   Core Scheduling:
     TaskSelectionProcess.swift      — Priority calculation and task selection
@@ -115,7 +115,7 @@ HabitStackerv3/
 
 **Active / maintenance.** Used daily. Receives feature work and bug fixes as needed. Shared data layer and HealthKit integration added 2026-04-06; live sharing moved from iCloud to a private Tailscale relay on 2026-08-22.
 
-**Last updated:** 2026-08-22
+**Last updated:** 2026-11-02
 
 ## Linked Projects
 
