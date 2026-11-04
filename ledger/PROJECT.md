@@ -10,9 +10,9 @@ Actively used daily. Mature codebase with multiple iterations (originally HabitS
 
 **Platform:** iOS (SwiftUI, with widget extension)
 **Language:** Swift
-**Persistence:** Core Data (with CloudKit sync implied by model complexity)
+**Persistence:** Local Core Data via `HabitStackerv3/Views/CoreDataStack.swift`
 **Widget:** MomentumWidget (Live Activity support)
-**History:** HabitStacker -> HabitStackerv3 -> Momentum
+**History:** HabitStacker -> HabitStackerv3 -> Momentum; the repository also contains the separate `MasterTaskListTest/` Xcode app
 
 ## Architecture
 
@@ -115,7 +115,7 @@ HabitStackerv3/
 
 **Active / maintenance.** Used daily. Receives feature work and bug fixes as needed. Shared data layer and HealthKit integration added 2026-04-06; live sharing moved from iCloud to a private Tailscale relay on 2026-08-22.
 
-**Last updated:** 2026-11-02
+**Last updated:** 2026-11-04
 
 ## Linked Projects
 
