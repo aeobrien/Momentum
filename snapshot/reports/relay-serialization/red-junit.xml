@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="13" time="2.170" timestamp="2026-10-06T19:55:28.193460+01:00" hostname="Aidans-Laptop.local"><testcase classname="relay.test_momentum_relay" name="test_rejects_json_without_the_shared_data_contract" time="0.001" /><testcase classname="relay.test_momentum_relay" name="test_stores_a_valid_snapshot_atomically" time="0.004" /><testcase classname="relay.test_momentum_relay" name="test_an_older_retry_cannot_replace_newer_data" time="0.001" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_threads_keep_newest" time="0.007"><failure message="assert b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}' == b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}'&#10;  &#10;  At index 87 diff: b'1' != b'2'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_threads_keep_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x106171120&gt;
+
+    def test_overlapping_threads_keep_newest(tmp_path, monkeypatch):
+        target = tmp_path / 'data.json'
+        target.write_bytes(BASE)
+        entered, release, started, done = (threading.Event() for _ in range(4))
+        original = relay.read_snapshot
+        def held_read(path):
+            result = original(path)
+            if threading.current_thread().name == 'older':
+                entered.set()
+                assert release.wait(10)
+            return result
+        monkeypatch.setattr(relay, 'read_snapshot', held_read)
+        errors = []
+        def upload(data):
+            try:
+                if data == NEW: started.set()
+                relay.store_if_newer(target, data)
+                if data == NEW: done.set()
+            except BaseException as error: errors.append(error)
+        older = threading.Thread(target=upload, args=(OLD,), name='older')
+        newer = threading.Thread(target=upload, args=(NEW,))
+        older.start()
+        try:
+            assert entered.wait(5)
+            newer.start()
+            assert started.wait(5)
+            done.wait(.4)  # Lets the unfixed writer replace while the older read is held.
+        finally:
+            release.set()
+            older.join(5)
+            if newer.ident is not None: newer.join(5)
+        assert not older.is_alive() and not newer.is_alive() and not errors
+&gt;       assert target.read_bytes() == NEW
+E       assert b'{"tasks": [...edBy": "app"}' == b'{"tasks": [...edBy": "app"}'
+E         
+E         At index 87 diff: b'1' != b'2'
+E         Use -v to get more diff
+
+relay/test_momentum_relay_concurrency.py:69: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_overlapping_processes_keep_newest" time="0.457"><failure message="assert b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}' == b'{&quot;tasks&quot;: [...edBy&quot;: &quot;app&quot;}'&#10;  &#10;  At index 87 diff: b'1' != b'2'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_overlapping_processes_kee0')
+
+    def test_overlapping_processes_keep_newest(tmp_path):
+        target = tmp_path / 'data.json'
+        target.write_bytes(BASE)
+        ctx = multiprocessing.get_context('spawn')
+        entered, release, start_old, start_new, done_old, done_new = (ctx.Event() for _ in range(6))
+        older = ctx.Process(target=_process_upload, args=(str(target), OLD, entered, release, start_old, done_old))
+        newer = ctx.Process(target=_process_upload, args=(str(target), NEW, None, release, start_new, done_new))
+        older.start()
+        try:
+            assert entered.wait(5)
+            newer.start()
+            assert start_new.wait(5)
+            done_new.wait(.4)
+        finally:
+            release.set()
+            for process in (older, newer):
+                if process.pid:
+                    process.join(5)
+                    if process.is_alive(): process.terminate(); process.join(5)
+        assert older.exitcode == newer.exitcode == 0
+        assert done_old.is_set() and done_new.is_set()
+&gt;       assert target.read_bytes() == NEW
+E       assert b'{"tasks": [...edBy": "app"}' == b'{"tasks": [...edBy": "app"}'
+E         
+E         At index 87 diff: b'1' != b'2'
+E         Use -v to get more diff
+
+relay/test_momentum_relay_concurrency.py:93: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_other_files_progress_while_one_write_is_held" time="0.004" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[fsync]" time="0.003" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[chmod]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_failure_preserves_old_bytes_and_releases_for_retry[replace]" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_readers_see_complete_previous_then_new_snapshot" time="0.002" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_success_stale_equal_and_validation_contract" time="0.511" /><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_overlapping_uploads_keep_newest" time="0.507"><failure message="assert (200, b'{&quot;tas...dBy&quot;: &quot;app&quot;}') == (200, b'{&quot;tas...dBy&quot;: &quot;app&quot;}')&#10;  &#10;  At index 1 diff: b'{&quot;tasks&quot;: [], &quot;routines&quot;: [], &quot;completionHistory&quot;: [], &quot;lastModified&quot;: &quot;2026-10-06T10:01:00Z&quot;, &quot;lastModifiedBy&quot;: &quot;app&quot;}' != b'{&quot;tasks&quot;: [], &quot;routines&quot;: [], &quot;completionHistory&quot;: [], &quot;lastModified&quot;: &quot;2026-10-06T10:02:00Z&quot;, &quot;lastModifiedBy&quot;: &quot;app&quot;}'&#10;  Use -v to get more diff">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_overlapping_uploads_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x106191540&gt;
+
+    def test_http_overlapping_uploads_keep_newest(tmp_path, monkeypatch):
+        target = tmp_path / 'data.json'
+        target.write_bytes(BASE)
+        entered, release = threading.Event(), threading.Event()
+        original = relay.read_snapshot
+        first = True
+        guard = threading.Lock()
+        def held_read(path):
+            nonlocal first
+            result = original(path)
+            with guard:
+                hold = first
+                first = False
+            if hold:
+                entered.set()
+                assert release.wait(10)
+            return result
+        monkeypatch.setattr(relay, 'read_snapshot', held_read)
+        with running_server(target) as address, concurrent.futures.ThreadPoolExecutor(2) as pool:
+            older = pool.submit(request, address, 'PUT', '/data', OLD)
+            try:
+                assert entered.wait(5)
+                newer = pool.submit(request, address, 'PUT', '/momentum/data', NEW)
+                concurrent.futures.wait([newer], timeout=.4)
+            finally: release.set()
+            assert older.result(5)[0] == newer.result(5)[0] == 200
+&gt;           assert request(address, 'GET', '/data') == (200, NEW)
+E           assert (200, b'{"tas...dBy": "app"}') == (200, b'{"tas...dBy": "app"}')
+E             
+E             At index 1 diff: b'{"tasks": [], "routines": [], "completionHistory": [], "lastModified": "2026-10-06T10:01:00Z", "lastModifiedBy": "app"}' != b'{"tasks": [], "routines": [], "completionHistory": [], "lastModified": "2026-10-06T10:02:00Z", "lastModifiedBy": "app"}'
+E             Use -v to get more diff
+
+relay/test_momentum_relay_concurrency.py:215: AssertionError</failure></testcase><testcase classname="relay.test_momentum_relay_concurrency" name="test_http_persistence_failure_is_error_and_retry_works" time="0.504"><failure message="http.client.RemoteDisconnected: Remote end closed connection without response">tmp_path = PosixPath('/private/var/folders/4q/7s70w8ys4f5gwsf4grw_njlh0000gn/T/pytest-of-aidan/pytest-50/test_http_persistence_failure_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1061774f0&gt;
+
+    def test_http_persistence_failure_is_error_and_retry_works(tmp_path, monkeypatch):
+        target = tmp_path / 'data.json'
+        target.write_bytes(BASE)
+        with running_server(target) as address:
+            with monkeypatch.context() as patch:
+                def fail(*args): raise OSError('synthetic failure with private path')
+                patch.setattr(os, 'replace', fail)
+&gt;               status, raw = request(address, 'PUT', '/data', NEW)
+
+relay/test_momentum_relay_concurrency.py:225: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+relay/test_momentum_relay_concurrency.py:167: in request
+    response = connection.getresponse()
+../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:1375: in getresponse
+    response.begin()
+../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:318: in begin
+    version, status, reason = self._read_status()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;http.client.HTTPResponse object at 0x106176080&gt;
+
+    def _read_status(self):
+        line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+        if len(line) &gt; _MAXLINE:
+            raise LineTooLong("status line")
+        if self.debuglevel &gt; 0:
+            print("reply:", repr(line))
+        if not line:
+            # Presumably, the server closed the connection before
+            # sending a valid response.
+&gt;           raise RemoteDisconnected("Remote end closed connection without"
+                                     " response")
+E           http.client.RemoteDisconnected: Remote end closed connection without response
+
+../../.pyenv/versions/3.10.13/lib/python3.10/http/client.py:287: RemoteDisconnected</failure></testcase></testsuite></testsuites>

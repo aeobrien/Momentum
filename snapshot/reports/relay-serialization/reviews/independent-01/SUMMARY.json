@@ -1,0 +1,20 @@
+{
+  "verdict": "LOCAL_CHECKS_PASS_ASTRA_REVIEW_NOT_RUN",
+  "source_commit": "f78a3ea9c95881ec0d7d07cd8ae8064ac96e6241",
+  "evidence_head": "71ac4e8",
+  "candidate_hashes_unchanged": true,
+  "independent_probes": {
+    "passed": 4,
+    "duration_s": 1.028
+  },
+  "committed_tests": {
+    "passed": 14,
+    "duration_s": 3.891
+  },
+  "runtime_edits": false,
+  "live_service_touched": false,
+  "external_transfer_started": false,
+  "astra_model_verified": false,
+  "approval_block": "review-approval-block.json",
+  "disclosure_manifest_sha256": "2a26032515a00744694339753784b0734fee142859c81a51dcafcc2db09b9f15"
+}

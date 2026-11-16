@@ -1,0 +1,38 @@
+{
+  "capture_finished_at_utc": "2026-11-16T03:15:11Z",
+  "capture_started_at_utc": "2026-11-16T03:15:06Z",
+  "captured_at_utc": "2026-11-16T03:15:06Z",
+  "captured_byte_estimate": 181121871,
+  "captured_path_count": 2148,
+  "consistency_retry_count": 0,
+  "excluded": [
+    {
+      "path": "momentum-cli/.build/checkouts/swift-argument-parser",
+      "reason": "unsupported_file_type",
+      "remote_recoverable": false,
+      "size": 64,
+      "threshold": null
+    },
+    {
+      "path": "reports/relay-serialization/reviews/independent-01/judge-project/",
+      "reason": "unsupported_file_type",
+      "remote_recoverable": false,
+      "size": 672,
+      "threshold": null
+    }
+  ],
+  "github_hard_limit_bytes": 100000000,
+  "guardian_version": "2.0-sidecar",
+  "head_state": "symbolic",
+  "host": "aidans-laptop",
+  "racy_capture": false,
+  "repository_id": "Momentum-relay-serialization-4481f53ba2b7",
+  "schema_version": 1,
+  "snapshot_blob_threshold_bytes": 94371840,
+  "snapshot_consistency": "stable",
+  "source_branch": "repair/relay-snapshot-serialization",
+  "source_head_oid": "1531d6207c65629c7a7517841c913e619f95cdf9",
+  "source_index_sha256": "17e96cd773d5b6bc7d1e122591aebe74f2b07f34063279e7e9badcfb8902e0f6",
+  "source_path": "/Users/aidan/Dev/Momentum-relay-serialization",
+  "upstream_observed": "origin/repair/relay-snapshot-serialization"
+}
