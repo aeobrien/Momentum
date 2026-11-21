@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "exit_code": 0,
+  "timed_out": false,
+  "duration_s": 3.919,
+  "stdout_tail": "{\n  \"result\": \"advanced\",\n  \"session_key\": \"momentum-relay-serialization-20261006\",\n  \"manifest_id\": \"build-BUILD-RELAY-SERIALIZATION-9576de56\",\n  \"previous_frontier\": 1,\n  \"frontier\": 4,\n  \"full_reread_required\": true,\n  \"judged_pending\": [],\n  \"audit_pending\": false,\n  \"action\": \"Read the full plan at /Users/aidan/Dev/Momentum-relay-serialization/docs/BUILD-RELAY-SERIALIZATION.md before continuing.\",\n  \"error\": null\n}\n",
+  "stderr_tail": "",
+  "truncated": false,
+  "assertions": [
+    {
+      "kind": "exit==",
+      "expected": 0,
+      "actual": 0,
+      "ok": true
+    }
+  ],
+  "files": {
+    "created": [],
+    "modified": [],
+    "deleted": []
+  }
+}

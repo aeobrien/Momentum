@@ -1,0 +1,8 @@
+Model: anthropic/claude-fable-5.1 (OpenRouter)
+Verdict: NO_BLOCKING_FAULT
+
+The Fable foreground review completed under timeout 900. Terminal transport
+truncated its final output; resuming its recorded session solely to retrieve
+the completed final answer returned NO_BLOCKING_FAULT. The resumption client
+warned that its fallback model was gpt-6.1-sol, so this file identifies Fable
+as the model that performed the actual diff review, not the retrieval client.

@@ -1,0 +1,8 @@
+Model: openai/gpt-6-astra (OpenRouter)
+Verdict: NO_BLOCKING_FAULT
+
+The supplied diff holds a stable sibling lock across timestamp comparison and
+atomic replacement. Older uploads cannot overwrite newer accepted snapshots
+among cooperating writers. Read I/O failures prevent replacement, and
+exceptions release the lock. The conclusion covers the documented POSIX
+local-filesystem scope.

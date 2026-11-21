@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "relay/momentum_relay.py": true,
+    "relay/test_momentum_relay.py": true,
+    "relay/test_momentum_relay_concurrency.py": true,
+    "docs/BUILD-RELAY-SERIALIZATION.md": true,
+    "docs/RELAY-SERIALIZATION.md": true
+  },
+  "source_commit": "f78a3ea9c95881ec0d7d07cd8ae8064ac96e6241",
+  "backend": "codex",
+  "requested_model": "gpt-6-astra",
+  "model_interface": "UNDERSTUDY_CODEX_MODEL",
+  "production_data_used": false
+}
